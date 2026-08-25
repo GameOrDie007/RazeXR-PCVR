@@ -8,7 +8,8 @@ Authors		:	Simon Brown
 *************************************************************************************/
 
 
-#include <android/keycodes.h>
+// PCVR port: their include of <android/keycodes.h> is vestigial - no
+// AKEYCODE_ appears anywhere in this file.
 #include <c_dispatch.h>
 
 #include "VrInput.h"

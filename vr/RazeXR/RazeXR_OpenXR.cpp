@@ -1,16 +1,31 @@
+/*
+	RazeXR_OpenXR.cpp - PCVR port.
+
+	The game half of Team Beef's VR layer. Everything above the "Activity
+	lifecycle" banner is theirs and is untouched: the HMD pose, VR_GetMove,
+	VR_GetVRProjection, the screen layer and the haptic event names.
+
+	What is replaced is the Android lifecycle below that banner - JNI_OnLoad,
+	the Java_com_drbeef_razexr_GLES3JNILib_* entry points, the app thread and
+	the Java haptics service. On PC the engine owns the main thread, so the
+	startup sequence their AppThreadFunction performed is split in two around
+	the point where Raze creates its window and GL context.
+
+	Copyright (C) 2023 Simon Brown (Team Beef)
+	Copyright (C) 2026 RazeXR PCVR port
+
+	This program is free software; you can redistribute it and/or modify it
+	under the terms of the GNU General Public License as published by the Free
+	Software Foundation; either version 2 of the License, or (at your option)
+	any later version.
+*/
+
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <time.h>
-#include <unistd.h>
-#include <pthread.h>
 #include <string.h>
-#include <sys/prctl.h>					// for prctl( PR_SET_NAME )
-#include <android/log.h>
-#include <android/native_window_jni.h>	// for native window JNI
-#include <android/input.h>
 
-#include "argtable3.h"
 #include "VrInput.h"
 
 
@@ -228,62 +243,17 @@ void VR_Init()
 
 	shutdown = false;
 
-	chdir("/sdcard/RazeXR");
+	// Theirs moves to /sdcard/RazeXR here. On PC the engine already runs from
+	// its own directory and Raze finds its data through the search paths.
 }
 
 int raze_main (int argc, char **argv);
 
-void * AppThreadFunction(void * parm ) {
-	gAppThread = (ovrAppThread *) parm;
-
-	java.Vm = gAppThread->JavaVm;
-	java.Vm->AttachCurrentThread(&java.Env, NULL);
-	java.ActivityObject = gAppThread->ActivityObject;
-
-	jclass cls = java.Env->GetObjectClass(java.ActivityObject);
-
-	// Note that AttachCurrentThread will reset the thread name.
-	prctl(PR_SET_NAME, (long) "AppThreadFunction", 0, 0, 0);
-
-	//Set device defaults
-	if (SS_MULTIPLIER == 0.0f)
-	{
-		SS_MULTIPLIER = 1.0f;
-	}
-	else if (SS_MULTIPLIER > 1.5f)
-	{
-		SS_MULTIPLIER = 1.5f;
-	}
-
-	gAppState.MainThreadTid = gettid();
-
-	VR_Init();
-
-	TBXR_InitialiseOpenXR();
-
-	TBXR_EnterVR();
-	TBXR_InitRenderer();
-	TBXR_InitActions();
-
-	TBXR_WaitForSessionActive();
-
-	if (REFRESH != 0)
-	{
-		RazeXR_SetRefreshRate(REFRESH);
-	}
-
-	{
-		//Should now be all set up and ready - start the main loop
-		raze_main(argc, argv);
-	}
-
-	TBXR_LeaveVR();
-
-	//Ask Java to shut down
-    jni_shutdown();
-
-	return NULL;
-}
+/*
+	Theirs runs the whole startup on an app thread it creates from JNI. On PC
+	the engine owns the main thread, so their sequence lives in
+	RazeXR_PC_PreInit / RazeXR_PC_StartVR below instead.
+*/
 
 //All the stuff we want to do each frame specifically for this game
 void VR_FrameSetup()
@@ -387,313 +357,112 @@ void VR_HandleControllerInput() {
 /*
 ================================================================================
 
-Activity lifecycle
+PC lifecycle
+
+Replaces their JNI_OnLoad, the GLES3JNILib entry points and the app thread.
 
 ================================================================================
 */
 
-jmethodID android_shutdown;
-static JavaVM *jVM;
-static jobject jniCallbackObj=0;
+/*
+	Theirs does all of this on the app thread before calling raze_main, because
+	on Android the GL context already exists by then - EGL created it during the
+	surface callbacks. On PC the context is Raze's own and does not exist until
+	the engine has opened its window, so the sequence splits:
 
-void jni_shutdown()
+	  RazeXR_PC_PreInit   before the engine starts - instance, system and eye
+	                      resolution, none of which need a GL context.
+	  RazeXR_PC_StartVR   once the Win32 backend has a context and has called
+	                      TBXR_SetGraphicsBinding - session, renderer, actions.
+
+	Their SS_MULTIPLIER clamp is kept where they put it.
+*/
+void RazeXR_PC_PreInit()
 {
-	ALOGV("Calling: jni_shutdown");
-	JNIEnv *env;
-	jobject tmp;
-	if ((jVM->GetEnv((void**) &env, JNI_VERSION_1_4))<0)
+	//Set device defaults
+	if (SS_MULTIPLIER == 0.0f)
 	{
-		jVM->AttachCurrentThread(&env, NULL);
+		SS_MULTIPLIER = 1.0f;
 	}
-	return env->CallVoidMethod(jniCallbackObj, android_shutdown);
+	else if (SS_MULTIPLIER > 1.5f)
+	{
+		SS_MULTIPLIER = 1.5f;
+	}
+
+	VR_Init();
+
+	TBXR_InitialiseOpenXR();
 }
 
-void VR_Shutdown()
+void RazeXR_PC_StartVR()
+{
+	if (!TBXR_EnterVR())
+		return;
+
+	TBXR_InitRenderer();
+	TBXR_InitActions();
+
+	TBXR_WaitForSessionActive();
+
+	if (REFRESH != 0)
+	{
+		RazeXR_SetRefreshRate(REFRESH);
+	}
+}
+
+void RazeXR_PC_StopVR()
+{
+	TBXR_LeaveVR();
+}
+
+/*
+	Theirs asks Java to finish the activity. On PC there is nothing above us to
+	ask - the engine's own quit path runs.
+*/
+void jni_shutdown()
+{
+	ALOGV("jni_shutdown");
+}
+
+extern "C" void VR_Shutdown()
 {
 	jni_shutdown();
 }
 
-jmethodID android_haptic_event;
-jmethodID android_haptic_stopevent;
-jmethodID android_haptic_enable;
-jmethodID android_haptic_disable;
+/*
+	Their haptics are authored patterns played by a Java service, addressed by
+	name ("fire_pistol" and so on). There is no PC equivalent of that service,
+	so the named event becomes a plain controller pulse through the OpenXR
+	haptic action. This is a divergence and is recorded as one in PROGRESS.md:
+	the events fire in the same places with the same intensities, but the
+	texture of the pattern is lost.
+*/
+static bool vr_hapticsEnabled = false;
 
-void jni_haptic_event(const char* event, int position, int intensity, float angle, float yHeight)
+void jni_haptic_event(const char *event, int position, int intensity, float angle, float yHeight)
 {
-	JNIEnv *env;
-	jobject tmp;
-	if ((jVM->GetEnv((void**) &env, JNI_VERSION_1_4))<0)
-	{
-		jVM->AttachCurrentThread(&env, NULL);
-	}
+	if (!vr_hapticsEnabled)
+		return;
 
-	jstring StringArg1 = env->NewStringUTF(event);
+	// position: 0 both, 1 right, 2 left - as their Java service reads it.
+	const float level = (float)intensity / 100.0f;
 
-	return env->CallVoidMethod(jniCallbackObj, android_haptic_event, StringArg1, position, intensity, angle, yHeight);
+	if (position == 0 || position == 1) TBXR_Vibrate(100, 1, level);
+	if (position == 0 || position == 2) TBXR_Vibrate(100, 2, level);
 }
 
-void jni_haptic_stopevent(const char* event)
+void jni_haptic_stopevent(const char *event)
 {
-	ALOGV("Calling: jni_haptic_stopevent");
-	JNIEnv *env;
-	jobject tmp;
-	if ((jVM->GetEnv((void**) &env, JNI_VERSION_1_4))<0)
-	{
-		jVM->AttachCurrentThread(&env, NULL);
-	}
-
-	jstring StringArg1 = env->NewStringUTF(event);
-
-	return env->CallVoidMethod(jniCallbackObj, android_haptic_stopevent, StringArg1);
+	TBXR_Vibrate(0, 1, 0.0f);
+	TBXR_Vibrate(0, 2, 0.0f);
 }
-
 
 void jni_haptic_enable()
 {
-	ALOGV("Calling: jni_haptic_enable");
-	JNIEnv *env;
-	jobject tmp;
-	if ((jVM->GetEnv((void**) &env, JNI_VERSION_1_4))<0)
-	{
-		jVM->AttachCurrentThread(&env, NULL);
-	}
-
-	return env->CallVoidMethod(jniCallbackObj, android_haptic_enable);
+	vr_hapticsEnabled = true;
 }
 
 void jni_haptic_disable()
 {
-	ALOGV("Calling: jni_haptic_disable");
-	JNIEnv *env;
-	jobject tmp;
-	if ((jVM->GetEnv((void**) &env, JNI_VERSION_1_4))<0)
-	{
-		jVM->AttachCurrentThread(&env, NULL);
-	}
-
-	return env->CallVoidMethod(jniCallbackObj, android_haptic_disable);
-}
-
-extern "C" {
-
-int JNI_OnLoad(JavaVM* vm, void* reserved)
-{
-	JNIEnv *env;
-    jVM = vm;
-	if(vm->GetEnv((void**) &env, JNI_VERSION_1_4) != JNI_OK)
-	{
-		ALOGE("Failed JNI_OnLoad");
-		return -1;
-	}
-
-	return JNI_VERSION_1_4;
-}
-
-JNIEXPORT jlong JNICALL Java_com_drbeef_razexr_GLES3JNILib_onCreate( JNIEnv * env, jclass activityClass, jobject activity,
-																		 jstring commandLineParams, jboolean jHasIWADs, jboolean jHasLauncher)
-{
-	ALOGV( "    GLES3JNILib::onCreate()" );
-
-	/* the global arg_xxx structs are initialised within the argtable */
-	void *argtable[] = {
-			ss    = arg_dbl0("s", "supersampling", "<double>", "super sampling value (default: Q1: 1.2, Q2: 1.35)"),
-            cpu   = arg_int0("c", "cpu", "<int>", "CPU perf index 1-4 (default: 2)"),
-            gpu   = arg_int0("g", "gpu", "<int>", "GPU perf index 1-4 (default: 3)"),
-            msaa  = arg_int0("m", "msaa", "<int>", "MSAA (default: 1)"),
-            refresh  = arg_int0("r", "refresh", "<int>", "Refresh Rate (default: Q1: 72, Q2: 72)"),
-            end   = arg_end(20)
-	};
-
-	hasIWADs = jHasIWADs != 0;
-	hasLauncher = jHasLauncher != 0;
-
-	jboolean iscopy;
-	const char *arg = env->GetStringUTFChars(commandLineParams, &iscopy);
-
-	char *cmdLine = NULL;
-	if (arg && strlen(arg))
-	{
-		cmdLine = strdup(arg);
-	}
-
-	env->ReleaseStringUTFChars(commandLineParams, arg);
-
-	ALOGV("Command line %s", cmdLine);
-	argv = (char**)malloc(sizeof(char*) * 255);
-	argc = ParseCommandLine(strdup(cmdLine), argv);
-
-	/* verify the argtable[] entries were allocated sucessfully */
-	if (arg_nullcheck(argtable) == 0) {
-		/* Parse the command line as defined by argtable[] */
-		arg_parse(argc, argv, argtable);
-
-        if (ss->count > 0 && ss->dval[0] > 0.0)
-        {
-            SS_MULTIPLIER = ss->dval[0];
-        }
-
-        if (refresh->count > 0 && refresh->ival[0] > 0 && refresh->ival[0] <= 120)
-        {
-            REFRESH = refresh->ival[0];
-        }
-	}
-
-	ovrAppThread * appThread = (ovrAppThread *) malloc( sizeof( ovrAppThread ) );
-	ovrAppThread_Create( appThread, env, activity, activityClass );
-
-	surfaceMessageQueue_Enable(&appThread->MessageQueue, true);
-	srufaceMessage message;
-	surfaceMessage_Init(&message, MESSAGE_ON_CREATE, MQ_WAIT_PROCESSED);
-	surfaceMessageQueue_PostMessage(&appThread->MessageQueue, &message);
-
-	return (jlong)((size_t)appThread);
-}
-
-
-JNIEXPORT void JNICALL Java_com_drbeef_razexr_GLES3JNILib_onStart( JNIEnv * env, jobject obj, jlong handle, jobject obj1)
-{
-	ALOGV( "    GLES3JNILib::onStart()" );
-
-
-    jniCallbackObj = (jobject)env->NewGlobalRef( obj1);
-	jclass callbackClass = env->GetObjectClass( jniCallbackObj);
-
-	android_shutdown = env->GetMethodID(callbackClass,"shutdown","()V");
-
-	android_haptic_event = env->GetMethodID(callbackClass, "haptic_event", "(Ljava/lang/String;IIFF)V");
-	android_haptic_stopevent = env->GetMethodID(callbackClass, "haptic_stopevent", "(Ljava/lang/String;)V");
-	android_haptic_enable = env->GetMethodID(callbackClass, "haptic_enable", "()V");
-	android_haptic_disable = env->GetMethodID(callbackClass, "haptic_disable", "()V");
-
-	ovrAppThread * appThread = (ovrAppThread *)((size_t)handle);
-	srufaceMessage message;
-	surfaceMessage_Init(&message, MESSAGE_ON_START, MQ_WAIT_PROCESSED);
-	surfaceMessageQueue_PostMessage(&appThread->MessageQueue, &message);
-}
-
-JNIEXPORT void JNICALL Java_com_drbeef_razexr_GLES3JNILib_onResume( JNIEnv * env, jobject obj, jlong handle )
-{
-	ALOGV( "    GLES3JNILib::onResume()" );
-	ovrAppThread * appThread = (ovrAppThread *)((size_t)handle);
-	srufaceMessage message;
-	surfaceMessage_Init(&message, MESSAGE_ON_RESUME, MQ_WAIT_PROCESSED);
-	surfaceMessageQueue_PostMessage(&appThread->MessageQueue, &message);
-}
-
-JNIEXPORT void JNICALL Java_com_drbeef_razexr_GLES3JNILib_onPause( JNIEnv * env, jobject obj, jlong handle )
-{
-	ALOGV( "    GLES3JNILib::onPause()" );
-	ovrAppThread * appThread = (ovrAppThread *)((size_t)handle);
-	srufaceMessage message;
-	surfaceMessage_Init(&message, MESSAGE_ON_PAUSE, MQ_WAIT_PROCESSED);
-	surfaceMessageQueue_PostMessage(&appThread->MessageQueue, &message);
-}
-
-JNIEXPORT void JNICALL Java_com_drbeef_razexr_GLES3JNILib_onStop( JNIEnv * env, jobject obj, jlong handle )
-{
-	ALOGV( "    GLES3JNILib::onStop()" );
-	ovrAppThread * appThread = (ovrAppThread *)((size_t)handle);
-	srufaceMessage message;
-	surfaceMessage_Init(&message, MESSAGE_ON_STOP, MQ_WAIT_PROCESSED);
-	surfaceMessageQueue_PostMessage(&appThread->MessageQueue, &message);
-}
-
-JNIEXPORT void JNICALL Java_com_drbeef_razexr_GLES3JNILib_onDestroy( JNIEnv * env, jobject obj, jlong handle )
-{
-	ALOGV( "    GLES3JNILib::onDestroy()" );
-	ovrAppThread * appThread = (ovrAppThread *)((size_t)handle);
-	srufaceMessage message;
-	surfaceMessage_Init(&message, MESSAGE_ON_DESTROY, MQ_WAIT_PROCESSED);
-	surfaceMessageQueue_PostMessage(&appThread->MessageQueue, &message);
-	surfaceMessageQueue_Enable(&appThread->MessageQueue, false);
-
-	ovrAppThread_Destroy( appThread, env );
-	free( appThread );
-}
-
-/*
-================================================================================
-
-Surface lifecycle
-
-================================================================================
-*/
-
-JNIEXPORT void JNICALL Java_com_drbeef_razexr_GLES3JNILib_onSurfaceCreated( JNIEnv * env, jobject obj, jlong handle, jobject surface )
-{
-	ALOGV( "    GLES3JNILib::onSurfaceCreated()" );
-	ovrAppThread * appThread = (ovrAppThread *)((size_t)handle);
-
-	ANativeWindow * newNativeWindow = ANativeWindow_fromSurface( env, surface );
-	if ( ANativeWindow_getWidth( newNativeWindow ) < ANativeWindow_getHeight( newNativeWindow ) )
-	{
-		// An app that is relaunched after pressing the home button gets an initial surface with
-		// the wrong orientation even though android:screenOrientation="landscape" is set in the
-		// manifest. The choreographer callback will also never be called for this surface because
-		// the surface is immediately replaced with a new surface with the correct orientation.
-		ALOGE( "        Surface not in landscape mode!" );
-	}
-
-	ALOGV( "        NativeWindow = ANativeWindow_fromSurface( env, surface )" );
-	appThread->NativeWindow = newNativeWindow;
-	srufaceMessage message;
-	surfaceMessage_Init(&message, MESSAGE_ON_SURFACE_CREATED, MQ_WAIT_PROCESSED);
-	surfaceMessage_SetPointerParm(&message, 0, appThread->NativeWindow);
-	surfaceMessageQueue_PostMessage(&appThread->MessageQueue, &message);
-}
-
-JNIEXPORT void JNICALL Java_com_drbeef_razexr_GLES3JNILib_onSurfaceChanged( JNIEnv * env, jobject obj, jlong handle, jobject surface )
-{
-	ALOGV( "    GLES3JNILib::onSurfaceChanged()" );
-	ovrAppThread * appThread = (ovrAppThread *)((size_t)handle);
-
-	ANativeWindow * newNativeWindow = ANativeWindow_fromSurface( env, surface );
-	if ( ANativeWindow_getWidth( newNativeWindow ) < ANativeWindow_getHeight( newNativeWindow ) )
-	{
-		// An app that is relaunched after pressing the home button gets an initial surface with
-		// the wrong orientation even though android:screenOrientation="landscape" is set in the
-		// manifest. The choreographer callback will also never be called for this surface because
-		// the surface is immediately replaced with a new surface with the correct orientation.
-		ALOGE( "        Surface not in landscape mode!" );
-	}
-
-	if ( newNativeWindow != appThread->NativeWindow )
-	{
-		if ( appThread->NativeWindow != NULL )
-		{
-			srufaceMessage message;
-			surfaceMessage_Init(&message, MESSAGE_ON_SURFACE_DESTROYED, MQ_WAIT_PROCESSED);
-			surfaceMessageQueue_PostMessage(&appThread->MessageQueue, &message);
-			ALOGV( "        ANativeWindow_release( NativeWindow )" );
-			ANativeWindow_release( appThread->NativeWindow );
-			appThread->NativeWindow = NULL;
-		}
-		if ( newNativeWindow != NULL )
-		{
-			ALOGV( "        NativeWindow = ANativeWindow_fromSurface( env, surface )" );
-			appThread->NativeWindow = newNativeWindow;
-			srufaceMessage message;
-			surfaceMessage_Init(&message, MESSAGE_ON_SURFACE_CREATED, MQ_WAIT_PROCESSED);
-			surfaceMessage_SetPointerParm(&message, 0, appThread->NativeWindow);
-			surfaceMessageQueue_PostMessage(&appThread->MessageQueue, &message);
-		}
-	}
-	else if ( newNativeWindow != NULL )
-	{
-		ANativeWindow_release( newNativeWindow );
-	}
-}
-
-JNIEXPORT void JNICALL Java_com_drbeef_razexr_GLES3JNILib_onSurfaceDestroyed( JNIEnv * env, jobject obj, jlong handle )
-{
-	ALOGV( "    GLES3JNILib::onSurfaceDestroyed()" );
-	ovrAppThread * appThread = (ovrAppThread *)((size_t)handle);
-	srufaceMessage message;
-	surfaceMessage_Init(&message, MESSAGE_ON_SURFACE_DESTROYED, MQ_WAIT_PROCESSED);
-	surfaceMessageQueue_PostMessage(&appThread->MessageQueue, &message);
-	ALOGV( "        ANativeWindow_release( NativeWindow )" );
-	ANativeWindow_release( appThread->NativeWindow );
-	appThread->NativeWindow = NULL;
-}
-
+	vr_hapticsEnabled = false;
 }

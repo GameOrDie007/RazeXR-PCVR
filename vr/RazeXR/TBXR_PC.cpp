@@ -936,7 +936,7 @@ void TBXR_Recenter(void)
 	}
 }
 
-void TBXR_EnterVR(void)
+bool TBXR_EnterVR(void)
 {
 	XrGraphicsBindingOpenGLWin32KHR graphicsBinding = {};
 	XrSessionCreateInfo sessionCreateInfo = {};
