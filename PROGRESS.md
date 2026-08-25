@@ -282,3 +282,100 @@ reproduced defects — not quietly absorbed into "1:1".
 its switcher. Not blocking — the PC branch comes after the 1:1 tag.
 
 No code written yet.
+
+---
+
+# Milestone 1 (build) — in progress
+
+## Stock Raze builds clean on Windows
+
+The base commit `1147030b`, unmodified, configures and builds with the VS2019
+toolchain: `raze.exe`, 9.8 MB, **zero errors and two warnings** — both C4267 in
+the vendored `libtess`. Raze is a far better-maintained codebase than
+DarkPlaces was, so the "read every warning" lesson will pay off on *their*
+changes rather than on the base.
+
+Use the **VS2019** toolchain. Raze declares `cmake_minimum_required(VERSION
+3.1.0)` and the CMake 4.3.1 bundled with VS2026 hard-errors on it.
+
+Build the OpenXR loader once (it is a binary, so it is not committed):
+
+```bash
+cmake -S <OpenXR-SDK> -B <build> -G "Visual Studio 16 2019" -A x64 -DDYNAMIC_LOADER=ON
+```
+
+then point `OPENXR_LOADER_DIR` at the result. `../RazeXR-refs/openxr-build/src/loader/Release`
+is the default.
+
+## Android assumptions found so far
+
+Each was a hard build stop, each is one line, and each is the same shape: they
+swapped in an Android-only path without a guard, because they never build for
+desktop.
+
+| file | what |
+|---|---|
+| `gl_load/gl_system.h` | `#include "gl_load/gl_load.h"` replaced by `"android_gl_load.h"` |
+| `gl/gl_buffers.h`, `gl_buffers.cpp` | same swap again |
+| `gles/gles_renderstate.cpp` | their `mProjectionMatrix[2]` and the new `Set2D(F2DDrawer*)` signature never reached the GLES backend, which they do not compile. Dead code for us too, but it is in the build |
+
+## Divergences — deliberate, and not to be confused with 1:1
+
+1. **Two-pass instead of multiview.** Decided above. `ovrRenderer` regains
+   `FrameBuffer[2]`; each eye renders its own pass into its own swapchain.
+2. **Haptics.** Theirs plays authored patterns through a Java service, addressed
+   by name (`fire_pistol` and so on). There is no PC equivalent of that service,
+   so a named event becomes a plain controller pulse through the OpenXR haptic
+   action. The events fire in the same places with the same intensities; the
+   texture of the pattern is lost. Worth judging in the headset.
+3. **Startup order.** Their `AppThreadFunction` does everything before calling
+   `raze_main`, because EGL already made the GL context. On PC the context is
+   Raze's own and does not exist until the engine opens its window, so the
+   sequence splits into `RazeXR_PC_PreInit` (instance, system, eye resolution)
+   and `RazeXR_PC_StartVR` (session, renderer, actions).
+
+## Their design, reproduced rather than fixed
+
+Caught while porting, all confirmed against their `TBXR_Common.cpp`:
+
+- **The frustum is the union of the two eyes**, not per-eye asymmetric: the left
+  eye's `angleLeft`, the right eye's `angleRight`, and the first eye's up and
+  down. Both eyes render with it. Each eye therefore draws a wider field than it
+  needs, and the composition layer is handed that same union FOV.
+- **The composition layer submits the head pose for both views**, not a per-eye
+  pose. The eye separation lives in the projection matrix
+  (`VREyeInfo::GetStereoProjection` translates by half the IPD). Feed the
+  compositor anything else and the world shears.
+- Together these should mean the Quake II edge-culling bug does **not** appear
+  here, because the frustum is already wider than either eye needs. Untested.
+- `fov_x` is computed at the *end* of `TBXR_submitFrame`, so the engine culls
+  frame N against frame N−1's FOV, and against 0 on the very first frame.
+- **No MSAA and no supersampling.** `SS_MULTIPLIER` 1.0, `sampleCount` 1,
+  `Multisamples` 0, refresh 72. The Quake 1 port defaulted to 1.3x with MSAA on;
+  that is Quake's answer, not this one's, and taking it would have been a silent
+  fidelity change.
+
+## What the PC layer reuses
+
+Of the 21 `TBXR_*` entry points RazeXR needs, the Quake 1 port's `vr_xr.c`
+already implemented 16 under the same names; the rest are renames or arrive with
+`OpenXrInput.cpp`, which ports verbatim. `TBXR_PC.cpp` is that file adapted —
+1,400 lines, of which the engine coupling was only 21 `qgl*` names, six engine
+calls and `vec3_t`. The OpenXR half carries over whole because TBXR_Common is
+the same framework in both games.
+
+Their `TBXR_Common.h` was converted **in place**, keeping its name and every
+struct, field and function name, so `OpenXrInput.cpp`, `VrInputCommon.cpp` and
+`VrInputDefault.cpp` compile against it untouched.
+
+## Still to do
+
+- Finish linking: the game half's PC lifecycle is written but not yet proven.
+- Wire `TBXR_SetGraphicsBinding` into `win32glvideo.cpp` and call the two
+  startup halves from the right places.
+- The two-pass engine edits: `vrmi_openxr` back to two eyes, per-eye projection
+  in `hw_entrypoint.cpp`, `TBXR_prepareEyeBuffer(eye)` from `NextEye`.
+- The shader: `main.vp` hardcodes `ProjectionMatrix[gl_ViewID_OVR]` with no
+  guard, so desktop needs `NUM_VIEWS`/`gl_ViewID_OVR` defined or the indexing
+  removed.
+- Nothing has run yet. No headset testing is due until it does.

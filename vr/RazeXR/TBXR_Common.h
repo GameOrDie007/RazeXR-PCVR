@@ -41,7 +41,16 @@
 #define XR_USE_GRAPHICS_API_OPENGL 1
 #define XR_USE_PLATFORM_WIN32 1
 
+// WIN32_LEAN_AND_MEAN keeps winsock out of the translation unit. Without it
+// its shutdown() collides with the global of the same name that VrCommon.h
+// declares and their code writes to.
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
+// openxr_platform.h declares the D3D graphics bindings over IUnknown, which
+// WIN32_LEAN_AND_MEAN otherwise leaves undefined.
+#include <unknwn.h>
 
 // Raze's own loader. It defines the desktop GL entry points as macros over
 // function pointers under their standard names, so their GL calls carry over
@@ -296,7 +305,7 @@ void TBXR_Recenter();
 void TBXR_InitialiseOpenXR();
 void TBXR_WaitForSessionActive();
 void TBXR_InitRenderer();
-void TBXR_EnterVR();
+bool TBXR_EnterVR();
 void TBXR_LeaveVR( );
 void TBXR_GetScreenRes(int *width, int *height);
 void TBXR_InitActions( void );
