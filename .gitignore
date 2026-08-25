@@ -3,3 +3,7 @@ build-vs2019/
 /build2
 /build
 .DS_Store
+
+# PCVR port: local build output
+/build/
+/build-log-*.txt
