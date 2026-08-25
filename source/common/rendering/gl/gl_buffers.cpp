@@ -33,7 +33,11 @@
 **/
 
 #include <algorithm>
+#ifdef __MOBILE__
 #include "android_gl_load.h"
+#else
+#include "gl_load.h"
+#endif
 #include "gl_buffers.h"
 #include "gl_renderstate.h"
 #include "v_video.h"

@@ -1,7 +1,11 @@
 #pragma once
 
 #include "buffers.h"
+#ifdef __MOBILE__
 #include "android_gl_load.h"
+#else
+#include "gl_load.h"
+#endif
 
 #ifdef _MSC_VER
 // silence bogus warning C4250: 'GLVertexBuffer': inherits 'GLBuffer::GLBuffer::SetData' via dominance
