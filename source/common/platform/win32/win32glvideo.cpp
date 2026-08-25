@@ -411,6 +411,8 @@ bool Win32GLVideo::SetupPixelFormat(int multisample)
 //
 //==========================================================================
 
+void TBXR_SetGraphicsBinding(HWND hwnd, HDC hdc, HGLRC hglrc);
+
 bool Win32GLVideo::InitHardware(HWND Window, int multisample)
 {
 	m_Window = Window;
@@ -460,6 +462,12 @@ bool Win32GLVideo::InitHardware(HWND Window, int multisample)
 		if (m_hRC != NULL)
 		{
 			zd_wglMakeCurrent(m_hDC, m_hRC);
+
+			// PCVR port: the OpenXR session is bound to this window and
+			// context. Theirs gets the equivalent from EGL during the JNI
+			// surface callbacks.
+			TBXR_SetGraphicsBinding(Window, m_hDC, m_hRC);
+
 			return true;
 		}
 	}

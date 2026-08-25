@@ -402,7 +402,10 @@ bool FShader::Load(const char * name, const char * vert_prog_lump, const char * 
 #ifdef __MOBILE__
 		vp_comb.Format("#version 310 es\n#define NO_CLIPDISTANCE_SUPPORT\n#define NUM_UBO_LIGHTS %d\n#define NUM_UBO_BONES %d\n#define NUM_VIEWS 2\n", lightbuffersize, screen->mBones->GetBlockSize());
 #else
-		vp_comb.Format("#version 330 core\n#define NUM_UBO_LIGHTS %d\n#define NUM_UBO_BONES %d\n", lightbuffersize, screen->mBones->GetBlockSize());
+		// NUM_VIEWS stays 2 so ProjectionMatrix[NUM_VIEWS] keeps matching
+		// HWViewpointUniforms::mProjectionMatrix[2]. MULTIVIEW is what selects
+		// gl_ViewID_OVR indexing, and it is mobile only.
+		vp_comb.Format("#version 330 core\n#define NUM_UBO_LIGHTS %d\n#define NUM_UBO_BONES %d\n#define NUM_VIEWS 2\n", lightbuffersize, screen->mBones->GetBlockSize());
 #endif
 
 	}
@@ -423,7 +426,8 @@ bool FShader::Load(const char * name, const char * vert_prog_lump, const char * 
 	FString fp_comb = vp_comb;
 
 #ifdef __MOBILE__
-	vp_comb << "#extension GL_OVR_multiview2 : enable\n"
+	vp_comb << "#define MULTIVIEW\n"
+			   "#extension GL_OVR_multiview2 : enable\n"
 			   "layout(num_views=NUM_VIEWS) in;\n";
 #endif
 

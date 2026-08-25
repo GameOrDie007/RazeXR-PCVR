@@ -7,3 +7,4 @@ build-vs2019/
 # PCVR port: local build output
 /build/
 /build-log-*.txt
+/run/

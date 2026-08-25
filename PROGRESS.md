@@ -404,3 +404,71 @@ that file pulls in both.
   guard, so desktop needs `NUM_VIEWS`/`gl_ViewID_OVR` defined or the indexing
   removed.
 - Nothing has run yet. No headset testing is due until it does.
+
+---
+
+# Milestone 2 (it runs) — awaiting headset verification
+
+## An OpenXR session is live on VDXR
+
+```
+VR: runtime VirtualDesktopXR 1.0.10
+VR: runtime recommends 3072x3264 per eye, x1.00 supersampling gives 3072x3264
+VR: eye framebuffer 3072x3264, 1 samples, 3 swapchain images   (x2, one per eye)
+VR: session begun (active)
+```
+
+Two eye framebuffers at the resolution VDXR recommends, one sample and no
+supersampling exactly as theirs, and the session goes active. The engine runs
+long enough to write its config and can be shut down.
+
+**Not yet verified: anything you can see.** Whether the image is correct,
+stereo is right, the world is the right scale, the HUD sits where it should,
+or the controllers work — none of that can be checked from here.
+
+## Fidelity check: the cvars
+
+The same check that cleared the Quake II and Quake 1 ports. Every one of the
+**27 `vr_*` cvars** in his shipped `razexr.ini` exists in this build with the
+same value, except two he had customised on the Quest:
+
+| cvar | ours (default) | his |
+|---|---|---|
+| `vr_height_adjust` | 0 | 0.5 |
+| `vr_snapTurn` | 45 | 3 |
+
+Ours additionally has `vr_enable_quadbuffered`, a stock desktop Raze cvar that
+does not exist on Android. Not a divergence.
+
+## Runtime dependencies
+
+Raze needs three DLLs beside the executable. None are committed:
+
+| dll | where it came from |
+|---|---|
+| `openxr_loader.dll` | built from KhronosGroup/OpenXR-SDK release-1.0.34 |
+| `zmusiclite.dll` | built from ZDoom/ZMusic **1.1.13** — the repo ships only the import library and an arm64 build, never an x64 DLL. 1.1.13 chosen because its `zmusic.h` matches the bundled header exactly, as do 1.1.11 and 1.1.12; 1.1.14 differs and 1.2.0 differs substantially |
+| `openal32.dll` | OpenAL Soft x64, reused from the Quake II VR build |
+
+The first failure to run was `0xC0000135`, DLL not found, which presents as a
+modal dialog and therefore looks exactly like a hang.
+
+## What the flatscreen build does now
+
+`vr_mode` defaults to 15 (`VR_OPENXR`) because they changed the default, so a PC
+with no headset would have presented into swapchains that were never created.
+`VRMode::GetVRMode` now returns mono at run time when there is no session, and
+the `mEyeCount == 1` fast path in `FGLRenderer::Flush` — which they commented
+out, because on a Quest every frame is stereo — is restored on desktop.
+
+One rough edge worth knowing: if an OpenXR runtime is installed but no headset
+is streaming, `TBXR_WaitForSessionActive` blocks for its full 20 second timeout
+before falling back. Theirs never has to consider that case.
+
+## Diagnostics
+
+Raze is a GUI subsystem binary, so it has no stdout, and everything up to
+session creation happens before the console exists. The VR layer therefore
+mirrors every line to `razexr_vr.log` beside the executable. That file is what
+made the above measurable, and it is what a failed headset run should be read
+from.

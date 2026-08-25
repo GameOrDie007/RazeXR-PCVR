@@ -48,6 +48,8 @@
 
 bool TBXR_IsFrameSetup();
 void TBXR_prepareEyeBuffer(int eye );
+void TBXR_finishEyeBuffer(int eye );
+void TBXR_GetScreenRes(int *width, int *height);
 void TBXR_submitFrame();
 
 EXTERN_CVAR(Int, vr_mode)
@@ -380,7 +382,35 @@ bool FGLRenderer::QuadStereoCheckInitialRenderContextState()
 
 void FGLRenderer::PresentOpenXR()
 {
+#ifdef __MOBILE__
+	// Theirs: the scene was rendered straight into the eye framebuffer, so
+	// there is nothing to copy.
 	TBXR_submitFrame();
+#else
+	/*
+		PCVR port. The engine rendered one pass per eye into its own eye
+		textures, exactly as the side-by-side modes leave them. Copy each into
+		the matching OpenXR swapchain image and hand the frame over.
+	*/
+	int width = 0, height = 0;
+	TBXR_GetScreenRes(&width, &height);
+
+	IntRect box;
+	box.left = 0;
+	box.top = 0;
+	box.width = width;
+	box.height = height;
+
+	for (int eye = 0; eye < 2; eye++)
+	{
+		TBXR_prepareEyeBuffer(eye);
+		mBuffers->BindEyeTexture(eye, 0);
+		DrawPresentTexture(box, true);
+		TBXR_finishEyeBuffer(eye);
+	}
+
+	TBXR_submitFrame();
+#endif
 }
 
 void FGLRenderer::PresentQuadStereo()
