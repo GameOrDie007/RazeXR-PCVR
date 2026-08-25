@@ -111,9 +111,21 @@ static void TBXR_strcopy(char *dst, const char *src, size_t size)
 	dst[size - 1] = 0;
 }
 
-// Theirs: fov_x is produced in TBXR_submitFrame and read back through
-// RazeXR_GetFOV(), which lives in the game half.
-extern float fov_x;
+/*
+	Theirs, from TBXR_Common.cpp. fov_x is produced at the end of
+	TBXR_submitFrame and handed to the engine through RazeXR_GetFOV(), which
+	hw_entrypoint.cpp and hw_vrmodes.cpp call for culling.
+
+	Note the consequence, which is theirs and is reproduced rather than fixed:
+	because it is written after the frame is submitted, the engine culls frame
+	N against frame N-1's field of view, and against 0 on the very first frame.
+*/
+float fov_x = 0;
+
+float RazeXR_GetFOV()
+{
+	return fov_x;
+}
 
 /* ------------------------------------------------------------------------ */
 /* Error reporting                                                          */

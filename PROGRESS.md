@@ -368,6 +368,31 @@ Their `TBXR_Common.h` was converted **in place**, keeping its name and every
 struct, field and function name, so `OpenXrInput.cpp`, `VrInputCommon.cpp` and
 `VrInputDefault.cpp` compile against it untouched.
 
+## It links
+
+`raze.exe`, 9.82 MB, **0 errors**. The engine, their VR layer and the PC OpenXR
+layer all compile and link with the VS2019 toolchain.
+
+That is a build milestone, not a running one. It has never been launched, the
+graphics binding is not yet handed to the session, the two startup halves are
+not yet called, and the two-pass render work is still outstanding. **Do not
+expect it to render in a headset yet.**
+
+Warnings across the VR layer: 74 C4244, 70 C4101, 12 C4305, 4 C4005. Notably
+**none** of the dangerous classes - no C4700/4701/4703 uninitialised use, no
+C4172 returned local, no C4715 missing return. The trap that cost an hour on
+Quake 1 is not present here.
+
+The four C4005 are worth knowing about:
+
+**`EQUAL_EPSILON` is defined twice, with different values.** Their
+`RazeXR/mathlib.h` says `0.001f`; Raze's own `common/utility/vectors.h` says
+`(1/65536.)`. That is a factor of 65, and whichever header lands last in a
+translation unit wins. This collision exists in **their** Android build too - it
+is not something the port introduced - so it is left alone and recorded here.
+Worth revisiting if anything in `hw_vrmodes.cpp` compares vectors oddly, since
+that file pulls in both.
+
 ## Still to do
 
 - Finish linking: the game half's PC lifecycle is written but not yet proven.

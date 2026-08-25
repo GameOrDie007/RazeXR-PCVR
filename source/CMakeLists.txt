@@ -422,7 +422,9 @@ find_library( OPENXR_LOADER_LIBRARY NAMES openxr_loader PATHS "${OPENXR_LOADER_D
 if( NOT OPENXR_LOADER_LIBRARY )
 	message( SEND_ERROR "openxr_loader not found in ${OPENXR_LOADER_DIR}. Build it from KhronosGroup/OpenXR-SDK and set OPENXR_LOADER_DIR." )
 endif()
-set( PROJECT_LIBRARIES ${PROJECT_LIBRARIES} ${OPENXR_LOADER_LIBRARY} )
+# opengl32 for wglGetCurrentDC/wglGetCurrentContext, which the OpenXR
+# graphics binding needs.
+set( PROJECT_LIBRARIES ${PROJECT_LIBRARIES} ${OPENXR_LOADER_LIBRARY} opengl32 )
 
 
 
