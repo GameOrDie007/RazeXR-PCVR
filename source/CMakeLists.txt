@@ -390,6 +390,41 @@ if (WIN32)
 	include_directories( "platform/win32" )
 endif()
 
+# ---------------------------------------------------------------------------
+# RazeXR VR layer (PCVR port)
+#
+# Team Beef's VR code lives outside the engine tree, exactly as it does in
+# their Android build, where Android_src.mk pulls it from ${TOP_DIR}/RazeXR.
+# Putting ../vr on the include path makes their own #include "RazeXR/mathlib.h"
+# resolve unchanged, so hw_vrmodes.cpp and the rest need no edit at all.
+#
+# TBXR_Common.cpp is absent by design: theirs is bound to EGL, JNI and
+# ANativeWindow. TBXR_PC.cpp is its Win32 / desktop-GL counterpart.
+# ---------------------------------------------------------------------------
+set( VR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../vr" )
+include_directories( "${VR_DIR}" "${VR_DIR}/OpenXR-SDK/include" "${VR_DIR}/OpenXR-SDK/src/common" )
+
+set( RAZEXR_VR_SOURCES
+	${VR_DIR}/RazeXR/OpenXrInput.cpp
+	${VR_DIR}/RazeXR/VrInputCommon.cpp
+	${VR_DIR}/RazeXR/VrInputDefault.cpp
+	${VR_DIR}/RazeXR/RazeXR_OpenXR.cpp
+	${VR_DIR}/RazeXR/TBXR_PC.cpp
+	${VR_DIR}/RazeXR/mathlib.c
+	${VR_DIR}/RazeXR/matrixlib.c
+)
+
+# The OpenXR loader is a binary and is deliberately not committed. Build it once
+# from KhronosGroup/OpenXR-SDK and point OPENXR_LOADER_DIR at the result.
+set( OPENXR_LOADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../RazeXR-refs/openxr-build/src/loader/Release"
+	CACHE PATH "Directory containing openxr_loader.lib" )
+find_library( OPENXR_LOADER_LIBRARY NAMES openxr_loader PATHS "${OPENXR_LOADER_DIR}" NO_DEFAULT_PATH )
+if( NOT OPENXR_LOADER_LIBRARY )
+	message( SEND_ERROR "openxr_loader not found in ${OPENXR_LOADER_DIR}. Build it from KhronosGroup/OpenXR-SDK and set OPENXR_LOADER_DIR." )
+endif()
+set( PROJECT_LIBRARIES ${PROJECT_LIBRARIES} ${OPENXR_LOADER_LIBRARY} )
+
+
 
 if( ${HAVE_VM_JIT} )
 	add_definitions( -DHAVE_VM_JIT )
@@ -1261,6 +1296,7 @@ endmacro()
 use_precompiled_header(".")
 
 add_executable( ${PROJECT_NAME} WIN32 MACOSX_BUNDLE
+	${RAZEXR_VR_SOURCES}
 	${HEADER_FILES}
 	${NOT_COMPILED_SOURCE_FILES}
 	${SYSTEM_SOURCES}

@@ -24,7 +24,11 @@
 #include <fcntl.h>
 
 //GL headers
+#ifdef __MOBILE__
 #include "android_gl_load.h"
+#else
+#include "gl_load/gl_load.h"
+#endif
 
 #if defined(__APPLE__)
 	#include <OpenGL/OpenGL.h>

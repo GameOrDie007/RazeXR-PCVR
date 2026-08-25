@@ -220,7 +220,7 @@ bool FGLRenderState::ApplyShader()
 
 	if (mHwUniforms)
 	{
-		activeShader->cur->muProjectionMatrix.Set(&mHwUniforms->mProjectionMatrix);
+		activeShader->cur->muProjectionMatrix.Set(&mHwUniforms->mProjectionMatrix[0]);
 		activeShader->cur->muViewMatrix.Set(&mHwUniforms->mViewMatrix);
 		activeShader->cur->muNormalViewMatrix.Set(&mHwUniforms->mNormalViewMatrix);
 		activeShader->cur->muCameraPos.Set(&mHwUniforms->mCameraPos.X);
@@ -700,7 +700,7 @@ void FGLRenderState::EnableLineSmooth(bool on)
 void FGLRenderState::ClearScreen()
 {
 
-	screen->mViewpoints->Set2D(*this, SCREENWIDTH, SCREENHEIGHT);
+	screen->mViewpoints->Set2D(nullptr, *this, SCREENWIDTH, SCREENHEIGHT);
 	SetColor(0, 0, 0);
 	Apply();
 

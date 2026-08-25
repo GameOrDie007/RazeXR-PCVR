@@ -18,22 +18,11 @@ EXTERN_CVAR(Bool, vr_two_handed_weapons);
 EXTERN_CVAR(Bool, vr_crouch_use_button);
 
 
-#include <android/log.h>
+// PCVR port: theirs logs to logcat here and repeats the ALOGE/ALOGV macros
+// that TBXR_Common.h already defines. On PC that header routes them to the
+// Raze console, so the duplicate definitions are simply dropped.
 
 #include "mathlib.h"
-
-
-#ifndef NDEBUG
-#define DEBUG 1
-#endif
-
-#define ALOGE(...) __android_log_print( ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__ )
-
-#if DEBUG
-#define ALOGV(...) __android_log_print( ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__ )
-#else
-#define ALOGV(...)
-#endif
 
 extern float cinemamodeYaw;
 extern float cinemamodePitch;

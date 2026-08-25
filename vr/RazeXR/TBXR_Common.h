@@ -1,21 +1,60 @@
+/*
+	TBXR_Common.h - PCVR port.
+
+	Team Beef's original targets Android: EGL, JNI, an ANativeWindow and
+	XR_KHR_opengl_es_enable. This one targets Win32 and desktop OpenGL.
+
+	The file keeps its original name, and every struct, enum, field and
+	function name theirs declares is kept with the same meaning, so their
+	OpenXrInput.cpp, VrInputCommon.cpp, VrInputDefault.cpp and the game half of
+	RazeXR_OpenXR.cpp compile against it unchanged.
+
+	What differs, and why:
+
+	- GLES3/EGL/JNI headers are replaced by <windows.h> and Raze's own
+	  gl_load.h, which is already on the include path and supplies the desktop
+	  GL entry points under their normal names.
+	- ovrFramebuffer carries an explicit multisample colour/depth renderbuffer
+	  and blits into the swapchain image. Theirs attaches the colour texture
+	  through GL_EXT_multisampled_render_to_texture, which resolves implicitly
+	  on a tiler and has no desktop equivalent.
+	- ovrRenderer holds FrameBuffer[ovrMaxNumEyes] rather than a single
+	  FrameBuffer. Theirs renders both eyes in one pass into a two-layer
+	  texture array using GL_OVR_multiview2; this port renders two passes, one
+	  per eye, so each eye needs its own target. See PROGRESS.md.
+	- The Android app thread, its surface message queue and the JNI lifecycle
+	  are gone. On PC the engine owns the main thread.
+
+	Copyright (C) 2023 Simon Brown (Team Beef)
+	Copyright (C) 2026 RazeXR PCVR port
+
+	This program is free software; you can redistribute it and/or modify it
+	under the terms of the GNU General Public License as published by the Free
+	Software Foundation; either version 2 of the License, or (at your option)
+	any later version.
+*/
+
 #if !defined(tbxr_common_h)
 #define tbxr_common_h
 
 //OpenXR
-#define XR_USE_GRAPHICS_API_OPENGL_ES 1
-#define XR_USE_PLATFORM_ANDROID 1
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-#include <GLES3/gl3.h>
-#include <GLES3/gl3ext.h>
-#include <jni.h>
+#define XR_USE_GRAPHICS_API_OPENGL 1
+#define XR_USE_PLATFORM_WIN32 1
+
+#include <windows.h>
+
+// Raze's own loader. It defines the desktop GL entry points as macros over
+// function pointers under their standard names, so their GL calls carry over
+// unchanged.
+#include "gl_load.h"
 
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 #include <openxr_helpers.h>
 
-#include <android/native_window_jni.h>
-#include <android/log.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #ifndef NDEBUG
 #define DEBUG 1
@@ -23,11 +62,22 @@
 
 #define LOG_TAG "RazeXR"
 
+// Theirs go to logcat. Ours go to the Raze console, which is where a PC player
+// would look for them. Declared rather than included to keep this header free
+// of engine headers, which their .cpp files do not expect to see.
+#ifdef __cplusplus
+extern "C" {
+#endif
+void TBXR_LogError(const char *fmt, ...);
+void TBXR_LogVerbose(const char *fmt, ...);
+#ifdef __cplusplus
+}
+#endif
 
-#define ALOGE(...) __android_log_print( ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__ )
+#define ALOGE(...) TBXR_LogError(__VA_ARGS__)
 
 #if DEBUG
-#define ALOGV(...) __android_log_print( ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__ )
+#define ALOGV(...) TBXR_LogVerbose(__VA_ARGS__)
 #else
 #define ALOGV(...)
 #endif
@@ -35,6 +85,8 @@
 enum { ovrMaxLayerCount = 1 };
 enum { ovrMaxNumEyes = 2 };
 
+// Theirs, unchanged - OpenXrInput.cpp fills these in and the game half reads
+// them by name.
 typedef enum xrButton_ {
     xrButton_A = 0x00000001,
     xrButton_B = 0x00000002,
@@ -84,13 +136,22 @@ typedef struct {
     float M[4][4];
 } ovrMatrix4f;
 
-
 typedef struct {
     XrSwapchain Handle;
     uint32_t Width;
     uint32_t Height;
 } ovrSwapChain;
 
+/*
+	One eye's render target.
+
+	Theirs holds a per-swapchain-image framebuffer with the colour texture
+	attached through glFramebufferTexture2DMultisampleEXT, so multisampling
+	resolves for free on the tiler. Desktop GL has no such path, so we keep one
+	multisample colour and depth renderbuffer for the eye and blit into
+	whichever swapchain image the runtime handed us. The per-image framebuffers
+	below are therefore plain single-sample blit targets.
+*/
 typedef struct {
     int Width;
     int Height;
@@ -98,9 +159,12 @@ typedef struct {
     uint32_t TextureSwapChainLength;
     uint32_t TextureSwapChainIndex;
     ovrSwapChain ColorSwapChain;
-    XrSwapchainImageOpenGLESKHR* ColorSwapChainImage;
-    GLuint* DepthBuffers;
+    XrSwapchainImageOpenGLKHR* ColorSwapChainImage;
     GLuint* FrameBuffers;
+
+    GLuint MsaaFrameBuffer;
+    GLuint MsaaColour;
+    GLuint MsaaDepth;
 } ovrFramebuffer;
 
 /*
@@ -113,7 +177,7 @@ ovrRenderer
 
 typedef struct
 {
-    ovrFramebuffer	FrameBuffer;
+    ovrFramebuffer	FrameBuffer[ovrMaxNumEyes];
 } ovrRenderer;
 
 /*
@@ -123,51 +187,6 @@ ovrApp
 
 ================================================================================
 */
-
-
-typedef enum
-{
-    MQ_WAIT_NONE,		// don't wait
-    MQ_WAIT_RECEIVED,	// wait until the consumer thread has received the message
-    MQ_WAIT_PROCESSED	// wait until the consumer thread has processed the message
-} ovrMQWait;
-
-#define MAX_MESSAGE_PARMS	8
-#define MAX_MESSAGES		1024
-
-typedef struct
-{
-    int			Id;
-    ovrMQWait	Wait;
-    long long	Parms[MAX_MESSAGE_PARMS];
-} srufaceMessage;
-
-typedef struct
-{
-    srufaceMessage	 		Messages[MAX_MESSAGES];
-    volatile int		Head;	// dequeue at the head
-    volatile int		Tail;	// enqueue at the tail
-    ovrMQWait			Wait;
-    volatile bool		EnabledFlag;
-    volatile bool		PostedFlag;
-    volatile bool		ReceivedFlag;
-    volatile bool		ProcessedFlag;
-    pthread_mutex_t		Mutex;
-    pthread_cond_t		PostedCondition;
-    pthread_cond_t		ReceivedCondition;
-    pthread_cond_t		ProcessedCondition;
-} surfaceMessageQueue;
-
-typedef struct
-{
-    JavaVM *		JavaVm;
-    jobject			ActivityObject;
-    jclass          ActivityClass;
-    pthread_t		Thread;
-    surfaceMessageQueue	MessageQueue;
-    ANativeWindow * NativeWindow;
-} ovrAppThread;
-
 
 typedef union {
     XrCompositionLayerProjection Projection;
@@ -200,32 +219,22 @@ OXR_CheckErrors(XrInstance instance, XrResult result, const char* function, bool
 #define OXR(func) func;
 #endif
 
-typedef struct {
-    EGLint MajorVersion;
-    EGLint MinorVersion;
-    EGLDisplay Display;
-    EGLConfig Config;
-    EGLSurface TinySurface;
-    EGLSurface MainSurface;
-    EGLContext Context;
-} ovrEgl;
-
-/// Java details about an activity
-typedef struct ovrJava_ {
-    JavaVM* Vm; //< Java Virtual Machine
-    JNIEnv* Env; //< Thread specific environment
-    jobject ActivityObject; //< Java activity object
-} ovrJava;
-
 typedef struct
 {
-    ovrJava				Java;
-    ovrEgl              Egl;
-    ANativeWindow* NativeWindow;
+    // Win32 replaces their ovrEgl and ovrJava. These are the engine's own
+    // window device context and GL context, handed to
+    // XrGraphicsBindingOpenGLWin32KHR at session creation.
+    HDC                 Hdc;
+    HGLRC               Hglrc;
+    HWND                Hwnd;
+
     bool				Resumed;
     bool				Focused;
+    // PC only: their Android build learns visibility from the JNI surface
+    // callbacks. On PC it comes from the OpenXR session state.
+    bool				Visible;
     bool                FrameSetup;
-    char*               OpenXRHMD;
+    const char*         OpenXRHMD;
 
     float               Width;
     float               Height;
@@ -244,7 +253,6 @@ typedef struct
     XrView* Projections;
     XrMatrix4x4f ProjectionMatrices[2];
 
-
     float currentDisplayRefreshRate;
     float* SupportedDisplayRefreshRates;
     uint32_t RequestedDisplayRefreshRateIndex;
@@ -254,50 +262,15 @@ typedef struct
 
     XrFrameState        FrameState;
     int					SwapInterval;
-    int					MainThreadTid;
-    int					RenderThreadTid;
     xrCompositorLayer_Union		Layers[ovrMaxLayerCount];
     int					LayerCount;
     ovrRenderer			Renderer;
     ovrTrackedController TrackedController[2];
 } ovrApp;
 
-
-enum
-{
-    MESSAGE_ON_CREATE,
-    MESSAGE_ON_START,
-    MESSAGE_ON_RESUME,
-    MESSAGE_ON_PAUSE,
-    MESSAGE_ON_STOP,
-    MESSAGE_ON_DESTROY,
-    MESSAGE_ON_SURFACE_CREATED,
-    MESSAGE_ON_SURFACE_DESTROYED
-};
-
-extern ovrAppThread * gAppThread;
 extern ovrApp gAppState;
-extern ovrJava java;
-
 
 void ovrTrackedController_Clear(ovrTrackedController* controller);
-
-void * AppThreadFunction(void * parm );
-
-void ovrAppThread_Create( ovrAppThread * appThread, JNIEnv * env, jobject activityObject, jclass activityClass );
-void ovrAppThread_Destroy( ovrAppThread * appThread, JNIEnv * env );
-
-/*
- * Surface Lifecycle Message Queue
- */
-void surfaceMessage_Init(srufaceMessage * message, const int id, const int wait );
-void *	surfaceMessage_GetPointerParm(srufaceMessage * message, int index );
-void	surfaceMessage_SetPointerParm(srufaceMessage * message, int index, void * ptr );
-
-void surfaceMessageQueue_Create(surfaceMessageQueue * messageQueue );
-void surfaceMessageQueue_Destroy(surfaceMessageQueue * messageQueue );
-void surfaceMessageQueue_Enable(surfaceMessageQueue * messageQueue, const bool set );
-void surfaceMessageQueue_PostMessage(surfaceMessageQueue * messageQueue, const srufaceMessage * message );
 
 //Functions that need to be implemented by the game specific code
 void VR_FrameSetup();
@@ -316,7 +289,7 @@ void VR_HapticDisable();
 extern "C" void VR_Shutdown();
 
 
-//Reusable Team Beef OpenXR stuff (in TBXR_Common.cpp)
+//Reusable Team Beef OpenXR stuff (in TBXR_PC.cpp on this platform)
 double TBXR_GetTimeInMilliSeconds();
 int TBXR_GetRefresh();
 void TBXR_Recenter();
@@ -337,4 +310,19 @@ void TBXR_prepareEyeBuffer(int eye );
 void TBXR_finishEyeBuffer(int eye );
 void TBXR_submitFrame();
 
-#endif //vrcommon_h
+// PC only. The Win32 video backend hands the OpenXR layer the window and GL
+// context it created, before the session is made.
+void TBXR_SetGraphicsBinding(HWND hwnd, HDC hdc, HGLRC hglrc);
+
+// PC only. True once an OpenXR session is live. Every VR-specific behaviour in
+// the engine is gated on this at run time rather than at compile time, so one
+// binary serves both the headset and the desktop.
+bool TBXR_VREnabled();
+
+// Maths, theirs, verbatim - defined in TBXR_PC.cpp.
+ovrMatrix4f ovrMatrix4f_CreateFromQuaternion(const XrQuaternionf *q);
+ovrMatrix4f ovrMatrix4f_CreateRotation(const float radiansX, const float radiansY, const float radiansZ);
+ovrMatrix4f ovrMatrix4f_Multiply(const ovrMatrix4f *a, const ovrMatrix4f *b);
+XrVector4f XrVector4f_MultiplyMatrix4f(const ovrMatrix4f *a, const XrVector4f *v);
+
+#endif //tbxr_common_h
