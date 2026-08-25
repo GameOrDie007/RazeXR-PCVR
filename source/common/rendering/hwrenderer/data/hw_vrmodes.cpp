@@ -50,6 +50,7 @@ extern vec3_t weaponangles;
 extern vec3_t rawcontrollerangles; // angles unadjusted by weapon adjustment cvars
 
 float RazeXR_GetFOV();
+bool TBXR_VREnabled();
 void VR_GetMove(float *joy_forward, float *joy_side, float *hmd_forward, float *hmd_side, float *up,
 				float *yaw, float *pitch, float *roll);
 
@@ -179,7 +180,13 @@ float getHmdAdjustedHeightInMapUnit()
 #define isqrt2 0.7071067812f
 static VRMode vrmi_mono = { 1, 1.f, 1.f, 1.f,{ { 0.f, 1.f },{ 0.f, 0.f } } };
 static VRMode vrmi_stereo = { 2, 1.f, 1.f, 1.f,{ { -.5f, 1.f },{ .5f, 1.f } } };
+#ifdef __MOBILE__
+// Theirs: one pass, both eyes written by GL_OVR_multiview2.
 static VRMode vrmi_openxr = { 1, 1.f, 1.f, 1.f,{ { -.5f, 1.f },{ .5f, 1.f } } };
+#else
+// PCVR port: two passes, one per eye. See PROGRESS.md.
+static VRMode vrmi_openxr = { 2, 1.f, 1.f, 1.f,{ { -.5f, 1.f },{ .5f, 1.f } } };
+#endif
 static VRMode vrmi_sbsfull = { 2, .5f, 1.f, 2.f,{ { -.5f, .5f },{ .5f, .5f } } };
 static VRMode vrmi_sbssquished = { 2, .5f, 1.f, 1.f,{ { -.5f, 1.f },{ .5f, 1.f } } };
 static VRMode vrmi_lefteye = { 1, 1.f, 1.f, 1.f, { { -.5f, 1.f },{ 0.f, 0.f } } };
@@ -205,6 +212,12 @@ const VRMode *VRMode::GetVRMode(bool toscreen)
         return &vrmi_stereo;
 
 	case VR_OPENXR:
+#ifndef __MOBILE__
+		// PCVR port: vr_mode defaults to VR_OPENXR, so a PC with no headset
+		// would otherwise present into swapchains that were never created.
+		if (!TBXR_VREnabled())
+			return &vrmi_mono;
+#endif
 		return &vrmi_openxr;
 
 	case VR_SIDEBYSIDESQUISHED:

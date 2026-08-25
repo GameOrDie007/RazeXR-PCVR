@@ -169,8 +169,17 @@ void RenderViewpoint(FRenderViewpoint& mainvp, IntRect* bounds, float fov, float
 		di->Viewpoint.FieldOfView = FAngle::fromDeg(fov);	// Set the real FOV for the current scene (it's not necessarily the same as the global setting in r_viewpoint)
 
 		// Stereo mode specific perspective projection
+#ifdef __MOBILE__
+		// Theirs: both eyes go to the shader, which picks with gl_ViewID_OVR.
 		di->VPUniforms.mProjectionMatrix[0] = vrmode->mEyes[0].GetStereoProjection(fov, ratio, fovratio);
 		di->VPUniforms.mProjectionMatrix[1] = vrmode->mEyes[1].GetStereoProjection(fov, ratio, fovratio);
+#else
+		// PCVR port: one pass per eye, so slot 0 carries the eye being drawn.
+		// The array keeps two entries so the UBO layout still matches the
+		// shader's ProjectionMatrix[NUM_VIEWS].
+		di->VPUniforms.mProjectionMatrix[0] = eye.GetStereoProjection(fov, ratio, fovratio);
+		di->VPUniforms.mProjectionMatrix[1] = di->VPUniforms.mProjectionMatrix[0];
+#endif
 
 
 		// Stereo mode specific viewpoint adjustment

@@ -121,12 +121,16 @@ void FGLRenderer::ClearTonemapPalette()
 void FGLRenderer::Flush()
 {
 	auto vrmode = VRMode::GetVRMode(true);
-/*	if (vrmode->mEyeCount == 1)
+#ifndef __MOBILE__
+	// PCVR port: theirs commented this branch out because on Quest every frame
+	// is stereo. Restored for the flatscreen build, which reaches it whenever
+	// there is no OpenXR session.
+	if (vrmode->mEyeCount == 1)
 	{
 		CopyToBackbuffer(nullptr, true);
 	}
 	else
- */
+#endif
 	{
 		screen->FirstEye();
 		// Render 2D to eye textures

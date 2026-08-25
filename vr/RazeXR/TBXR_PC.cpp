@@ -152,6 +152,24 @@ static void VR_Log(const char *fmt, ...)
 	vsnprintf(msg, sizeof(msg), fmt, argptr);
 	va_end(argptr);
 
+	/*
+		PCVR port. Everything up to and including session creation happens
+		before the Raze console exists, and Raze is a GUI subsystem binary, so
+		there is no stdout either - which means the reason a headset was not
+		found would otherwise be invisible. Mirror every line to a file next to
+		the executable so a failed startup can be read after the fact. Testing
+		rounds in a headset are the scarce resource; this is what makes one
+		round worth something.
+	*/
+	{
+		FILE *f = fopen("razexr_vr.log", "a");
+		if (f)
+		{
+			fputs(msg, f);
+			fclose(f);
+		}
+	}
+
 	if (vr_consoleready)
 	{
 		Printf("%s", msg);

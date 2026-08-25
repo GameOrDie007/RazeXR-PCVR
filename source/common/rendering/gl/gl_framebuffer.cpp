@@ -76,6 +76,8 @@ extern bool vid_hdr_active;
 void DrawVersionString ();
 
 void TBXR_prepareEyeBuffer(int eye );
+void RazeXR_PC_PreInit();
+void RazeXR_PC_StartVR();
 
 namespace OpenGLRenderer
 {
@@ -138,6 +140,19 @@ void OpenGLFrameBuffer::InitializeState()
 	}
 
 	gl_LoadExtensions();
+
+	if (first)
+	{
+		/*
+			PCVR port. Theirs does all of this on the app thread before calling
+			raze_main, because EGL had already made the context. Here the
+			context is Raze's own, and TBXR_InitRenderer needs the GL entry
+			points that gl_LoadExtensions has only just resolved, so this is the
+			earliest safe point.
+		*/
+		RazeXR_PC_PreInit();
+		RazeXR_PC_StartVR();
+	}
 
 	mPipelineNbr = clamp(*gl_pipeline_depth, 1, HW_MAX_PIPELINE_BUFFERS);
 	mPipelineType = gl_pipeline_depth > 0;
@@ -452,7 +467,12 @@ void OpenGLFrameBuffer::AmbientOccludeScene(float m5)
 void OpenGLFrameBuffer::FirstEye()
 {
 	GLRenderer->mBuffers->CurrentEye() = 0;  // always begin at zero, in case eye count changed
+#ifdef __MOBILE__
+	// Theirs render directly into the OpenXR framebuffer, having disabled the
+	// engine's own FBO machinery. On PC that machinery stays, and the eye
+	// buffers are filled in PresentOpenXR instead.
 	TBXR_prepareEyeBuffer(0);
+#endif
 }
 
 void OpenGLFrameBuffer::NextEye(int eyecount)
