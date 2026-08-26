@@ -921,3 +921,49 @@ VR weapon: pistol -> tile 30010, voxel yes
 
 Also: `DPrintf(DMSG_NOTIFY, ...)` needs `developer` at 3 or higher, and the
 saved config sets it to 0, which silently swallowed the first diagnostics.
+
+## Still invisible: it renders, so it is placement
+
+Instrumenting the render path settled what class of problem this is:
+
+```
+VR weapon: pistol tile 30010 voxel yes | gun (-1968 422 -625) player (-1953 448 -665)
+VR voxel path: tile 30010 vox 2 model 000002AA74177460
+VR voxel ProcessVoxel -> 1
+```
+
+The sprite reaches the voxel path, the model pointer is valid, and
+`ProcessVoxel` returns true — so the voxel is being submitted to the draw list.
+Nothing is being rejected. The model is therefore somewhere it cannot be seen.
+
+**The `up` sign was inverted.** Build's Z runs downwards — their own crosshair
+raises itself with `plusZ(-(z * hunits))` — while VRaze's `up` is positive
+upwards. The pistol's is `-40`, against a `// Player height: 40` comment in the
+same file. Subtracting it drove the weapon 40 units *into the floor*, which is
+exactly as invisible as being culled.
+
+Corrected to add, and the placement is now within plausible range of the player
+rather than buried.
+
+## Tuning without rebuilding
+
+Guessing at sign conventions one rebuild at a time is the wrong loop. Two things
+now make it converge:
+
+- `vr_weapon_off_forward` / `_right` / `_up` and `vr_weapon_rot_yaw` / `_pitch` /
+  `_roll` are global nudges applied on top of the per-weapon placement, settable
+  from the console. They are also the beginnings of the per-weapon offsets menu
+  VRaze has.
+- `vr_weapon_debug <units>` pins the model that many units straight ahead at eye
+  height, ignoring the controller entirely. If the weapon appears with that on
+  and not with it off, the model and the render path are proven good and only
+  the placement is wrong — which separates two very different problems without
+  needing to see the headset.
+
+## A note on testing this from outside the headset
+
+Two attempts that did not work, recorded so they are not repeated: capturing the
+window with `CopyFromScreen` grabs whatever is on top, not the target window,
+because `SetForegroundWindow` will not raise the game; and synthesising an F12
+keypress to trigger Raze's own `screenshot` never reached the game. Logging from
+inside the render path did work, and is what produced the answer above.
