@@ -831,7 +831,22 @@ bool TBXR_InitialiseInstance(void)
 	PFN_xrGetOpenGLGraphicsRequirementsKHR pfnGetOpenGLGraphicsRequirementsKHR = NULL;
 	XrGraphicsRequirementsOpenGLKHR graphicsRequirements = {XR_TYPE_GRAPHICS_REQUIREMENTS_OPENGL_KHR};
 
+	/*
+		The window and GL context are the engine's, handed over by
+		TBXR_SetGraphicsBinding before any of this runs, so they have to survive
+		the clear. The session itself does not notice - it asks wgl for the
+		current DC and context directly - but the desktop mirror needs the
+		window, and losing it left the monitor black while VR ran fine.
+	*/
+	HWND savedHwnd = gAppState.Hwnd;
+	HDC savedHdc = gAppState.Hdc;
+	HGLRC savedHglrc = gAppState.Hglrc;
+
 	memset(&gAppState, 0, sizeof(gAppState));
+
+	gAppState.Hwnd = savedHwnd;
+	gAppState.Hdc = savedHdc;
+	gAppState.Hglrc = savedHglrc;
 	gAppState.OpenXRHMD = "";
 
 	OXR(xrEnumerateInstanceExtensionProperties(NULL, 0, &availableExtensionCount, NULL));
@@ -1274,6 +1289,15 @@ static void TBXR_MirrorToWindow(void)
 
 	const int mirrorWidth = TBXR_MirrorWidth();
 	const int mirrorHeight = TBXR_MirrorHeight();
+
+	static bool reported = false;
+	if (!reported)
+	{
+		reported = true;
+		VR_Log("VR: mirror %dx%d from fbo %u (%dx%d), hwnd %p\n",
+			mirrorWidth, mirrorHeight, frameBuffer->MsaaFrameBuffer,
+			frameBuffer->Width, frameBuffer->Height, (void*)gAppState.Hwnd);
+	}
 
 	if (mirrorWidth <= 0 || mirrorHeight <= 0)
 		return;

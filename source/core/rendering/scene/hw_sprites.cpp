@@ -25,6 +25,7 @@
 **
 */
 
+#include "vr_weapons.h"
 #include "matrix.h"
 //#include "models.h"
 #include "vectors.h"
@@ -545,8 +546,14 @@ bool HWSprite::ProcessVoxel(HWDrawInfo* di, voxmodel_t* vox, tspritetype* spr, s
 		transposed. X is the barrel axis after the yaw rotation above, which is
 		where roll belongs; pitch goes on Z.
 	*/
-	if (spr->Angles.Pitch != nullAngle) rotmat.rotate(spr->Angles.Pitch.Degrees(), 0, 0, 1);
-	if (spr->Angles.Roll != nullAngle) rotmat.rotate(spr->Angles.Roll.Degrees(), 1, 0, 0);
+	if (VRWeapons_IsWeaponTile(spr->picnum))
+	{
+		rotmat.rotate(spr->Angles.Pitch.Degrees(), 0, 0, 1);
+		rotmat.rotate(spr->Angles.Roll.Degrees(), 1, 0, 0);
+		// The model's own facing correction goes last, so it cannot rotate the
+		// frame the two above are measured in.
+		rotmat.rotate(VRWeapons_ModelYaw(), 0, 1, 0);
+	}
 	rotmat.scale(scalevec.X, scalevec.Z, scalevec.Y);
 	// Apply pivot last
 	rotmat.translate(-voxel->piv.X, zoff, voxel->piv.Y);

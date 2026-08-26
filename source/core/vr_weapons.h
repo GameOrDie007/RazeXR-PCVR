@@ -80,6 +80,12 @@ void VRWeapons_NoteDrawnTile(int tile);
 // its weapon through the same QAV path as its cutscenes.
 void VRWeapons_EndWeapon();
 
+// The renderer applies the held weapon's pitch and roll in the hand's frame and
+// only then the model's own yaw correction, so that a model authored facing a
+// different way does not change which axis is twist and which is tilt.
+bool VRWeapons_IsWeaponTile(int tile);
+float VRWeapons_ModelYaw();
+
 // Closes the capture window however the caller returns, which matters where the
 // draw has several exit paths.
 struct VRWeaponScope { ~VRWeaponScope() { VRWeapons_EndWeapon(); } };
