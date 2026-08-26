@@ -585,3 +585,55 @@ After the fix, with the headset streaming, the process burns **24 s of CPU in 22
 of wall time** — a live render loop. Before, with no headset, it idled at 0.3 s
 in `xrWaitFrame`. That ratio is a cheap way to tell "rendering" from "waiting"
 without putting the headset on.
+
+---
+
+# Milestone 2c — weapon aim, and the flat gun
+
+Reported: stereo correct, but the gun is a flat picture and the crosshair only
+comes on screen with the controller aimed at the floor.
+
+Two separate things. One is a bug; one is not.
+
+## The aim error was a sign, taken from the wrong game
+
+`QuatToYawPitchRoll` lives in their `TBXR_Common.cpp`, which this port does not
+import, so it came across from the Quake 1 fork of the same framework. The two
+differ by one character:
+
+| | |
+|---|---|
+| theirs | `ovrMatrix4f_CreateRotation(DEG2RAD(-rotation[0]), DEG2RAD(-rotation[1]), DEG2RAD(-rotation[2]))` |
+| Quake's | `ovrMatrix4f_CreateRotation(DEG2RAD( rotation[0]), DEG2RAD( rotation[1]), DEG2RAD( rotation[2]))` |
+
+`VrInputDefault.cpp` feeds `vr_weaponPitchAdjust` (default 20) and
+`vr_weaponYawAdjust` (default 6) through that function as a pre-rotation. With
+the sign inverted the pitch is applied as +20 instead of −20 — a **40 degree**
+error, which is precisely "aim at the floor to bring the crosshair up". Yaw was
+off by 12 degrees the same way.
+
+Nothing catches this: it compiles, links, runs, and renders a correct stereo
+image. This is the third time in three ports that the trap has been *the
+previous port's answer looking close enough to be plausible*. It is also the
+second instance in this project alone, after the union-versus-average FOV.
+
+**So the whole maths half was swept**, function by function, against their
+`TBXR_Common.cpp`: `ovrMatrix4f_CreateFromQuaternion`, `ovrMatrix4f_CreateRotation`
+(including its multiply order), `ovrMatrix4f_Multiply`, `XrVector4f_MultiplyMatrix4f`,
+`normalizeVec`, `NormalizeAngles`, `GetAnglesFromVectors`. Every other one is
+semantically identical — the differences are brace style and variable names.
+`ovrTrackedController_Clear` is absent from this port but is dead code in theirs
+too, and `gAppState` is file scope so it is zero initialised regardless.
+
+## The flat gun is correct
+
+Not a bug, and not something to fix on the 1:1 branch.
+
+**RazeXR's `raze.pk3` has no `models/` directory at all and zero `vr_weapon*`
+files.** It draws Build's ordinary 2D weapon sprite. The 3D voxel guns are a
+**VRaze** feature: 70 `vr_weapon*` definition files plus roughly 100 `.kvx`
+voxel models, per game, none of which exist upstream of it.
+
+So a flat weapon picture is what RazeXR does, and reproducing it is the point of
+this branch. The voxel weapons belong to the PC branch discussion, alongside the
+switcher — see the open question in milestone 0.
