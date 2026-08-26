@@ -26,6 +26,7 @@ Prepared for public release: 03/21/2003 - Charlie Wiederhold, 3D Realms
 */
 //------------------------------------------------------------------------- 
 
+#include "vr_weapons.h"
 #include "ns.h"
 #include "global.h"
 #include "names_r.h"
@@ -41,6 +42,12 @@ BEGIN_DUKE_NS
 
 inline static void hud_drawpal(double x, double y, int tilenum, int shade, int orientation, int p, DAngle angle, int scale = 32768)
 {
+	// PC branch: see the same hook in hudweapon_d.cpp.
+	if (VRWeapons_DrawingModel())
+	{
+		VRWeapons_NoteDrawnTile(tilenum);
+		return;
+	}
 	hud_drawsprite(x, y, scale, angle.Degrees(), tilenum, shade, p, 2 | orientation);
 }
 
@@ -111,6 +118,23 @@ void displayweapon_r(int snum, double interpfrac)
 
 	auto p = &ps[snum];
 	auto kb = &p->kickback_pic;
+
+	/*
+		PC branch. Redneck's weapon names are its own, but they line up with its
+		enum by index exactly, as Duke's do. Rides Again reuses the same names -
+		it adds slingblade and chicken, which sit at 15 and 16 here.
+	*/
+	{
+		static const char* const vrNames[] = {
+			"crowbar", "pistol", "shotgun", "rifle", "dynamite", "crossbow",
+			"throwsaw", "alienblaster", "powderkeg", "titgun",
+			"throwingdynamite", "buzzsaw", "bowling", "", "",
+			"slingblade", "chicken"
+		};
+
+		int w = p->curr_weapon;
+		VRWeapons_BeginWeapon(w >= 0 && w < (int)countof(vrNames) ? vrNames[w] : "");
+	}
 
 	int o = 0;
 
