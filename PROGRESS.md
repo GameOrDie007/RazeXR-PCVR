@@ -694,3 +694,42 @@ rather than the caller's, and writes both logs beside itself. A copy lives in
 World scale, positional tracking under leaning, snap and smooth turning, HUD
 placement, the big screen for menus and console, sound in play, and any of the
 six non-Duke games beyond "it renders".
+
+---
+
+# Milestone 3a — the shutdown hang
+
+Reported: Blood played fine for a couple of minutes, but quitting left VR and
+then the process stopped responding and had to be killed from Task Manager.
+
+Mine, not theirs. `RazeXR_PC_PreInit` and `RazeXR_PC_StartVR` were wired up in
+milestone 2; **`RazeXR_PC_StopVR` never was**, so `TBXR_LeaveVR` was never
+called and the OpenXR session was never ended.
+
+Two measurements pinned it before any code was changed:
+
+- The hung process sat at **100% CPU**, not blocked. A busy loop, not a
+  deadlock.
+- The **stock base build exits cleanly** with the same data and arguments, so
+  the fault was in this port rather than in Raze or the game files.
+
+It reproduces without a headset session in play, with `+quit` on the command
+line, which made the fix cheap to iterate on.
+
+## The fix
+
+`RazeXR_PC_StopVR()` now runs in `GameMain` immediately after `RunGame` returns,
+which is where their `AppThreadFunction` calls `TBXR_LeaveVR` the moment
+`raze_main` returns.
+
+Placement matters: it must come **before `I_ShutdownGraphics()`**, because the
+OpenXR session is bound to the GL context that call destroys.
+
+## Verified
+
+| case | result |
+|---|---|
+| `+quit` at startup | exits, code 0 |
+| 25 s of live Blood, then close the window | exits, code 0 |
+
+Before the fix both hung at 100% CPU indefinitely.
