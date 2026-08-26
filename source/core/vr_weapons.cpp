@@ -50,6 +50,10 @@ void get_weapon_pos_and_angle(float& x, float& y, float& z, float& pitch, float&
 // Theirs. The controller's offset from the HMD, already rotated into a
 // yaw-aligned frame by VrInputDefault: [0] and [2] horizontal, [1] vertical.
 extern float weaponoffset[3];
+// Theirs. The dominant controller's orientation, [0] pitch, [1] yaw, [2] roll.
+// get_weapon_pos_and_angle hands back pitch and yaw but not roll, which is why
+// the wrist twist was never reaching the model.
+extern float weaponangles[3];
 bool TBXR_VREnabled();
 
 //==========================================================================
@@ -469,7 +473,7 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	tspr->scale = DVector2(vr_weapon_scale, vr_weapon_scale);
 	tspr->Angles.Yaw = yaw;
 	tspr->Angles.Pitch = pitch;
-	tspr->Angles.Roll = DAngle::fromDeg(off.roll + vr_weapon_rot_roll);
+	tspr->Angles.Roll = DAngle::fromDeg(weaponangles[2] + off.roll + vr_weapon_rot_roll);
 	tspr->statnum = MAXSTATUS;
 	// Never animate the tile and never model-substitute it: this is already the
 	// model, chosen by the animation table above.
