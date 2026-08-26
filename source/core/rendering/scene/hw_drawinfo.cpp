@@ -314,7 +314,7 @@ void HWDrawInfo::DispatchSprites()
 					if (lastTile != tilenum)
 					{
 						lastTile = tilenum;
-						Printf("VR voxel path: tile %d vox %d model %p\n", tilenum, vox,
+						DPrintf(DMSG_NOTIFY, "VR voxel path: tile %d vox %d model %p\n", tilenum, vox,
 							(vox >= 0 && vox < MAXVOXELS) ? (void*)voxmodels[vox] : nullptr);
 					}
 				}
@@ -325,7 +325,7 @@ void HWDrawInfo::DispatchSprites()
 					if (tilenum >= 30000 && tilenum < 30720)
 					{
 						static int lastOk = -1;
-						if (lastOk != (int)ok) { lastOk = (int)ok; Printf("VR voxel ProcessVoxel -> %d\n", (int)ok); }
+						if (lastOk != (int)ok) { lastOk = (int)ok; DPrintf(DMSG_NOTIFY, "VR voxel ProcessVoxel -> %d\n", (int)ok); }
 					}
 					if (ok)
 						continue;
