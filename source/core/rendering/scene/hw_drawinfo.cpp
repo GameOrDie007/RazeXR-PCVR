@@ -308,10 +308,26 @@ void HWDrawInfo::DispatchSprites()
 			if (r_voxels)
 			{
 				auto vox = GetExtInfo(texid).tiletovox;
+				if (tilenum >= 30000 && tilenum < 30720)
+				{
+					static int lastTile = -1;
+					if (lastTile != tilenum)
+					{
+						lastTile = tilenum;
+						Printf("VR voxel path: tile %d vox %d model %p\n", tilenum, vox,
+							(vox >= 0 && vox < MAXVOXELS) ? (void*)voxmodels[vox] : nullptr);
+					}
+				}
 				if (vox >= 0 && voxmodels[vox])
 				{
 					HWSprite hwsprite;
-					if (hwsprite.ProcessVoxel(this, voxmodels[vox], tspr, tspr->sectp, voxrotate[vox])) 
+					bool ok = hwsprite.ProcessVoxel(this, voxmodels[vox], tspr, tspr->sectp, voxrotate[vox]);
+					if (tilenum >= 30000 && tilenum < 30720)
+					{
+						static int lastOk = -1;
+						if (lastOk != (int)ok) { lastOk = (int)ok; Printf("VR voxel ProcessVoxel -> %d\n", (int)ok); }
+					}
+					if (ok)
 						continue;
 				}
 			}

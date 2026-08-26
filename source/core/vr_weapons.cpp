@@ -24,6 +24,25 @@
 CVAR(Bool, vr_voxel_weapons, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, vr_weapon_scale, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
+// Global nudges on top of the per-weapon placement, adjustable from the
+// console so the fit can be dialled in without rebuilding. Map units and
+// degrees.
+CVAR(Float, vr_weapon_off_forward, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Float, vr_weapon_off_right, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Float, vr_weapon_off_up, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Float, vr_weapon_rot_yaw, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Float, vr_weapon_rot_pitch, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Float, vr_weapon_rot_roll, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+
+/*
+	Diagnostic. Pins the model a fixed distance straight in front of the player
+	at eye height, ignoring the controller entirely. If the weapon is visible
+	with this on and not with it off, the model and the render path are fine and
+	only the placement is wrong - which separates two very different problems
+	without needing to see the headset.
+*/
+CVAR(Float, vr_weapon_debug, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+
 EXTERN_CVAR(Bool, vr_6dof_weapons)
 
 float vr_hunits_per_meter();
@@ -314,8 +333,8 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	// Same construction their crosshair and shoot override use, so the model
 	// lands where the shots already come from.
 	DAngle playerYaw = owner->spr.Angles.Yaw;
-	DAngle yaw = playerYaw + DAngle::fromDeg(wyaw + off.yaw);
-	DAngle pitch = owner->spr.Angles.Pitch - DAngle::fromDeg(wpitch - off.pitch);
+	DAngle yaw = playerYaw + DAngle::fromDeg(wyaw + off.yaw + vr_weapon_rot_yaw);
+	DAngle pitch = owner->spr.Angles.Pitch - DAngle::fromDeg(wpitch - off.pitch - vr_weapon_rot_pitch);
 
 	DVector3 pos = owner->spr.pos.plusZ(-(wz * hupm));
 	DVector2 posXY(wx * hupm, wy * hupm);
@@ -325,9 +344,29 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 
 	// Per weapon placement, in the weapon's own frame.
 	DVector2 fwd = yaw.ToVector();
-	pos.X += fwd.X * off.forward - fwd.Y * off.right;
-	pos.Y += fwd.Y * off.forward + fwd.X * off.right;
-	pos.Z -= off.up;
+	const float fwdAmt = off.forward + vr_weapon_off_forward;
+	const float rightAmt = off.right + vr_weapon_off_right;
+	pos.X += fwd.X * fwdAmt - fwd.Y * rightAmt;
+	pos.Y += fwd.Y * fwdAmt + fwd.X * rightAmt;
+	/*
+		Build's Z runs downwards - their own crosshair goes up with
+		plusZ(-(z * hunits)) - while VRaze's "up" is positive upwards. The
+		pistol's is -40 against a "// Player height: 40" comment, so adding it
+		raises the weapon by 40. Subtracting buried it in the floor, which is
+		why nothing was visible.
+	*/
+	pos.Z += off.up + vr_weapon_off_up;
+
+	if (vr_weapon_debug > 0)
+	{
+		DVector2 ahead = playerYaw.ToVector();
+		pos = owner->spr.pos;
+		pos.X += ahead.X * vr_weapon_debug;
+		pos.Y += ahead.Y * vr_weapon_debug;
+		pos.Z -= 20;	// roughly eye height above the actor origin
+		yaw = playerYaw;
+		pitch = nullAngle;
+	}
 
 	auto sectp = owner->sector();
 	updatesector(pos.XY(), &sectp);
@@ -337,8 +376,10 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	if (lastReported.Compare(CurrentWeapon) != 0)
 	{
 		lastReported = CurrentWeapon;
-		Printf("VR weapon: %s -> tile %d, voxel %s\n",
-			CurrentWeapon.GetChars(), tile, TileHasVoxel(tile) ? "yes" : "NO");
+		Printf("VR weapon: %s tile %d voxel %s | gun (%.0f %.0f %.0f) player (%.0f %.0f %.0f) sect %d scale %.2f\n",
+			CurrentWeapon.GetChars(), tile, TileHasVoxel(tile) ? "yes" : "NO",
+			pos.X, pos.Y, pos.Z, owner->spr.pos.X, owner->spr.pos.Y, owner->spr.pos.Z,
+			sectp ? sectindex(sectp) : -1, (float)vr_weapon_scale);
 	}
 
 	auto tspr = tsprites.newTSprite();
@@ -352,7 +393,7 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	tspr->scale = DVector2(vr_weapon_scale, vr_weapon_scale);
 	tspr->Angles.Yaw = yaw;
 	tspr->Angles.Pitch = pitch;
-	tspr->Angles.Roll = DAngle::fromDeg(off.roll);
+	tspr->Angles.Roll = DAngle::fromDeg(off.roll + vr_weapon_rot_roll);
 	tspr->statnum = MAXSTATUS;
 	// Never animate the tile and never model-substitute it: this is already the
 	// model, chosen by the animation table above.
