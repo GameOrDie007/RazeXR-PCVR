@@ -414,14 +414,16 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	*/
 	/*
 		The model's origin sits a little above the grip, so without this the
-		weapon hangs slightly high - "about two inches" in the headset, dialled
-		in with vr_weapon_off_up -2 against Duke's 24 units per metre.
+		weapon hangs high of the hand. Dialled in against Duke's 24 units per
+		metre: two units down, then one back up once the pitch and roll axes
+		were corrected, which changed how the model sits about its origin.
+		One unit net.
 
 		Held in metres rather than map units so it carries to the games that use
-		41 units per metre instead of Duke's 24, where two map units would be a
+		41 units per metre instead of Duke's 24, where one map unit would be a
 		different physical distance.
 	*/
-	const double GripDropMetres = 0.083;
+	const double GripDropMetres = 1.0 / 24.0;
 	pos.Z += GripDropMetres * hupm;		// Build Z is downwards
 
 	pos.Z -= vr_weapon_off_up;
@@ -445,18 +447,18 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	if (lastReported.Compare(CurrentWeapon) != 0)
 	{
 		lastReported = CurrentWeapon;
-		Printf("VR weapon: %s tile %d voxel %s | gun (%.0f %.0f %.0f) player (%.0f %.0f %.0f) sect %d scale %.2f\n",
+		DPrintf(DMSG_NOTIFY, "VR weapon: %s tile %d voxel %s | gun (%.0f %.0f %.0f) player (%.0f %.0f %.0f) sect %d scale %.2f\n",
 			CurrentWeapon.GetChars(), tile, TileHasVoxel(tile) ? "yes" : "NO",
 			pos.X, pos.Y, pos.Z, owner->spr.pos.X, owner->spr.pos.Y, owner->spr.pos.Z,
 			sectp ? sectindex(sectp) : -1, (float)vr_weapon_scale);
-		Printf("   floor %.0f ceil %.0f | wz %.2f m -> %.0f u | off.up %.0f | hupm %.1f\n",
+		DPrintf(DMSG_NOTIFY, "   floor %.0f ceil %.0f | wz %.2f m -> %.0f u | off.up %.0f | hupm %.1f\n",
 			owner->sector() ? owner->sector()->floorz : 0.0, owner->sector() ? owner->sector()->ceilingz : 0.0,
 			wz, wz * hupm, off.up, hupm);
 		{
 			DVector2 aWorld = DVector2(1,0).Rotated(-DAngle90 + playerYaw);
 			DVector2 bWorld = DVector2(0,1).Rotated(-DAngle90 + playerYaw);
 			DVector2 fwdWorld = yaw.ToVector();
-			Printf("   yaw %.0f | axisA (%.2f %.2f) axisB (%.2f %.2f) | yawvec (%.2f %.2f) | viewvec (%.2f %.2f)\n",
+			DPrintf(DMSG_NOTIFY, "   yaw %.0f | axisA (%.2f %.2f) axisB (%.2f %.2f) | yawvec (%.2f %.2f) | viewvec (%.2f %.2f)\n",
 				playerYaw.Degrees(), aWorld.X, aWorld.Y, bWorld.X, bWorld.Y,
 				fwdWorld.X, fwdWorld.Y, vp.ViewVector.X, vp.ViewVector.Y);
 		}

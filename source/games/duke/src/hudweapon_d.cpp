@@ -220,7 +220,7 @@ void displayweapon_d(int snum, double interpfrac)
 		if (lastLog != p->curr_weapon)
 		{
 			lastLog = p->curr_weapon;
-			Printf("VR weapon hook: weapon %d, active %d\n",
+			DPrintf(DMSG_NOTIFY, "VR weapon hook: weapon %d, active %d\n",
 				p->curr_weapon, VRWeapons_Active() ? 1 : 0);
 		}
 	}

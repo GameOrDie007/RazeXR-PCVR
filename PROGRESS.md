@@ -1096,3 +1096,44 @@ may not matter at natural wrist angles. VRaze's `vr_weapon_offsets.def` carries
 `pivot_x/y/z` for what looks like exactly this, though all three are zero for
 every Duke weapon, so the grip would have to be derived from the model instead.
 Left alone unless it shows up in play.
+
+## Voxel weapons: Duke done
+
+Confirmed in the headset — "it feels like it's sitting in my hand".
+
+Final grip offset is one map unit at Duke's scale, stored as `1.0 / 24.0` metres
+so it carries to the games that use 41 units per metre. It was tuned twice: two
+units down first, then one back up after the pitch and roll axes were corrected,
+because fixing the orientation changed how the model sits about its own origin.
+The retune was expected rather than a regression.
+
+The diagnostics that found all of this are kept but downgraded to `DPrintf`, so
+they need `developer 3` rather than shouting on every weapon change.
+
+### What it took, and what it cost
+
+Seven rounds in the headset for one feature. Every one of the bugs was the same
+mistake: inferring a convention from VRaze's data instead of measuring it.
+
+| fault | how it was found |
+|---|---|
+| `CSTAT2_SPRITE_NOMODEL` also disables voxels | reading `DispatchSprites` |
+| `up` sign inverted, weapon in the floor | logging the position against the floor |
+| placement built on the player actor, not the eye | measuring the origin at 85 units above the floor |
+| placement basis rotated 90 degrees by the model's `off.yaw` | owner reporting "right" moved it *away* |
+| forward and lateral axes swapped | logging where each axis actually points |
+| roll never read from the controller | reading the code once the symptom named it |
+| pitch and roll transposed | owner reporting twist tilts and tilt rolls |
+
+The two that took longest were the two where a plausible-sounding assumption
+went unchecked. The ones found quickly were found by printing a number.
+
+### Still open
+
+- Animation frames parse but are not selected, so the pistol does not cycle its
+  three models.
+- Only Duke is hooked up; the other six games need a weapon-enum-to-name table
+  each.
+- No offsets menu yet.
+- The model rotates about the voxel pivot rather than the grip. Invisible at
+  natural wrist angles, obvious at 45 degrees.
