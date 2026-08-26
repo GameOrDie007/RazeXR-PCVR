@@ -539,8 +539,14 @@ bool HWSprite::ProcessVoxel(HWDrawInfo* di, voxmodel_t* vox, tspritetype* spr, s
 		ignored it. Ordinary sprites leave both at zero, so this is inert for
 		everything except the VR weapon.
 	*/
-	if (spr->Angles.Pitch != nullAngle) rotmat.rotate(spr->Angles.Pitch.Degrees(), 1, 0, 0);
-	if (spr->Angles.Roll != nullAngle) rotmat.rotate(spr->Angles.Roll.Degrees(), 0, 0, 1);
+	/*
+		Measured in the headset, not assumed: with pitch on X the weapon twisted
+		about its barrel and with roll on Z it tilted, so the two were
+		transposed. X is the barrel axis after the yaw rotation above, which is
+		where roll belongs; pitch goes on Z.
+	*/
+	if (spr->Angles.Pitch != nullAngle) rotmat.rotate(spr->Angles.Pitch.Degrees(), 0, 0, 1);
+	if (spr->Angles.Roll != nullAngle) rotmat.rotate(spr->Angles.Roll.Degrees(), 1, 0, 0);
 	rotmat.scale(scalevec.X, scalevec.Z, scalevec.Y);
 	// Apply pivot last
 	rotmat.translate(-voxel->piv.X, zoff, voxel->piv.Y);
