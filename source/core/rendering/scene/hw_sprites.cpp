@@ -548,8 +548,17 @@ bool HWSprite::ProcessVoxel(HWDrawInfo* di, voxmodel_t* vox, tspritetype* spr, s
 	*/
 	if (VRWeapons_IsWeaponTile(spr->picnum))
 	{
-		rotmat.rotate(spr->Angles.Pitch.Degrees(), 0, 0, 1);
-		rotmat.rotate(spr->Angles.Roll.Degrees(), 1, 0, 0);
+		/*
+			Pitch on X and roll on Z, measured in the hand's frame.
+
+			These sat on the other axes while the model's yaw correction still
+			preceded them: Duke's pistol carries -90, and that quarter turn came
+			between the hand and these rotations. Moving the correction after
+			them - which is what makes every game agree - turned the frame back,
+			and the axes have to follow.
+		*/
+		rotmat.rotate(spr->Angles.Pitch.Degrees(), 1, 0, 0);
+		rotmat.rotate(spr->Angles.Roll.Degrees(), 0, 0, 1);
 		// The model's own facing correction goes last, so it cannot rotate the
 		// frame the two above are measured in.
 		rotmat.rotate(VRWeapons_ModelYaw(), 0, 1, 0);

@@ -33,7 +33,6 @@
 */
 #include <float.h>
 
-#include "vr_gameselect.h"
 #include "menu.h"
 #include "filesystem.h"
 #include "c_bind.h"

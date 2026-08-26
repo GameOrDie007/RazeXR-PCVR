@@ -1,0 +1,136 @@
+/*
+	vr_launchers.cpp - PC branch. See vr_launchers.h.
+
+	Copyright (C) 2026 RazeXR PCVR port
+*/
+
+#include "vr_launchers.h"
+
+#include "gamecontrol.h"
+#include "c_dispatch.h"
+#include "printf.h"
+#include "cmdlib.h"
+#include "zstring.h"
+#include "m_argv.h"
+#include "filesystem.h"
+
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
+
+struct VRGame
+{
+	FString name;		// as grpinfo.txt names it
+	FString path;		// what goes to -gamegrp
+	bool isAddon = false;
+};
+
+static TArray<VRGame> Games;
+
+void VRLaunchers_SetScannedGames(const TArray<GrpEntry>& games)
+{
+	Games.Clear();
+
+	for (auto& g : games)
+	{
+		VRGame e;
+		e.name = g.FileInfo.name.IsNotEmpty() ? g.FileInfo.name : ExtractFileBase(g.FileName.GetChars(), true);
+		e.path = g.FileName;
+		e.isAddon = g.FileInfo.isAddon || (g.FileInfo.flags & GAMEFLAG_ADDON) != 0;
+		Games.Push(e);
+	}
+}
+
+//==========================================================================
+//
+// A game's name becomes its filename, so it has to survive being one.
+//
+//==========================================================================
+
+static FString SafeFileName(const char* name)
+{
+	FString out;
+	bool lastWasSpace = false;
+
+	for (const char* c = name; *c; c++)
+	{
+		// Anything Windows will not take in a filename, plus a few that are
+		// legal but awkward to type at a prompt.
+		if (strchr("\\/:*?\"<>|", *c) != nullptr) continue;
+
+		if (*c == ' ')
+		{
+			if (lastWasSpace) continue;
+			lastWasSpace = true;
+		}
+		else lastWasSpace = false;
+
+		out << *c;
+	}
+
+	while (out.Len() > 0 && (out.Back() == ' ' || out.Back() == '.')) out.Truncate(out.Len() - 1);
+	if (out.IsEmpty()) out = "Raze";
+	return out;
+}
+
+//==========================================================================
+
+CCMD(vrwritelaunchers)
+{
+	if (Games.Size() == 0)
+	{
+		Printf("No games were found to write launchers for.\n");
+		return;
+	}
+
+#ifdef _WIN32
+	// progdir is where raze.exe lives, which is where the launchers belong.
+	FString dir = progdir;
+	FixPathSeperator(dir);
+	while (dir.Len() > 1 && dir.Back() == '/') dir.Truncate(dir.Len() - 1);
+	if (dir.IsEmpty()) dir = ".";
+
+	int written = 0;
+
+	for (auto& g : Games)
+	{
+		FString base = SafeFileName(g.name.GetChars());
+		FString file;
+		file.Format("%s/%s.bat", dir.GetChars(), base.GetChars());
+
+		FString body;
+		body << "@echo off\r\n";
+		body << "rem " << g.name << "\r\n";
+		body << "rem Written by the vrwritelaunchers console command.\r\n";
+		body << "rem Start Virtual Desktop and connect the headset before running this.\r\n";
+		body << "setlocal\r\n";
+		body << "cd /d \"%~dp0\"\r\n";
+		body << "\r\n";
+		body << "rem The voxel weapon pack, if it has been built.\r\n";
+		body << "set \"VRW=\"\r\n";
+		body << "if exist \"%~dp0vrweapons.pk3\" set \"VRW=-file \"\"%~dp0vrweapons.pk3\"\"\"\r\n";
+		body << "\r\n";
+		body << "\"%~dp0raze.exe\" -nosetup -gamegrp \"" << g.path << "\" %VRW% ";
+		body << "-config \"%~dp0cfg_" << base << ".ini\" +logfile \"%~dp0raze.log\"\r\n";
+
+		FileWriter* w = FileWriter::Open(file.GetChars());
+		if (w == nullptr)
+		{
+			Printf(TEXTCOLOR_RED "Could not write %s\n", file.GetChars());
+			continue;
+		}
+		w->Write(body.GetChars(), body.Len());
+		delete w;
+
+		Printf("  %s%s\n", base.GetChars(), g.isAddon ? "   (add-on)" : "");
+		written++;
+	}
+
+	Printf("Wrote %d launcher%s to %s\n", written, written == 1 ? "" : "s", dir.GetChars());
+#else
+	Printf("vrwritelaunchers is only implemented for Windows.\n");
+#endif
+}
