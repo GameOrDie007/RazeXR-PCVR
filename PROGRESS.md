@@ -1364,3 +1364,48 @@ second fault in the same twenty lines: first the window handle was being wiped
 by an OpenXR reset, now the blit was being clipped. The mirror is the one piece
 of this port that nothing else depends on, which is exactly why it accumulated
 two bugs without either being noticed.
+
+## Smooth-turn weapon vibration
+
+Reported: under smooth turn the weapon vibrates or ghosts, and settles the
+moment the stick is released.
+
+The weapon was placed from the **player actor's** yaw while the scene is drawn
+from the **view's**, and those two deliberately disagree while turning.
+`SetupViewpoint` lerps `vrYaw` towards the game's yaw a fraction each frame -
+their "frame yaw resync" - so the actor leads and the view follows. Anything
+positioned from the actor swims against everything else for as long as the two
+are apart, and snaps into place when they converge. It is the same root cause as
+the crosshair lagging a snap turn, which is theirs and is recorded on the 1:1
+branch.
+
+Placement now uses `DAngle::fromBam(vp.RotAngle)`, the view's own yaw, which is
+also the thing the position is already based on.
+
+## The desktop mirror: what is and is not established
+
+The blit itself is fine. A one-shot check after it reports `mirror blit ok`.
+
+An earlier reading of `GL_INVALID_OPERATION` was **my diagnostic being wrong**,
+not the blit: `glGetError` returns the first error since it was last called, and
+the queue had not been drained, so an error from an earlier engine call was
+attributed to the blit. Draining first shows the blit is accepted. Both sample
+counts are 0, so the scaling-a-multisample theory is out too.
+
+The frame path is intact - `Display()` still ends in `screen->Update()`, and the
+mirror blit happens inside `GLRenderer->Flush()`, which runs before the swap.
+
+**What could not be established here:** with no headset streaming,
+`xrWaitFrame` blocks the main thread, the window stops pumping messages and
+Windows puts a "not responding" dialog over stale startup content. A screen
+capture during a test run shows exactly that. So this machine cannot observe the
+mirror in the state the owner sees it in, and the earlier "scissor test" fix was
+reasoning applied to a symptom that could not be checked.
+
+`vr_mirror_probe` paints the window magenta before the blit. Magenta means
+presentation works and the content is at fault; unchanged means nothing drawn
+there reaches the screen. One run separates the two.
+
+Also worth ruling out: the owner was on Remote Desktop. RDP detaches the
+physical display and redirects presentation, so a black physical monitor is
+expected under it regardless of this code.

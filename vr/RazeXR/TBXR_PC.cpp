@@ -46,6 +46,7 @@
 	must come first.
 */
 #include "printf.h"
+#include "c_cvars.h"
 #include "i_time.h"
 #include "v_video.h"
 #include "c_dispatch.h"
@@ -102,6 +103,9 @@ static int TBXR_MirrorHeight()
 }
 
 static GLboolean stageSupported = GL_FALSE;
+
+// Diagnostic for the desktop mirror. See TBXR_MirrorToWindow.
+CVAR(Bool, vr_mirror_probe, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 // strlcpy is a BSD extension the Quake engine supplied and MSVC does not.
 static void TBXR_strcopy(char *dst, const char *src, size_t size)
@@ -1308,9 +1312,28 @@ static void TBXR_MirrorToWindow(void)
 		scene. That is why the mirror showed the menu - drawn with scissoring
 		off - and almost nothing in a level.
 	*/
+	// Drain any error left by earlier engine calls, so what is checked after
+	// the blit is the blit's own.
+	static bool checking = false;
+	GLenum stale = GL_NO_ERROR;
+	if (!checking) { while (glGetError() != GL_NO_ERROR) stale = 1; }
+
 	GLboolean scissorWas = glIsEnabled(GL_SCISSOR_TEST);
 	glDisable(GL_SCISSOR_TEST);
 	glDisable(GL_FRAMEBUFFER_SRGB);
+	/*
+		vr_mirror_probe paints the window magenta before the blit. If the
+		monitor turns magenta, presentation works and the blit content is at
+		fault; if it does not change, nothing drawn here reaches the screen.
+		One run separates two very different problems.
+	*/
+	if (vr_mirror_probe)
+	{
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBuffer->MsaaFrameBuffer);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	glBlitFramebuffer(0, 0, frameBuffer->Width, frameBuffer->Height,
@@ -1319,6 +1342,29 @@ static void TBXR_MirrorToWindow(void)
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	if (scissorWas) glEnable(GL_SCISSOR_TEST);
+
+	// One-shot: says whether the blit itself was accepted. A GL error here
+	// means the mirror is being rejected; no error but a black monitor means
+	// the problem is downstream, in presentation rather than in this blit.
+	static bool checked = false;
+	if (!checked)
+	{
+		checked = true;
+		checking = true;
+		GLenum err = glGetError();
+		VR_Log("VR: mirror blit %s (scissor was %d, stale errors %d)\n",
+			err == GL_NO_ERROR ? "ok" : "REJECTED", (int)scissorWas, (int)stale);
+		if (err != GL_NO_ERROR)
+		{
+			GLint readSamples = 0, drawSamples = 0;
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBuffer->MsaaFrameBuffer);
+			glGetIntegerv(GL_SAMPLES, &readSamples);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+			glGetIntegerv(GL_SAMPLES, &drawSamples);
+			VR_Log("VR: mirror gl error 0x%x, read samples %d, window samples %d\n",
+				err, readSamples, drawSamples);
+		}
+	}
 }
 
 void TBXR_submitFrame(void)

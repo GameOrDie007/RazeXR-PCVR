@@ -417,7 +417,18 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 
 	// Same construction their crosshair and shoot override use, so the model
 	// lands where the shots already come from.
-	DAngle playerYaw = owner->spr.Angles.Yaw;
+	/*
+		The view's yaw, not the player actor's.
+
+		Those two deliberately disagree while turning: SetupViewpoint lerps
+		vrYaw towards the game's yaw a fraction each frame, their "frame yaw
+		resync", so the actor leads and the view follows. Placing the weapon
+		from the actor while the scene is drawn from the view makes the model
+		swim against everything else - it reads as the weapon vibrating or
+		ghosting under smooth turn, and settling the moment the stick is
+		released and the two converge again.
+	*/
+	DAngle playerYaw = DAngle::fromBam(vp.RotAngle);
 	/*
 		Two different yaws, and conflating them was the bug.
 
