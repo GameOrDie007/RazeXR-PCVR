@@ -1182,3 +1182,48 @@ join them. Shadow Warrior is similar: its models carry variants
 
 Those need an explicit per-game table, which is what VRaze's engine must have
 had. Not guessed at here.
+
+## Two bugs the owner spotted from watching a test session
+
+### The desktop mirror was black
+
+`TBXR_InitialiseInstance` clears the whole of `gAppState` with a `memset`, and
+the window and GL context the engine hands over through
+`TBXR_SetGraphicsBinding` were being set *before* that ran. The session never
+noticed, because it asks wgl for the current DC and context directly rather than
+reading the stored ones - so VR worked perfectly while the monitor stayed black.
+
+The mirror does need the window, to size the blit:
+
+```
+before   VR: mirror 0x0 from fbo 4 (3072x3264), hwnd 0000000000000000
+after    VR: mirror 3840x2160 from fbo 4 (3072x3264), hwnd 00000000004C058A
+```
+
+The three platform handles are now saved and restored across the clear. They are
+the engine's, not OpenXR's, and had no business being wiped by an OpenXR reset.
+
+### Twist and tilt reversed in Redneck and Blood
+
+Pitch and roll were being applied *after* the model's own yaw correction, so the
+frame they were measured in depended on how each model happened to be authored:
+
+| game | `yaw` values in its offsets |
+|---|---|
+| Duke | -90, 180 |
+| Blood | 0, 180 |
+| Redneck | 0 |
+| Shadow Warrior | 0, 90, 180 |
+
+The axes were tuned against Duke's pistol at -90. Every weapon at 0 is a quarter
+turn away from that, which lands pitch and roll on each other's axes - reversed
+twist and tilt, exactly as reported, and it would have been wrong in five games.
+
+The sprite now carries the hand's yaw alone, and the renderer applies the model's
+correction *after* pitch and roll, where it cannot rotate the frame they are
+measured in. Gated on the tile being one of the weapon voxels, so nothing else
+in the world is affected.
+
+Worth noting how close this came to being missed: Duke was dialled in by hand
+and felt perfect, which is exactly why it hid a bug that made four other games
+wrong.

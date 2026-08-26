@@ -64,7 +64,8 @@ bool TBXR_VREnabled();
 
 static TMap<FString, VRWeaponOffsets> WeaponOffsets;
 static TMap<FString, int> WeaponBaseTile;	// weapon name -> voxel tile of frame 0
-static TMap<int, int> FrameToVoxel;			// 2D sprite tile -> voxel tile
+static TMap<int, int> FrameToVoxel;
+static TMap<int, bool> OurTiles;		// every voxel tile the weapon defs claim			// 2D sprite tile -> voxel tile
 static bool DefsLoaded = false;
 
 static FString CurrentWeapon;
@@ -140,7 +141,11 @@ static void ParseWeaponTiles()
 			}
 
 			FString stem;
-			if (tile >= 0 && WeaponStemFromPath(path.GetChars(), stem)) stems.Insert(tile, stem);
+			if (tile >= 0 && WeaponStemFromPath(path.GetChars(), stem))
+			{
+				stems.Insert(tile, stem);
+				OurTiles.Insert(tile, true);
+			}
 		}
 	}
 	catch (const CRecoverableError& err)
@@ -283,6 +288,7 @@ static void ParseAnimations()
 void VRWeapons_LoadDefs()
 {
 	WeaponOffsets.Clear();
+	OurTiles.Clear();
 	WeaponBaseTile.Clear();
 	FrameToVoxel.Clear();
 	DefsLoaded = false;
@@ -340,6 +346,18 @@ bool VRWeapons_BeginWeapon(const char* name)
 	CurrentValid = true;
 	Capturing = true;
 	return true;
+}
+
+bool VRWeapons_IsWeaponTile(int tile)
+{
+	return OurTiles.CheckKey(tile) != nullptr;
+}
+
+float VRWeapons_ModelYaw()
+{
+	if (!CurrentValid) return 0.f;
+	auto o = WeaponOffsets.CheckKey(CurrentWeapon);
+	return (o ? o->yaw : 0.f) + vr_weapon_rot_yaw;
 }
 
 bool VRWeapons_DrawingModel()
@@ -410,7 +428,15 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 		degrees, which is why "right" pushed the weapon away from the viewer.
 	*/
 	DAngle handYaw = playerYaw + DAngle::fromDeg(wyaw);
-	DAngle yaw = handYaw + DAngle::fromDeg(off.yaw + vr_weapon_rot_yaw);
+	/*
+		The sprite carries the hand's yaw only. The model's own correction is
+		applied by the renderer after pitch and roll, so that a model authored
+		facing a different way - Duke's pistol is -90, Redneck's weapons are 0 -
+		does not change which axis is twist and which is tilt. Getting that
+		wrong reversed both in every game whose models are not authored like
+		Duke's.
+	*/
+	DAngle yaw = handYaw;
 	DAngle pitch = owner->spr.Angles.Pitch - DAngle::fromDeg(wpitch - off.pitch - vr_weapon_rot_pitch);
 
 	/*
