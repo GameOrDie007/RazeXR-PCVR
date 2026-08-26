@@ -82,7 +82,7 @@ static bool CurrentValid = false;
 //
 //==========================================================================
 
-static bool WeaponNameFromPath(const char* path, FString& name, int& frame)
+static bool WeaponStemFromPath(const char* path, FString& stem)
 {
 	FString s = path;
 	auto slash = s.LastIndexOf('/');
@@ -90,36 +90,31 @@ static bool WeaponNameFromPath(const char* path, FString& name, int& frame)
 
 	if (!s.Right(4).CompareNoCase(".kvx")) s.Truncate(s.Len() - 4);
 
-	if (s.IndexOf("vr_weapon_") == 0) s = s.Mid(10);
-	else if (s.IndexOf("vr_") == 0) s = s.Mid(3);
-	else return false;
-
-	frame = 0;
-	if (s.Len() > 1)
+	// Each game prefixes its own models differently, and the longer prefixes
+	// have to be tried first or the shorter ones swallow them.
+	static const char* const prefixes[] = {
+		"vr_weapon_rr_", "vr_weapon_nam_", "vr_weapon_ww2gi_", "vr_weapon_", "vr_"
+	};
+	for (auto pre : prefixes)
 	{
-		char last = s[s.Len() - 1];
-		if (last >= '0' && last <= '9')
+		size_t n = strlen(pre);
+		if (s.Len() > n && !s.Left((int)n).Compare(pre))
 		{
-			frame = last - '0';
-			s.Truncate(s.Len() - 1);
+			s = s.Mid((int)n);
+			stem = s;
+			return !s.IsEmpty();
 		}
 	}
-
-	if (s.IsEmpty()) return false;
-	name = s;
-	return true;
+	return false;
 }
-
-//==========================================================================
-//
-// vr_weapons.def is loaded by Raze's own def parser, which binds each voxel to
-// a tile. It is re-read here only to recover which weapon owns which tile.
-//
-//==========================================================================
 
 static void ParseWeaponTiles()
 {
 	if (fileSystem.FindFile("engine/vr_weapons.def") < 0) return;
+
+	// tile -> stem, collected first so the decade grouping below can see how
+	// many frames each weapon has.
+	TMap<int, FString> stems;
 
 	FScanner sc;
 	try
@@ -127,34 +122,65 @@ static void ParseWeaponTiles()
 		sc.Open("engine/vr_weapons.def");
 		while (sc.GetString())
 		{
-			if (sc.Compare("voxel"))
+			if (!sc.Compare("voxel")) continue;
+
+			sc.MustGetString();
+			FString path = sc.String;
+
+			int tile = -1;
+			if (sc.CheckString("{"))
 			{
-				sc.MustGetString();
-				FString path = sc.String;
-
-				int tile = -1;
-				if (sc.CheckString("{"))
+				while (!sc.CheckString("}"))
 				{
-					while (!sc.CheckString("}"))
-					{
-						sc.MustGetString();
-						if (sc.Compare("tile")) { sc.MustGetNumber(); tile = sc.Number; }
-						else if (sc.Compare("scale")) sc.MustGetFloat();
-					}
-				}
-
-				FString name;
-				int frame;
-				if (tile >= 0 && WeaponNameFromPath(path.GetChars(), name, frame) && frame == 0)
-				{
-					WeaponBaseTile.Insert(name, tile);
+					sc.MustGetString();
+					if (sc.Compare("tile")) { sc.MustGetNumber(); tile = sc.Number; }
+					else if (sc.Compare("scale")) sc.MustGetFloat();
 				}
 			}
+
+			FString stem;
+			if (tile >= 0 && WeaponStemFromPath(path.GetChars(), stem)) stems.Insert(tile, stem);
 		}
 	}
 	catch (const CRecoverableError& err)
 	{
 		Printf(TEXTCOLOR_YELLOW "vr_weapons.def: %s\n", err.what());
+		return;
+	}
+
+	/*
+		Tiles run 30000 + slot*10 + frame, so everything in one decade is the
+		same weapon. That is what says whether a trailing digit is a frame index
+		or part of the name: "pistol0" sits in a decade of three and loses its
+		digit, while Exhumed's "m60" is alone in its decade and keeps it. A
+		plain "strip a trailing digit" rule turned that one into "m6".
+	*/
+	TMap<int, int> frameCount;
+	{
+		TMap<int, FString>::Iterator it(stems);
+		TMap<int, FString>::Pair* pair;
+		while (it.NextPair(pair))
+		{
+			int decade = pair->Key / 10;
+			int* n = frameCount.CheckKey(decade);
+			frameCount.Insert(decade, n ? *n + 1 : 1);
+		}
+	}
+
+	TMap<int, FString>::Iterator it(stems);
+	TMap<int, FString>::Pair* pair;
+	while (it.NextPair(pair))
+	{
+		if (pair->Key % 10 != 0) continue;		// frame 0 names the weapon
+
+		FString name = pair->Value;
+		int* n = frameCount.CheckKey(pair->Key / 10);
+		if (n && *n > 1 && name.Len() > 1)
+		{
+			char last = name[name.Len() - 1];
+			if (last >= '0' && last <= '9') name.Truncate(name.Len() - 1);
+		}
+		WeaponBaseTile.Insert(name, pair->Key);
 	}
 }
 
@@ -297,6 +323,31 @@ void VRWeapons_SetCurrent(const char* name, int spriteTile)
 	CurrentWeapon = name;
 	CurrentSpriteTile = spriteTile;
 	CurrentValid = true;
+}
+
+bool VRWeapons_BeginWeapon(const char* name)
+{
+	if (!VRWeapons_Active() || !VRWeapons_HasModel(name))
+	{
+		CurrentValid = false;
+		return false;
+	}
+
+	CurrentWeapon = name;
+	CurrentSpriteTile = -1;		// filled in by NoteDrawnTile if a frame matches
+	CurrentValid = true;
+	return true;
+}
+
+bool VRWeapons_DrawingModel()
+{
+	return CurrentValid && VRWeapons_Active();
+}
+
+void VRWeapons_NoteDrawnTile(int tile)
+{
+	if (!CurrentValid) return;
+	if (FrameToVoxel.CheckKey(tile)) CurrentSpriteTile = tile;
 }
 
 void VRWeapons_ClearCurrent()

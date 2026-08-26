@@ -54,6 +54,18 @@ inline static double getavel(int snum)
 
 inline static void hud_drawpal(double x, double y, int tilenum, int shade, int orientation, int p, DAngle angle)
 {
+	/*
+		PC branch: with a voxel model in hand the flat weapon is not drawn, but
+		the display code still runs, so the tiles it would have drawn can be
+		reported. That is how the animation frame is chosen without
+		reimplementing this game's frame selection - the animation table already
+		says which sprite tiles matter and everything else is ignored.
+	*/
+	if (VRWeapons_DrawingModel())
+	{
+		VRWeapons_NoteDrawnTile(tilenum);
+		return;
+	}
 	hud_drawsprite(x, y, 65536, angle.Degrees(), tilenum, shade, p, 2 | orientation);
 }
 
@@ -210,22 +222,11 @@ void displayweapon_d(int snum, double interpfrac)
 	}
 
 	/*
-		PC branch. With voxel weapons on, the weapon is a model held at the
-		controller rather than a sprite pasted to the screen, so the flat HUD
-		draw below is skipped entirely. The names are VRaze's, from
-		vr_weapon_offsets.def.
+		PC branch. With a voxel model in hand the display code below still runs -
+		it is what reports which tile would have been drawn - but hud_drawpal
+		suppresses the actual draws. Weapons with no model fall through and are
+		drawn flat as before. The names are VRaze's, from vr_weapon_offsets.def.
 	*/
-	{
-		static int lastLog = -2;
-		if (lastLog != p->curr_weapon)
-		{
-			lastLog = p->curr_weapon;
-			DPrintf(DMSG_NOTIFY, "VR weapon hook: weapon %d, active %d\n",
-				p->curr_weapon, VRWeapons_Active() ? 1 : 0);
-		}
-	}
-
-	if (VRWeapons_Active())
 	{
 		static const char* const vrNames[] = {
 			"knee", "pistol", "shotgun", "chaingun", "rpg", "handbomb",
@@ -234,13 +235,7 @@ void displayweapon_d(int snum, double interpfrac)
 		};
 
 		int w = p->curr_weapon;
-		if (w >= 0 && w < (int)countof(vrNames) && VRWeapons_HasModel(vrNames[w]))
-		{
-			VRWeapons_SetCurrent(vrNames[w], -1);
-			return;
-		}
-		// No model for this weapon - fall through and draw it flat, as before.
-		VRWeapons_ClearCurrent();
+		VRWeapons_BeginWeapon(w >= 0 && w < (int)countof(vrNames) ? vrNames[w] : "");
 	}
 
 	double weapon_sway, gun_pos, kickback_pic, random_club_frame, hard_landing;

@@ -63,6 +63,21 @@ bool VRWeapons_HasModel(const char* name);
 // and the 2D tile it would otherwise have drawn. The tile drives the animation
 // lookup; the name drives everything else.
 void VRWeapons_SetCurrent(const char* name, int spriteTile);
+
+// Called at the top of a game's weapon display. Returns true when there is a
+// model for this weapon, in which case the caller should let its drawing code
+// run but suppress the actual draws, reporting each tile it would have drawn
+// through VRWeapons_NoteDrawnTile.
+//
+// Watching the tiles rather than reimplementing each game's frame selection is
+// what keeps this out of the games: the animation table already says which
+// sprite tiles matter, so anything else drawn is simply ignored.
+bool VRWeapons_BeginWeapon(const char* name);
+void VRWeapons_NoteDrawnTile(int tile);
+
+// True while a model is standing in for the flat weapon, so the game's drawing
+// code should report tiles rather than draw them.
+bool VRWeapons_DrawingModel();
 void VRWeapons_ClearCurrent();
 
 // Appends the held weapon to this frame's sprite list, positioned from the live
