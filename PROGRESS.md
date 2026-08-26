@@ -1227,3 +1227,63 @@ in the world is affected.
 Worth noting how close this came to being missed: Duke was dialled in by hand
 and felt perfect, which is exactly why it hid a bug that made four other games
 wrong.
+
+---
+
+# PC branch: the Switch Game menu
+
+The headline feature from the brief. Working.
+
+```
+VR game select: scan returned 11 entries
+VR game select: 7 switchable
+  0  Duke Nukem 3D: Atomic Edition (WT)
+  1  BLOOD: One Unit Whole Blood
+  2  Shadow Warrior
+  3  Redneck Rampage
+  4  NAM
+  5  WWII GI
+  6  Exhumed
+```
+
+Verified end to end here: launched into Duke, fired `vrselectgame 1`, and the
+surviving process is Blood. One process, correctly switched.
+
+## Built to VRaze's contract
+
+Their engine source was never published, but their menudef documents what it
+expected, and this keeps to it so their definitions describe the same menu:
+
+- `BuildVRGameSelectMenu()` in `vr_gameselect.cpp` fills the menu at runtime
+- each entry fires CCMD `vrselectgame <index>`
+- "Switch Game" sits under "VR Options" in all eight menus - main and in-game,
+  for each of Duke, Blood, Shadow Warrior and Exhumed - on hotkey `g`
+
+## Where PC is easier than the Quest, and where it is not
+
+**Enumeration is free.** PC Raze already scans for installed games at startup and
+CRC-matches them against `grpinfo.txt`; the switcher just keeps the list that
+`SetupGame` was about to throw away. Add-ons are filtered out - Nuclear Winter,
+Cryptic Passage and the rest are episodes layered on a base game, not something
+to switch *to*, which is why VRaze gives mods a menu of their own.
+
+**Switching still needs a relaunch.** `GameMain` calls `RunGame` once and there is
+no way back into it: the file system, the tile store, the ZScript VM and
+`GameStartupInfo` all belong to that call. The milestone 0 hope that PC might
+reload in place does not survive contact with the code. But PC does not need
+their `commandline.txt` hack either - the process starts its successor with a
+different `-gamegrp` and leaves through the ordinary quit path, so the config is
+written and the OpenXR session is ended before the new process claims the
+headset.
+
+**One thing needed adding.** Search paths come only from the config, with no
+command line override, so the switcher could see nothing but the game it was
+launched with. `-gamegrp` names a file inside one game's folder and the others
+are almost always beside it, so `<root>` and its subdirectories are now added
+automatically. Without that the menu would have listed exactly one game and been
+useless.
+
+## Not yet done
+
+The mod select menu VRaze shows after game select, when `raze/mods/` is not
+empty. The owner's `mods/` is empty, so there is nothing to test it against.
