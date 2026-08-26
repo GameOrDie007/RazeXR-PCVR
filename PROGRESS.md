@@ -472,3 +472,69 @@ session creation happens before the console exists. The VR layer therefore
 mirrors every line to `razexr_vr.log` beside the executable. That file is what
 made the above measurable, and it is what a failed headset run should be read
 from.
+
+---
+
+# Milestone 2a — first launch fixed
+
+Two failures, both found and fixed without spending a headset round.
+
+## `NUM_VIEWS` undefined: the shader would not compile
+
+```
+0(13) : error C1503: undefined variable "NUM_VIEWS"
+```
+
+`FShader::Load` builds its version string in **two** branches: one for the
+uniform buffer path and one for the shader storage buffer path. The define had
+been added to the first only. Any desktop GPU advertising SSBOs takes the
+second — an RTX 4070 Ti SUPER reports 96 shader storage blocks — so the define
+was missing on exactly the hardware this port targets, and the main shader
+could not compile at all.
+
+`NUM_VIEWS` is now defined once after both branches, before `fp_comb` is copied
+from `vp_comb`, so the vertex and fragment shaders both get it on every path.
+
+## Sound: the wrong OpenAL
+
+`Sound init failed. Using nosound.` The `openal32.dll` borrowed from the Quake
+II VR build is a MinGW OpenAL that Raze will not initialise against, and in one
+run it hung during sound init rather than failing cleanly.
+
+Replaced with **OpenAL Soft 1.23.1** built from source with the same VS2019
+toolchain. Now:
+
+```
+I_InitSound: Initializing OpenAL
+  Opened device OpenAL Soft on Speakers (Virtual Desktop Audio)
+  EFX enabled
+```
+
+Note the device: audio routes through Virtual Desktop to the headset.
+
+## Current state on this machine
+
+```
+VR: runtime VirtualDesktopXR 1.0.10
+VR: eye framebuffer 3072x3264, 1 samples, 3 swapchain images   (one per eye)
+VR: session begun (active)
+GL_RENDERER: NVIDIA GeForce RTX 4070 Ti SUPER
+GL_VERSION: 4.6.0 NVIDIA 610.88 (Core profile)
+Resolution: 3840 x 2160
+```
+
+Shaders compile, the session goes active, sound opens, and the process idles in
+`xrWaitFrame` when nobody is wearing the headset — which is correct behaviour,
+not a hang. Low CPU with a live session means it is waiting for frames.
+
+A note for future debugging: `raze.log` is **buffered**, so reading it while the
+process is alive shows a stale tail and makes a healthy start look like a hang
+at whatever line was last flushed. `razexr_vr.log` is written a line at a time
+and is the reliable one.
+
+## Incidentally
+
+This GPU reports both `GL_OVR_multiview` and `GL_OVR_multiview2`, so their
+single-pass path is not impossible on this hardware. It stays rejected for the
+reasons in milestone 0 — the postprocess chain and array swapchains are the
+hard part, not the extension.
