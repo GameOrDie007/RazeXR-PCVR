@@ -998,7 +998,7 @@ set (PCH_SOURCES
 	core/gamecontrol.cpp
 	core/gamehud.cpp
 	core/vr_weapons.cpp
-	core/vr_gameselect.cpp
+	core/vr_launchers.cpp
 	core/gamefuncs.cpp
 	core/gameinput.cpp
 	core/g_mapinfo.cpp

@@ -1287,3 +1287,61 @@ useless.
 
 The mod select menu VRaze shows after game select, when `raze/mods/` is not
 empty. The owner's `mods/` is empty, so there is nothing to test it against.
+
+---
+
+# Switch Game menu removed; per-game launchers instead
+
+The menu worked in the sense that it switched games, and failed in every way
+that mattered:
+
+- the submenu came up **empty in the headset**. It is built once in
+  `M_CreateMenus`, which for the owner's install ran before the game scan had
+  anything in it - a startup ordering problem the tests here never hit, because
+  a game was always named on the command line.
+- eight new entries pushed **Quit off the bottom of the main menu**, which is a
+  real regression in a menu he uses.
+
+Rather than fix both, the owner's call: drop the menu and write a `.bat` per
+game. Switching needs a process relaunch either way, so a launcher does the same
+job without touching the menus at all - and it matches how the games actually
+get started here, from LaunchBox.
+
+## What survived
+
+The useful half. Raze already scans for installed games and CRC-matches them
+against `grpinfo.txt`, so what is installed and what each is properly called is
+already known. `vrwritelaunchers` writes one `.bat` per entry from that list,
+**including add-ons** this time - an expansion is worth its own launcher even
+though it was not worth switching to from inside a running game.
+
+```
+Duke Nukem 3D Atomic Edition (WT)     Redneck Rampage
+BLOOD One Unit Whole Blood            NAM
+BLOOD Cryptic Passage      (add-on)   WWII GI
+Shadow Warrior                        Platoon Leader   (add-on)
+Shadow Warrior Wanton Destruction     Exhumed
+Shadow Warrior Twin Dragon (add-on)
+```
+
+Eleven launchers, verified by running the Shadow Warrior one. Each carries the
+voxel weapon pack if it is present and keeps a separate config per game.
+
+The search path addition made for the menu is kept and is what makes this work:
+`-gamegrp` names a file inside one game's folder, so `<root>` and its
+subdirectories are added automatically, and the scan sees all of them.
+
+Duke's own expansions - Nuclear Winter, Duke it Out in DC, Vacation - are in the
+folder but did not come through the scan. Most likely their `grpinfo` dependency
+is on the Atomic 1.5 GRP while the installed one is World Tour. Not chased.
+
+## The rotation axes, again
+
+Duke's twist and tilt broke a second time, and by my own hand. Moving the
+model's yaw correction to *after* pitch and roll - which is what made Redneck
+and Blood agree with Duke - turned the frame those two are measured in by ninety
+degrees, so the axes tuned for the old arrangement were wrong for the new one.
+
+Pitch is back on X and roll on Z, now measured in the hand's frame, which is the
+same for every game. Duke's `-90` no longer sits between the hand and these
+rotations.

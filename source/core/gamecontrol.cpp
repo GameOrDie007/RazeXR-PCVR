@@ -571,7 +571,7 @@ int RunGame();
 void System_MenuClosed();
 void System_MenuDim();
 
-#include "vr_gameselect.h"
+#include "vr_launchers.h"
 
 void RazeXR_PC_StopVR();
 
@@ -721,9 +721,9 @@ static TArray<GrpEntry> SetupGame()
 
 	auto groups = GrpScan();
 
-	// PC branch: keep the full scan for the Switch Game menu, before the
-	// filtering below narrows it to the one game being started.
-	VRGameSelect_SetScannedGames(groups);
+	// PC branch: keep the full scan so vrwritelaunchers can generate a .bat
+	// per installed game, before the filtering below narrows it to one.
+	VRLaunchers_SetScannedGames(groups);
 
 	if (groups.Size() == 0)
 	{
