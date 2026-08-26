@@ -571,6 +571,8 @@ int RunGame();
 void System_MenuClosed();
 void System_MenuDim();
 
+#include "vr_gameselect.h"
+
 void RazeXR_PC_StopVR();
 
 int GameMain()
@@ -718,6 +720,11 @@ static TArray<GrpEntry> SetupGame()
 	// Startup dialog must be presented here so that everything can be set up before reading the keybinds.
 
 	auto groups = GrpScan();
+
+	// PC branch: keep the full scan for the Switch Game menu, before the
+	// filtering below narrows it to the one game being started.
+	VRGameSelect_SetScannedGames(groups);
+
 	if (groups.Size() == 0)
 	{
 		// Abort if no game data found.

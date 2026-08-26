@@ -255,6 +255,28 @@ TArray<FString> CollectSearchPaths()
 {
 	TArray<FString> searchpaths;
 
+	/*
+		PC branch. -gamegrp names a file inside one game's folder, and the
+		others are almost always beside it: <root>/duke/DUKE3D.GRP,
+		<root>/blood/BLOOD.RFF and so on. Adding <root> and its
+		subdirectories is what lets the Switch Game menu see anything other
+		than the game that was launched, without the player having to hand
+		edit GameSearch.Directories.
+	*/
+	if (userConfig.gamegrp.IsNotEmpty())
+	{
+		FString dir = ExtractFilePath(userConfig.gamegrp.GetChars());
+		FixPathSeperator(dir);
+		if (dir.Len() > 1 && dir.Back() == '/') dir.Truncate(dir.Len() - 1);
+		FString root = ExtractFilePath(dir.GetChars());
+		if (root.Len() > 1)
+		{
+			if (root.Back() == '/') root.Truncate(root.Len() - 1);
+			AddSearchPath(searchpaths, root.GetChars());
+			CollectSubdirectories(searchpaths, (root + "/*").GetChars());
+		}
+	}
+
 	if (GameConfig->SetSection("GameSearch.Directories"))
 	{
 		const char *key;
