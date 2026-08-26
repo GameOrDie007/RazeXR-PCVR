@@ -879,3 +879,45 @@ anything observed. Expect calibration.
 Not yet done: animation frames are parsed but not selected (every weapon draws
 its base model), the other six games are not hooked up, and there is no offsets
 menu.
+
+## Why nothing appeared, and how to test this in future
+
+Reported: no weapon model at all.
+
+Mine. In `DispatchSprites` the voxel lookup lives **inside** the same test as
+model substitution:
+
+```cpp
+if (!(actor->sprext.renderflags & SPREXT_NOTMD) && !(tspr->cstat2 & CSTAT2_SPRITE_NOMODEL))
+{
+    ... model ...
+    if (r_voxels) { ... ProcessVoxel ... }
+}
+```
+
+The sprite was created with `CSTAT2_SPRITE_NOMODEL`, meaning "do not substitute
+an MD3 model for this tile" — which also disabled voxels. It then fell through
+to ordinary billboard rendering of a voxel-only tile, which has no texture, so
+nothing was drawn. `NOANIMATE` alone is correct.
+
+### Testing in-game without the headset
+
+Two false starts worth writing down, both corrected by the owner:
+
+- Duke's **main menu does not play a demo**, so a build left sitting at the menu
+  never calls `displayweapon_d` and nothing about weapons can be observed. The
+  window title showing a level name is not evidence of being in one.
+- **`+map e1l1` does not work.** `-map E1L1.MAP` on the command line does, via
+  `Args->CheckValue("-map")` in `gamecontrol.cpp`. `player 1 of 1 (1 nodes)` in
+  the log is startup networking, not level entry.
+
+With `-map`, this now reports from a running level here rather than costing a
+headset round:
+
+```
+VR weapon hook: weapon 1, active 1
+VR weapon: pistol -> tile 30010, voxel yes
+```
+
+Also: `DPrintf(DMSG_NOTIFY, ...)` needs `developer` at 3 or higher, and the
+saved config sets it to 0, which silently swallowed the first diagnostics.
