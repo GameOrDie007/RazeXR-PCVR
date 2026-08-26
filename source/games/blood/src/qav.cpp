@@ -20,6 +20,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 //-------------------------------------------------------------------------
+#include "vr_weapons.h"
 #include "ns.h"	// Must come before everything else!
 
 #include "build.h"
@@ -125,6 +126,18 @@ void GameInterface::RemoveQAVInterpProps(const int res_id)
 
 void DrawFrame(double x, double y, double z, double a, double alpha, int picnum, int stat, int shade, int palnum, bool to3dview)
 {
+	/*
+		PC branch: with a voxel model in hand the weapon's QAV is not drawn, but
+		it still runs, so the tiles it would have drawn can be reported and the
+		animation frame chosen from them. The capture window is opened only
+		around WeaponDraw, because this function also draws cutscene QAVs.
+	*/
+	if (VRWeapons_DrawingModel())
+	{
+		VRWeapons_NoteDrawnTile(picnum);
+		return;
+	}
+
 	if (!to3dview)
 	{
 		auto tex = tileGetTexture(picnum);

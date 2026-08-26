@@ -75,6 +75,15 @@ void VRWeapons_SetCurrent(const char* name, int spriteTile);
 bool VRWeapons_BeginWeapon(const char* name);
 void VRWeapons_NoteDrawnTile(int tile);
 
+// Ends the capture window opened by VRWeapons_BeginWeapon. Needed where the
+// drawing helper is shared with things that are not the weapon - Blood draws
+// its weapon through the same QAV path as its cutscenes.
+void VRWeapons_EndWeapon();
+
+// Closes the capture window however the caller returns, which matters where the
+// draw has several exit paths.
+struct VRWeaponScope { ~VRWeaponScope() { VRWeapons_EndWeapon(); } };
+
 // True while a model is standing in for the flat weapon, so the game's drawing
 // code should report tiles rather than draw them.
 bool VRWeapons_DrawingModel();
