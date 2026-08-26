@@ -967,3 +967,39 @@ window with `CopyFromScreen` grabs whatever is on top, not the target window,
 because `SetForegroundWindow` will not raise the game; and synthesising an F12
 keypress to trigger Raze's own `screenshot` never reached the game. Logging from
 inside the render path did work, and is what produced the answer above.
+
+## Placement: measure the origin, do not infer it
+
+`vr_weapon_debug 60` showed the pistol floating in front of the player, which
+proved the model, the asset pack and the render path and reduced the problem to
+placement alone.
+
+Two measurements then settled it:
+
+```
+floor -580  ceil -968  |  player origin -665  |  hupm 24
+```
+
+**The player actor's origin is 85 units above the floor, not on it.** Their
+crosshair and shoot override build their origin as
+`spr.pos.plusZ(-(wz * hunits))` where `wz` is the hand's height *above the
+floor*. For a hitscan that is fine — a constant vertical error barely moves the
+impact point at range, and the crosshair is derived from the same origin, so the
+two agree with each other. For something you look at it is not fine: it double
+counts most of a player height and puts the model over the viewer's head.
+
+Placement now starts from `vp.Pos`, the actual eye, converted back out of render
+space, and adds the controller's offset from the HMD. `weaponoffset[1]` is that
+offset vertically — as against `get_weapon_pos_and_angle`'s `z`, which has
+already been turned into an absolute height for the hitscan's benefit.
+
+`off.up` is deliberately no longer added to the position. Every Duke weapon
+carries the same `-40` against a `// Player height: 40` comment, which reads as
+VRaze lifting from an origin at the feet to head height — a correction that
+starting at the eye has already made. It stays reachable through
+`vr_weapon_off_up` in case that reading is wrong.
+
+A trap worth noting: `vr_weapon_debug` is archived to the config, and the
+owner's headset session and the tests here share `run/cfg_duke.ini`. One set of
+measurements here was taken in debug mode without my realising, because his
+console setting had been saved into the file.
