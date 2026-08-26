@@ -402,10 +402,7 @@ bool FShader::Load(const char * name, const char * vert_prog_lump, const char * 
 #ifdef __MOBILE__
 		vp_comb.Format("#version 310 es\n#define NO_CLIPDISTANCE_SUPPORT\n#define NUM_UBO_LIGHTS %d\n#define NUM_UBO_BONES %d\n#define NUM_VIEWS 2\n", lightbuffersize, screen->mBones->GetBlockSize());
 #else
-		// NUM_VIEWS stays 2 so ProjectionMatrix[NUM_VIEWS] keeps matching
-		// HWViewpointUniforms::mProjectionMatrix[2]. MULTIVIEW is what selects
-		// gl_ViewID_OVR indexing, and it is mobile only.
-		vp_comb.Format("#version 330 core\n#define NUM_UBO_LIGHTS %d\n#define NUM_UBO_BONES %d\n#define NUM_VIEWS 2\n", lightbuffersize, screen->mBones->GetBlockSize());
+		vp_comb.Format("#version 330 core\n#define NUM_UBO_LIGHTS %d\n#define NUM_UBO_BONES %d\n", lightbuffersize, screen->mBones->GetBlockSize());
 #endif
 
 	}
@@ -422,6 +419,22 @@ bool FShader::Load(const char * name, const char * vert_prog_lump, const char * 
 	{
 		vp_comb << "#define SUPPORTS_SHADOWMAPS\n";
 	}
+
+#ifndef __MOBILE__
+	/*
+		NUM_VIEWS sizes ProjectionMatrix[NUM_VIEWS] in the ViewpointUBO block,
+		which must keep matching HWViewpointUniforms::mProjectionMatrix[2].
+	
+		It goes here rather than in the version strings above because there are
+		two of those: the uniform buffer path and the shader storage buffer
+		path. Any desktop GPU advertising SSBOs takes the second, so defining
+		it in the first alone left the shader unable to compile on exactly the
+		hardware this port targets.
+	
+		MULTIVIEW, which selects gl_ViewID_OVR indexing, stays mobile only.
+	*/
+	vp_comb << "#define NUM_VIEWS 2\n";
+#endif
 
 	FString fp_comb = vp_comb;
 
