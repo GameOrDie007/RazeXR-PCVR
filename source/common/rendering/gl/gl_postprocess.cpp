@@ -97,7 +97,9 @@ void FGLRenderer::BlurScene(float gameinfobluramount)
 
 	GLPPRenderState renderstate(mBuffers);
 
+#ifdef __MOBILE__
 	screen->FirstEye();
+#endif
 	auto vrmode = VRMode::GetVRMode(true);
 	int eyeCount = vrmode->mEyeCount;
 	for (int i = 0; i < eyeCount; ++i)
@@ -132,7 +134,9 @@ void FGLRenderer::Flush()
 	else
 #endif
 	{
+#ifdef __MOBILE__
 		screen->FirstEye();
+#endif
 		// Render 2D to eye textures
 		int eyeCount = vrmode->mEyeCount;
 		for (int eye_ix = 0; eye_ix < eyeCount; ++eye_ix)
