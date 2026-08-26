@@ -557,7 +557,9 @@ bool HWSprite::ProcessVoxel(HWDrawInfo* di, voxmodel_t* vox, tspritetype* spr, s
 			them - which is what makes every game agree - turned the frame back,
 			and the axes have to follow.
 		*/
-		rotmat.rotate(spr->Angles.Pitch.Degrees(), 1, 0, 0);
+		// Negated: measured in the headset, pointing the controller down tilted
+		// the model up. Roll needs no such flip.
+		rotmat.rotate(-spr->Angles.Pitch.Degrees(), 1, 0, 0);
 		rotmat.rotate(spr->Angles.Roll.Degrees(), 0, 0, 1);
 		// The model's own facing correction goes last, so it cannot rotate the
 		// frame the two above are measured in.
