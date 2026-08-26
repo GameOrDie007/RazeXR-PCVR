@@ -1137,3 +1137,48 @@ went unchecked. The ones found quickly were found by printing a number.
 - No offsets menu yet.
 - The model rotates about the voxel pivot rather than the grip. Invisible at
   natural wrist angles, obvious at 45 degrees.
+
+## Animation frames, and the other games
+
+**Animation frames work without reimplementing any game's frame selection.** The
+weapon display code is allowed to run with its draws suppressed, and every tile
+it would have drawn is reported; whichever one appears in the animation table
+wins. Duke cycles the pistol's three models, Blood the pitchfork's.
+
+That approach is what made the other games cheap: no game's frame logic had to
+be understood, only where its drawing funnels through.
+
+| game | hooked at | state |
+|---|---|---|
+| Duke | `hudweapon_d.cpp`, `hud_drawpal` | works |
+| Redneck, Rides Again | `hudweapon_r.cpp`, `hud_drawpal` | works |
+| Blood | `weapon.cpp` `WeaponDraw`, `qav.cpp` `DrawFrame` | works |
+| NAM, WW2GI | Duke's module | names do not line up, see below |
+| Shadow Warrior, Exhumed | not yet | |
+
+Blood needed a scoped capture window. Its weapon is drawn through the same QAV
+path as its cutscenes, so suppression is opened around `WeaponDraw` and closed
+by an RAII guard rather than left set for the frame.
+
+### Two faults in deriving a name from a model filename
+
+**Game prefixes were not stripped.** Redneck's `vr_weapon_rr_crowbar` came out as
+`rr_crowbar` and matched nothing, so every model in that game was invisible.
+
+**"Strip a trailing digit as a frame index" turned Exhumed's `m60` into `m6`.**
+The tile numbers settle this properly: tiles run `30000 + slot*10 + frame`, so
+one decade is one weapon. `pistol0` sits in a decade of three and loses its
+digit; `m60` is alone in its decade and keeps it. Grouping by decade replaces
+the guess.
+
+### Where the data does not determine the answer
+
+NAM and WW2GI name their models after their real weapons — `knife`, `rifle`,
+`machinegun`, `law` — while their `vr_weapon_offsets.def` reuses Duke's slot
+names, `knee`, `pistol`, `chaingun`, `rpg`, because they run on Duke's weapon
+enum. The two files therefore never meet, and no rule over the data alone can
+join them. Shadow Warrior is similar: its models carry variants
+(`shotgun_quad`, `uzi_akimbo`) its offsets do not list.
+
+Those need an explicit per-game table, which is what VRaze's engine must have
+had. Not guessed at here.

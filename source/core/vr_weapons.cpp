@@ -70,6 +70,7 @@ static bool DefsLoaded = false;
 static FString CurrentWeapon;
 static int CurrentSpriteTile = -1;
 static bool CurrentValid = false;
+static bool Capturing = false;
 
 //==========================================================================
 //
@@ -330,18 +331,25 @@ bool VRWeapons_BeginWeapon(const char* name)
 	if (!VRWeapons_Active() || !VRWeapons_HasModel(name))
 	{
 		CurrentValid = false;
+		Capturing = false;
 		return false;
 	}
 
 	CurrentWeapon = name;
 	CurrentSpriteTile = -1;		// filled in by NoteDrawnTile if a frame matches
 	CurrentValid = true;
+	Capturing = true;
 	return true;
 }
 
 bool VRWeapons_DrawingModel()
 {
-	return CurrentValid && VRWeapons_Active();
+	return Capturing;
+}
+
+void VRWeapons_EndWeapon()
+{
+	Capturing = false;
 }
 
 void VRWeapons_NoteDrawnTile(int tile)
@@ -353,6 +361,7 @@ void VRWeapons_NoteDrawnTile(int tile)
 void VRWeapons_ClearCurrent()
 {
 	CurrentValid = false;
+	Capturing = false;
 }
 
 //==========================================================================

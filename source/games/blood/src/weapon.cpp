@@ -20,6 +20,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 //-------------------------------------------------------------------------
+#include "vr_weapons.h"
 #include "ns.h"	// Must come before everything else!
 
 #include <stdio.h>
@@ -332,7 +333,23 @@ void WeaponDraw(PLAYER* pPlayer, int shade, double xpos, double ypos, int palnum
 {
 	assert(pPlayer != NULL);
 	if (pPlayer->weaponQav == kQAVNone)
+	{
+		VRWeapons_ClearCurrent();
 		return;
+	}
+
+	/*
+		PC branch. Blood's weapon enum lines up with VRaze's names by index,
+		counting from kWeapPitchFork at 1. The beast at 13 has no model.
+	*/
+	static const char* const vrNames[] = {
+		"", "pitchfork", "flaregun", "shotgun", "tommygun", "napalm",
+		"dynamite", "spraycan", "tesla", "lifeleech", "voodoo",
+		"proximity", "remote"
+	};
+	const int vrWeap = pPlayer->curWeapon;
+	VRWeapons_BeginWeapon(vrWeap > 0 && vrWeap < (int)countof(vrNames) ? vrNames[vrWeap] : "");
+	const VRWeaponScope vrScope;
 	auto pQAV = getQAV(pPlayer->weaponQav);
 	int duration;
 	double interpfrac;
