@@ -383,7 +383,14 @@ void QuatToYawPitchRoll(XrQuaternionf q, vec3_t rotation, vec3_t out)
 
 	if (rotation[0] != 0.0f || rotation[1] != 0.0f || rotation[2] != 0.0f)
 	{
-		ovrMatrix4f rot = ovrMatrix4f_CreateRotation(DEG2RAD(rotation[0]), DEG2RAD(rotation[1]), DEG2RAD(rotation[2]));
+		/*
+			Theirs negates the rotation here. The Quake fork of this framework
+			does not, and taking its version applied vr_weaponPitchAdjust and
+			vr_weaponYawAdjust with the wrong sign - a 40 degree pitch error at
+			the default of 20, which put the crosshair on screen only with the
+			controller aimed at the floor.
+		*/
+		ovrMatrix4f rot = ovrMatrix4f_CreateRotation(DEG2RAD(-rotation[0]), DEG2RAD(-rotation[1]), DEG2RAD(-rotation[2]));
 		mat = ovrMatrix4f_Multiply(&mat, &rot);
 	}
 
