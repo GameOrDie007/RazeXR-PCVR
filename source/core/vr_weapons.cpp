@@ -47,6 +47,9 @@ EXTERN_CVAR(Bool, vr_6dof_weapons)
 
 float vr_hunits_per_meter();
 void get_weapon_pos_and_angle(float& x, float& y, float& z, float& pitch, float& yaw);
+// Theirs. The controller's offset from the HMD, already rotated into a
+// yaw-aligned frame by VrInputDefault: [0] and [2] horizontal, [1] vertical.
+extern float weaponoffset[3];
 bool TBXR_VREnabled();
 
 //==========================================================================
@@ -336,13 +339,42 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	DAngle yaw = playerYaw + DAngle::fromDeg(wyaw + off.yaw + vr_weapon_rot_yaw);
 	DAngle pitch = owner->spr.Angles.Pitch - DAngle::fromDeg(wpitch - off.pitch - vr_weapon_rot_pitch);
 
-	DVector3 pos = owner->spr.pos.plusZ(-(wz * hupm));
+	/*
+		Place the weapon relative to the eye, not to the player actor.
+
+		Their crosshair and shoot override build their origin as
+		spr.pos.plusZ(-(wz * hunits)), where wz is the hand's height above the
+		*floor*. That works for a hitscan, where being vertically off by a
+		constant barely moves the impact point at range. It does not work for
+		something you look at: the player actor's origin is not on the floor -
+		measured 85 units above it - so the construction double counts most of
+		a player height and throws the model well over the viewer's head.
+
+		vp.Pos is the actual eye, in render space, so convert it back and add
+		the controller's offset from the HMD. weaponoffset[1] is that offset
+		vertically, as against get_weapon_pos_and_angle's z, which has been
+		turned into an absolute height for the hitscan's benefit.
+	*/
+	DVector3 pos;
+	pos.X = vp.Pos.X;
+	pos.Y = -vp.Pos.Y;
+	pos.Z = -vp.Pos.Z;
+
 	DVector2 posXY(wx * hupm, wy * hupm);
 	posXY = posXY.Rotated(-DAngle90 + playerYaw);
 	pos.X -= posXY.X;
 	pos.Y -= posXY.Y;
+	pos.Z -= weaponoffset[1] * hupm;	// Build Z is downwards
 
-	// Per weapon placement, in the weapon's own frame.
+	/*
+		off.up is deliberately not applied to the position. Every Duke weapon
+		carries the same -40 against a "// Player height: 40" comment, which
+		reads as VRaze lifting from an origin at the feet to head height - a
+		correction this placement has already made by starting at the eye.
+		Applying it again would raise the weapon by a further player height.
+		It remains reachable through vr_weapon_off_up if that reading is wrong.
+	*/
+	// Per weapon placement, in the weapon's own facing.
 	DVector2 fwd = yaw.ToVector();
 	const float fwdAmt = off.forward + vr_weapon_off_forward;
 	const float rightAmt = off.right + vr_weapon_off_right;
@@ -355,7 +387,7 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 		raises the weapon by 40. Subtracting buried it in the floor, which is
 		why nothing was visible.
 	*/
-	pos.Z += off.up + vr_weapon_off_up;
+	pos.Z -= vr_weapon_off_up;
 
 	if (vr_weapon_debug > 0)
 	{
@@ -380,6 +412,9 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 			CurrentWeapon.GetChars(), tile, TileHasVoxel(tile) ? "yes" : "NO",
 			pos.X, pos.Y, pos.Z, owner->spr.pos.X, owner->spr.pos.Y, owner->spr.pos.Z,
 			sectp ? sectindex(sectp) : -1, (float)vr_weapon_scale);
+		Printf("   floor %.0f ceil %.0f | wz %.2f m -> %.0f u | off.up %.0f | hupm %.1f\n",
+			owner->sector() ? owner->sector()->floorz : 0.0, owner->sector() ? owner->sector()->ceilingz : 0.0,
+			wz, wz * hupm, off.up, hupm);
 	}
 
 	auto tspr = tsprites.newTSprite();
