@@ -408,6 +408,18 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 		raises the weapon by 40. Subtracting buried it in the floor, which is
 		why nothing was visible.
 	*/
+	/*
+		The model's origin sits a little above the grip, so without this the
+		weapon hangs slightly high - "about two inches" in the headset, dialled
+		in with vr_weapon_off_up -2 against Duke's 24 units per metre.
+
+		Held in metres rather than map units so it carries to the games that use
+		41 units per metre instead of Duke's 24, where two map units would be a
+		different physical distance.
+	*/
+	const double GripDropMetres = 0.083;
+	pos.Z += GripDropMetres * hupm;		// Build Z is downwards
+
 	pos.Z -= vr_weapon_off_up;
 
 	if (vr_weapon_debug > 0)
