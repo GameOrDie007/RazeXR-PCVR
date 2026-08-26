@@ -1345,3 +1345,22 @@ degrees, so the axes tuned for the old arrangement were wrong for the new one.
 Pitch is back on X and roll on Z, now measured in the hand's frame, which is the
 same for every game. Duke's `-90` no longer sits between the hand and these
 rotations.
+
+## Tilt sign, and why the mirror only showed menus
+
+**Tilt was inverted.** Twist was right, so the axes were finally in the correct
+frame; only pitch's direction was wrong. Pointing the controller down tilted the
+model up. Negated, and roll needs no such flip.
+
+**The mirror was clipped by the scissor test.** `glBlitFramebuffer` is subject to
+scissoring, and the engine leaves it enabled and set to the eye viewport after
+rendering a scene. So the blit to the window was being clipped away in a level
+while the menu - drawn with scissoring off - came through. "Mostly black, but it
+flashed the main menu" was the whole diagnosis: a blit that works on one code
+path and not the other is being clipped, not misaddressed.
+
+Scissoring is now disabled around the blit and restored afterwards. This is the
+second fault in the same twenty lines: first the window handle was being wiped
+by an OpenXR reset, now the blit was being clipped. The mirror is the one piece
+of this port that nothing else depends on, which is exactly why it accumulated
+two bugs without either being noticed.

@@ -1302,6 +1302,14 @@ static void TBXR_MirrorToWindow(void)
 	if (mirrorWidth <= 0 || mirrorHeight <= 0)
 		return;
 
+	/*
+		glBlitFramebuffer is clipped by the scissor test, and the engine leaves
+		scissoring enabled and set to the eye viewport after rendering the
+		scene. That is why the mirror showed the menu - drawn with scissoring
+		off - and almost nothing in a level.
+	*/
+	GLboolean scissorWas = glIsEnabled(GL_SCISSOR_TEST);
+	glDisable(GL_SCISSOR_TEST);
 	glDisable(GL_FRAMEBUFFER_SRGB);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBuffer->MsaaFrameBuffer);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -1310,6 +1318,7 @@ static void TBXR_MirrorToWindow(void)
 			GL_COLOR_BUFFER_BIT, GL_LINEAR);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	if (scissorWas) glEnable(GL_SCISSOR_TEST);
 }
 
 void TBXR_submitFrame(void)
