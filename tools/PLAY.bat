@@ -41,4 +41,9 @@ if not defined GRP (
 )
 
 del "%~dp0razexr_vr.log" 2>nul
-"%~dp0raze.exe" -nosetup -gamegrp "%GRP%" -config "%~dp0cfg_%GAME%.ini" +logfile "%~dp0raze.log"
+rem The voxel weapon pack, if it has been built. See
+rem tools/build-vrweapons-pk3.py.
+set "VRW="
+if exist "%~dp0vrweapons.pk3" set "VRW=-file "%~dp0vrweapons.pk3""
+
+"%~dp0raze.exe" -nosetup -gamegrp "%GRP%" %VRW% -config "%~dp0cfg_%GAME%.ini" +logfile "%~dp0raze.log"

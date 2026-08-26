@@ -532,6 +532,15 @@ bool HWSprite::ProcessVoxel(HWDrawInfo* di, voxmodel_t* vox, tspritetype* spr, s
 	rotmat.loadIdentity();
 	rotmat.translate(x + translatevec.X, z - translatevec.Z, y - translatevec.Y);
 	rotmat.rotate(ang.Degrees() - 90., 0, 1, 0);
+	/*
+		PC branch: stock Raze rotates voxels in yaw only, which is fine for
+		world voxels and useless for one held in the hand. tspritetype::Angles
+		is a full DRotator, so the data was always there - only the renderer
+		ignored it. Ordinary sprites leave both at zero, so this is inert for
+		everything except the VR weapon.
+	*/
+	if (spr->Angles.Pitch != nullAngle) rotmat.rotate(spr->Angles.Pitch.Degrees(), 1, 0, 0);
+	if (spr->Angles.Roll != nullAngle) rotmat.rotate(spr->Angles.Roll.Degrees(), 0, 0, 1);
 	rotmat.scale(scalevec.X, scalevec.Z, scalevec.Y);
 	// Apply pivot last
 	rotmat.translate(-voxel->piv.X, zoff, voxel->piv.Y);

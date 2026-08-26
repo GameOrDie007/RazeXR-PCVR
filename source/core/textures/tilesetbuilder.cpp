@@ -33,6 +33,7 @@
 **
 */
 
+#include "vr_weapons.h"
 #include "image.h"
 #include "texturemanager.h"
 #include "m_crc32.h"
@@ -145,12 +146,24 @@ static void LoadDefinitions(TilesetBuildInfo& info)
 		loaddefinitionsfile(info, GameStartupInfo.def);	// Stuff from gameinfo.
 	}
 
+	// PC branch: the VR weapon voxels, if the vrweapons.pk3 asset pack is
+	// present. Loaded before widescreen for the same reason widescreen is last -
+	// so mods still see the correct CRCs for their own tile replacements.
+	if (fileSystem.FindFile("engine/vr_weapons.def") >= 0)
+	{
+		loaddefinitionsfile(info, "engine/vr_weapons.def");
+	}
+
 	// load the widescreen replacements last. This ensures that mods still get the correct CRCs for their own tile replacements.
 	if (fileSystem.FindFile("engine/widescreen.def") >= 0 && !Args->CheckParm("-nowidescreen"))
 	{
 		loaddefinitionsfile(info, "engine/widescreen.def");
 	}
 	fileSystem.InitHashChains(); // make sure that any resources that got added can be found again.
+
+	// PC branch: read the VR weapon placement and animation tables now that
+	// the voxels themselves have been bound to their tiles.
+	VRWeapons_LoadDefs();
 }
 
 //==========================================================================
