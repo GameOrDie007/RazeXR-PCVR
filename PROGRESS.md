@@ -733,3 +733,70 @@ OpenXR session is bound to the GL context that call destroys.
 | 25 s of live Blood, then close the window | exits, code 0 |
 
 Before the fix both hung at 100% CPU indefinitely.
+
+---
+
+# Defects of theirs, reproduced deliberately
+
+Both were found in Duke in the headset. Both are RazeXR's own behaviour and are
+reproduced rather than fixed, because this branch is the 1:1 port. Each has a
+straightforward fix that belongs on the PC branch.
+
+## 1. The crosshair lags a snap turn
+
+Turning right, the crosshair stays at its old position for a moment and then
+snaps into place.
+
+Theirs, and deliberate. `SetupViewpoint` in `hw_entrypoint.cpp` carries their
+own comment:
+
+> Special frame-yaw-resync code. Basically, if the game code changes the
+> player's yaw, then we need to gradually resync our "vrYaw" back to match it,
+> **doing the full amount on a frame causes it to glitch** but smoothly
+> transitioning to it means the user doesn't notice
+
+`lerpValue` moves `vrYaw` half of the remaining distance per frame. A snap turn
+changes the *game's* yaw instantly, and the crosshair — a world sprite placed by
+a hitscan from the weapon — moves with the game yaw at once, while the view
+eases across over several frames. The gap between the two is what shows.
+
+They iterated on this themselves; there is a commit "Use improved game yaw
+resync logic" in the engine fork.
+
+**Not amplified by two-pass.** `SetupViewpoint` is called outside the eye loop,
+so the lerp runs once per frame whatever the eye count. Verified rather than
+assumed, because per-eye evaluation would also have doubled the HMD yaw delta.
+
+The same symptom appeared in the Quake II port, which is a separate engine — so
+it is a property of the approach, not of either codebase.
+
+**PC branch fix:** a snap turn is a *user* driven yaw change, not a game driven
+one, so it does not need the resync ramp at all. Detect it and apply it to
+`vrYaw` in full on the frame it happens, leaving the lerp for what it was
+written for.
+
+## 2. The crosshair clips into walls
+
+Sweeping onto a wall to the left loses the crosshair's left arm; onto a wall to
+the right, its right arm.
+
+Theirs. The VR crosshair is not a 2D overlay — it is a world sprite, their
+"aiming decal". In `player_d.cpp`:
+
+```cpp
+hitscan(spos, sectp, ..., hit, CLIPMASK1);
+...
+SetActorZ(crosshair, hit.hitpos);
+CreateActor(hit.hitSector, hit.hitpos, DTILE_CROSSHAIR, ...);
+```
+
+The sprite is placed at `hit.hitpos` exactly — the wall surface, with no offset
+back along the ray. A Build sprite sitting in a wall plane is clipped by that
+wall, so whichever half of it falls behind the surface disappears. Which arm
+goes depends on which side the wall is on, exactly as reported.
+
+The same pattern is in `player_r.cpp`, `blood/player.cpp`, `sw/player.cpp` and
+`exhumed/player.cpp`, so all five games do it.
+
+**PC branch fix:** pull the sprite a small distance back along the hitscan ray
+toward the player before placing it, so it floats just clear of the surface.
