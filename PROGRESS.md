@@ -538,3 +538,50 @@ This GPU reports both `GL_OVR_multiview` and `GL_OVR_multiview2`, so their
 single-pass path is not impossible on this hardware. It stays rejected for the
 reasons in milestone 0 — the postprocess chain and array swapchains are the
 hard part, not the extension.
+
+---
+
+# Milestone 2b — the scrambled right eye
+
+Reported from the headset: menus fine, but on entering a level the right eye was
+scrambled.
+
+The symptom localised it before any code was read. Menus go through the quad
+composition layer, which only ever touches eye 0, so the swapchain, the blit and
+the present path were all proven good. Only the eye-1 path was suspect.
+
+## Cause
+
+**They added `screen->FirstEye()` to `FGLRenderer::Flush()`.** Base Raze has no
+such call, and the omission is deliberate.
+
+Base Raze renders the scene per eye, then runs a *second* loop in `Flush()` that
+draws 2D over each eye. That second loop is order-agnostic: `mCurrentEye` carries
+over from the scene pass, so the eyes fall out correctly whichever one was last.
+
+| step | base | with their `FirstEye()` |
+|---|---|---|
+| after scene loop | pipeline = eye 1, `mCurrentEye` = 1 | same |
+| `Flush` starts | *(no reset)* | `mCurrentEye` forced to 0, **pipeline still holds eye 1** |
+| 2D pass 1 → `NextEye` | `BlitToEyeTexture(1)` → eye tex 1 correct; loads eye 0 | `BlitToEyeTexture(0)` → **eye tex 0 gets eye 1's image**; loads eye tex 1, which was never written |
+| 2D pass 2 | 2D over eye 0 | 2D over **garbage** |
+| `PresentStereo` | `BlitToEyeTexture(0)` → eye tex 0 correct | `BlitToEyeTexture(1)` → **eye tex 1 = garbage** |
+
+So the left eye showed eye 1's image — plausible enough to look right — and the
+right eye showed an uninitialised texture. Exactly what was reported.
+
+Harmless on their hardware: with `mEyeCount` 1 the reset is a no-op and the
+second eye is written by multiview inside the single pass. It only bites a
+two-pass renderer.
+
+Both of their additions are now guarded to `__MOBILE__` — the one in `Flush()`
+and a matching one in `BlurScene()`, which would corrupt the same way. A sweep
+of the whole changeset for `FirstEye`, `NextEye`, `CurrentEye` and `eyeCount`
+found no others.
+
+## Confirmed active
+
+After the fix, with the headset streaming, the process burns **24 s of CPU in 22 s
+of wall time** — a live render loop. Before, with no headset, it idled at 0.3 s
+in `xrWaitFrame`. That ratio is a cheap way to tell "rendering" from "waiting"
+without putting the headset on.
