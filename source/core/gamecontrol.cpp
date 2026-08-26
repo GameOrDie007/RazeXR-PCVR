@@ -571,6 +571,8 @@ int RunGame();
 void System_MenuClosed();
 void System_MenuDim();
 
+void RazeXR_PC_StopVR();
+
 int GameMain()
 {
 	int r;
@@ -630,6 +632,15 @@ int GameMain()
 		I_ShowFatalError(err.what());
 		r = -1;
 	}
+	/*
+		PCVR port. Theirs ends the session in AppThreadFunction the moment
+		raze_main returns, before anything is torn down. The equivalent point
+		here is immediately after RunGame, and it has to be before
+		I_ShutdownGraphics below, because the OpenXR session is bound to the GL
+		context that call destroys.
+	*/
+	RazeXR_PC_StopVR();
+
 	//DeleteScreenJob();
 	if (gi) gi->FreeLevelData();
 	DestroyAltHUD();
