@@ -333,6 +333,14 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	updatesector(pos.XY(), &sectp);
 	if (sectp == nullptr) sectp = owner->sector();
 
+	static FString lastReported;
+	if (lastReported.Compare(CurrentWeapon) != 0)
+	{
+		lastReported = CurrentWeapon;
+		Printf("VR weapon: %s -> tile %d, voxel %s\n",
+			CurrentWeapon.GetChars(), tile, TileHasVoxel(tile) ? "yes" : "NO");
+	}
+
 	auto tspr = tsprites.newTSprite();
 	*tspr = {};
 	tspr->ownerActor = owner;
@@ -348,6 +356,13 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	tspr->statnum = MAXSTATUS;
 	// Never animate the tile and never model-substitute it: this is already the
 	// model, chosen by the animation table above.
-	tspr->cstat2 = CSTAT2_SPRITE_NOANIMATE | CSTAT2_SPRITE_NOMODEL;
+	/*
+		NOANIMATE only. Not NOMODEL: in DispatchSprites the voxel lookup lives
+		inside the same test as the model substitution, so setting NOMODEL
+		disables voxels as well and the sprite falls through to flat billboard
+		rendering of a voxel-only tile - which has no texture, and is therefore
+		invisible. That was the first cut's bug.
+	*/
+	tspr->cstat2 = CSTAT2_SPRITE_NOANIMATE;
 	tspr->cstat = CSTAT_SPRITE_YCENTER;
 }

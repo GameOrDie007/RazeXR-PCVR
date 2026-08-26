@@ -215,6 +215,16 @@ void displayweapon_d(int snum, double interpfrac)
 		draw below is skipped entirely. The names are VRaze's, from
 		vr_weapon_offsets.def.
 	*/
+	{
+		static int lastLog = -2;
+		if (lastLog != p->curr_weapon)
+		{
+			lastLog = p->curr_weapon;
+			Printf("VR weapon hook: weapon %d, active %d\n",
+				p->curr_weapon, VRWeapons_Active() ? 1 : 0);
+		}
+	}
+
 	if (VRWeapons_Active())
 	{
 		static const char* const vrNames[] = {
