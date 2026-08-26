@@ -637,3 +637,60 @@ voxel models, per game, none of which exist upstream of it.
 So a flat weapon picture is what RazeXR does, and reproducing it is the point of
 this branch. The voxel weapons belong to the PC branch discussion, alongside the
 switcher — see the open question in milestone 0.
+
+---
+
+# Milestone 3 — all seven games run
+
+Aim confirmed in the headset: the gun sits properly and shoots where the
+crosshair is.
+
+With Duke working, the other six were smoke tested here rather than in the
+headset. Each was launched, given 20 seconds, and judged on three things: does
+the OpenXR session go active, is the render loop actually running, and does the
+log show an error.
+
+| game | CPU in 20 s | session |
+|---|---|---|
+| Duke Nukem 3D | 24.5 s | active |
+| Blood | 26.1 s | active |
+| Shadow Warrior | 16.5 s | active |
+| Exhumed | 21.6 s | active |
+| Redneck Rampage | 18.0 s | active |
+| NAM | 22.0 s | active |
+| WW2GI | 21.3 s | active |
+
+All seven. CPU above wall-clock means a live render loop; the earlier idle
+figure with no headset was 0.3 s.
+
+## Blood's apparent hang was Raze's game picker
+
+Blood first measured 0.1 s CPU — alive, session active, not rendering. It also
+did **zero disk reads**, which is the giveaway: not working, waiting.
+
+The stock base build did exactly the same, which cleared the port immediately.
+The cause is that Blood's folder holds several add-on archives (Cryptic
+Passage, Marrow, Coagulated), so Raze shows its game-selection launcher and
+waits for a click. From outside that is indistinguishable from a hang.
+
+`-nosetup` sets `queryiwad` to 0 and skips it. `PLAY.bat` now passes it always.
+
+Worth carrying forward: **PC Raze already has a game picker that the Quest build
+has no equivalent of.** `I_PickIWad` in `platform/win32/i_system.cpp`, driven by
+the same `grpinfo.txt` CRC scan that the Switch Game menu will need. That is
+relevant to the PC branch — the enumeration half of the switcher already exists
+and is already wired to the data.
+
+## PLAY.bat
+
+Takes a game name: `PLAY`, `PLAY blood`, `PLAY sw`, `PLAY exhumed`,
+`PLAY redneck`, `PLAY nam`, `PLAY ww2gi`. Keeps a separate config per game so
+they cannot contaminate each other, resolves everything from its own directory
+rather than the caller's, and writes both logs beside itself. A copy lives in
+`tools/` since `run/` is not committed.
+
+## Still unverified in the headset
+
+World scale, positional tracking under leaning, snap and smooth turning, HUD
+placement, the big screen for menus and console, sound in play, and any of the
+six non-Duke games beyond "it renders".
