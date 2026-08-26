@@ -1042,3 +1042,30 @@ The nudges are now folded into the tracked offset *before* its rotation, so they
 share its frame by construction instead of by my guessing at it. `off.forward`
 and `off.right` are no longer applied separately — they are zero for every Duke
 weapon, and applying them in a second frame is what produced the error.
+
+## Placement done
+
+With the 90 degree error and the swapped axes fixed, zero nudges came out
+"nearly perfect" in the headset, and `vr_weapon_off_up -2` dropped it to where
+it felt held. That two-unit drop is the model's origin sitting slightly above
+the grip.
+
+Baked in as `GripDropMetres = 0.083`, held in **metres** rather than map units
+so it carries to the games that use 41 units per metre instead of Duke's 24 -
+two map units would be a different physical distance there.
+
+The nudge cvars stay, at zero, as the beginnings of the per-weapon offsets menu.
+
+### Placement, settled
+
+| term | source |
+|---|---|
+| base | `vp.Pos`, the eye, converted out of render space |
+| horizontal | tracked controller offset from the HMD, in their frame, second component forward and first lateral |
+| vertical | `weaponoffset[1]`, the controller's height relative to the HMD |
+| grip | 0.083 m down, constant |
+| orientation | `handYaw + off.yaw`, pitch from the controller, roll from `off.roll` |
+
+`off.forward`, `off.right` and `off.up` from `vr_weapon_offsets.def` are not
+applied. All three are constant across Duke's weapons and read as corrections
+for a base frame this port does not share.
