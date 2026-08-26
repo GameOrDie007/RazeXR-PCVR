@@ -800,3 +800,82 @@ The same pattern is in `player_r.cpp`, `blood/player.cpp`, `sw/player.cpp` and
 
 **PC branch fix:** pull the sprite a small distance back along the hitscan ray
 toward the player before placing it, so it floats just clear of the surface.
+
+---
+
+# PC branch — voxel weapons, first cut
+
+Tag `razexr-vr-1to1` marks the finished 1:1 port. Work continues on branch
+`razexr-vr-pc`.
+
+Wanted, in the owner's words, because it "makes the game feel more real and like
+a native VR game".
+
+## What VRaze's data specifies, and what had to be written
+
+VRaze's engine code was never published, but its data is a complete interface
+specification. Three files per game:
+
+| file | what |
+|---|---|
+| `vr_weapons.def` | `voxel "<path>" { tile N scale S }`. Ordinary Build syntax, so **Raze's own parser loads the models and binds them to tiles for free** |
+| `vr_weapon_offsets.def` | per weapon: forward/right/up, yaw/pitch/roll, pivot, shell casing ejection pose, and a two-hand flag |
+| `vr_weapon_animations.def` | `frame <spriteTile> <voxelTile>`, mapping the game's existing 2D weapon frames onto voxel variants |
+
+97 weapons across eight game filters, 100 `.kvx` models.
+
+Tiles run `30000 + slot*10 + frame`, but **the slot is not the game's weapon
+enum** — Duke's `handremote` has offsets and no model, and the numbering closes
+up around it. So the weapon *name* is the key throughout, recovered from each
+model's filename (`vr_weapon_<name><frame>.kvx`, or `vr_<name><frame>.kvx` in
+the other games), which matches the offsets file exactly.
+
+## Two engine problems worth recording
+
+**Voxels were yaw-only.** `HWSprite::ProcessVoxel` ends with a single
+`rotmat.rotate(ang - 90, 0, 1, 0)`. Fine for a world voxel, useless for one held
+in the hand. `tspritetype::Angles` is a full `DRotator`, so the data was always
+there and only the renderer ignored it; pitch and roll are now applied after the
+yaw. Ordinary sprites leave both at zero, so it is inert for everything else.
+
+**Their crosshair updates per tic, which a held weapon cannot.** The crosshair is
+a game actor, repositioned in `processweapon` at the game's tic rate — which is
+part of why it lags a snap turn. A weapon doing that would judder badly in the
+hand. Instead the weapon is appended to the frame's sprite list directly, between
+`gi->processSprites` and `DispatchSprites`, so it tracks the controller per
+frame with no actor and no tic quantisation.
+
+`DispatchSprites` skips any tsprite with a null `ownerActor` and dereferences it
+several times, so the viewpoint's own camera actor is used as an owner token —
+its position and angles are overwritten anyway.
+
+## Assets are not committed
+
+`tools/build-vrweapons-pk3.py` packs the models and definitions out of a VRaze
+install into `vrweapons.pk3`, which `PLAY.bat` loads with `-file` when present.
+The repository stays free of game data and binaries.
+
+## Inherited defect
+
+```
+Unable to load voxel file "models/weapons/duke/vr_weapon_knee.kvx"
+```
+
+**VRaze's own build logs this too** — it is in the owner's `raze.log` from his
+Quest. Their knee model is unreadable. Rather than draw a broken sprite,
+`VRWeapons_HasModel` checks the voxel actually loaded and the flat sprite stays
+as the fallback for any weapon without one.
+
+## State
+
+Parses and runs: `VR weapons: 12 models, 12 placements, 3 animation frames` for
+Duke, in a level, rendering.
+
+**Nothing about the result has been seen yet.** Placement is the part most
+likely to be wrong: the sign conventions for forward/right/up, and the axes the
+new pitch and roll rotations use, are a reading of VRaze's data rather than
+anything observed. Expect calibration.
+
+Not yet done: animation frames are parsed but not selected (every weapon draws
+its base model), the other six games are not hooked up, and there is no offsets
+menu.

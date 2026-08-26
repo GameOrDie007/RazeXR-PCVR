@@ -26,6 +26,7 @@
 */
 
 #include "hw_portal.h"
+#include "vr_weapons.h"
 #include "build.h"
 #include "hw_renderstate.h"
 #include "hw_drawinfo.h"
@@ -392,6 +393,9 @@ void HWDrawInfo::CreateScene(bool portal)
 	SetupSprite.Clock();
 	// vp is in render space, so we must convert back.
 	gi->processSprites(tsprites, DVector3(vp.Pos.X, -vp.Pos.Y, -vp.Pos.Z), DAngle::fromBam(vp.RotAngle), vp.TicFrac);
+	// PC branch: the held weapon is added per frame rather than per tic, so it
+	// tracks the controller smoothly instead of stepping at the game's tic rate.
+	VRWeapons_AddSprite(tsprites, vp);
 	DispatchSprites();
 	SetupSprite.Unclock();
 

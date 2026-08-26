@@ -35,6 +35,7 @@ source as it is released.
 #include "ns.h"
 #include "global.h"
 #include "names_d.h"
+#include "vr_weapons.h"
 #include "dukeactor.h"
 #include "buildtiles.h"
 
@@ -203,7 +204,34 @@ void displayweapon_d(int snum, double interpfrac)
 	player_struct* p = &ps[snum];
 
 	if (p->newOwner != nullptr || ud.cameraactor != nullptr || p->over_shoulder_on > 0 || (p->GetActor()->spr.pal != 1 && p->GetActor()->spr.extra <= 0))
+	{
+		VRWeapons_ClearCurrent();
 		return;
+	}
+
+	/*
+		PC branch. With voxel weapons on, the weapon is a model held at the
+		controller rather than a sprite pasted to the screen, so the flat HUD
+		draw below is skipped entirely. The names are VRaze's, from
+		vr_weapon_offsets.def.
+	*/
+	if (VRWeapons_Active())
+	{
+		static const char* const vrNames[] = {
+			"knee", "pistol", "shotgun", "chaingun", "rpg", "handbomb",
+			"shrinker", "devastator", "tripbomb", "freeze", "handremote",
+			"grow", "flamethrower"
+		};
+
+		int w = p->curr_weapon;
+		if (w >= 0 && w < (int)countof(vrNames) && VRWeapons_HasModel(vrNames[w]))
+		{
+			VRWeapons_SetCurrent(vrNames[w], -1);
+			return;
+		}
+		// No model for this weapon - fall through and draw it flat, as before.
+		VRWeapons_ClearCurrent();
+	}
 
 	double weapon_sway, gun_pos, kickback_pic, random_club_frame, hard_landing;
 	auto kb = &p->kickback_pic;
