@@ -1069,3 +1069,30 @@ The nudge cvars stay, at zero, as the beginnings of the per-weapon offsets menu.
 `off.forward`, `off.right` and `off.up` from `vr_weapon_offsets.def` are not
 applied. All three are constant across Duke's weapons and read as corrections
 for a base frame this port does not share.
+
+## Orientation: roll unwired, and the two axes transposed
+
+Reported: the weapon does not twist with the wrist, and tilting the hand does
+nothing either.
+
+Two separate faults.
+
+**Roll was never read from the controller.** `get_weapon_pos_and_angle` returns
+pitch and yaw but not roll, and the model's roll was coming only from
+`off.roll` and the nudge cvar, both constants. `weaponangles[ROLL]`, which their
+input code fills from the controller pose, was going unused. Now wired.
+
+**Pitch and roll were on each other's axes.** Settled by observation rather than
+argument: with everything at zero, twisting the wrist made the muzzle point up,
+and tilting the hand up rolled the weapon over. So the new rotations in
+`ProcessVoxel` were transposed — and that also identifies the barrel: pitch on
+local X produced a twist, so X is the forward axis after the yaw rotation. Roll
+belongs on X, pitch on Z.
+
+A related thing worth knowing, seen while testing with a 45 degree offset: the
+model rotates about the voxel's own pivot rather than about the grip, so a large
+rotation visibly throws it off the hand. The effect scales with the angle, so it
+may not matter at natural wrist angles. VRaze's `vr_weapon_offsets.def` carries
+`pivot_x/y/z` for what looks like exactly this, though all three are zero for
+every Duke weapon, so the grip would have to be derived from the model instead.
+Left alone unless it shows up in play.
