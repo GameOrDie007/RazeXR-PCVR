@@ -1003,3 +1003,42 @@ A trap worth noting: `vr_weapon_debug` is archived to the config, and the
 owner's headset session and the tests here share `run/cfg_duke.ini`. One set of
 measurements here was taken in debug mode without my realising, because his
 console setting had been saved into the file.
+
+## The 90 degree placement error
+
+Reported: the weapon appears in hand but sits left and far; raising
+`vr_weapon_off_right` pushed it *away* rather than sideways.
+
+That last detail was the whole diagnosis. "Right" moving the weapon forward
+means the placement basis was rotated about 90 degrees, and it was:
+
+**Two different yaws were being conflated.** `handYaw` is where the controller
+points. The model's own yaw adds `off.yaw`, which for the pistol is `-90` — a
+correction for how the `.kvx` is authored, and nothing to do with where the
+weapon sits. The placement basis was being built from the model yaw, so every
+weapon whose model needed rotating had its *position* rotated to match.
+
+A second error was hiding underneath it. Logging where each axis of the tracked
+frame actually points, against the player's facing:
+
+```
+player facing (0.28, 0.96)
+axisA (0.96, -0.27)   perpendicular  -> lateral
+axisB (0.27,  0.96)   along facing   -> forward
+```
+
+So the frame's first component is lateral and the second is forward — the
+opposite of what the names in `get_weapon_pos_and_angle` (`x`, `y`) suggest. The
+nudges were wired to the wrong ones.
+
+Both fixed, and verified numerically rather than by eye:
+
+| nudge | movement | player facing | verdict |
+|---|---|---|---|
+| `off_forward 40` | (+5, +49) | (0.28, 0.96) | along the facing |
+| `off_right 40` | (+34, 0) | | perpendicular |
+
+The nudges are now folded into the tracked offset *before* its rotation, so they
+share its frame by construction instead of by my guessing at it. `off.forward`
+and `off.right` are no longer applied separately — they are zero for every Duke
+weapon, and applying them in a second frame is what produced the error.

@@ -336,7 +336,17 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	// Same construction their crosshair and shoot override use, so the model
 	// lands where the shots already come from.
 	DAngle playerYaw = owner->spr.Angles.Yaw;
-	DAngle yaw = playerYaw + DAngle::fromDeg(wyaw + off.yaw + vr_weapon_rot_yaw);
+	/*
+		Two different yaws, and conflating them was the bug.
+
+		handYaw is where the controller points. The model's own yaw adds
+		off.yaw, which for the pistol is -90 - a correction for how the .kvx is
+		authored, nothing to do with where the weapon sits. Building the
+		placement basis from the model yaw rotated the whole placement by 90
+		degrees, which is why "right" pushed the weapon away from the viewer.
+	*/
+	DAngle handYaw = playerYaw + DAngle::fromDeg(wyaw);
+	DAngle yaw = handYaw + DAngle::fromDeg(off.yaw + vr_weapon_rot_yaw);
 	DAngle pitch = owner->spr.Angles.Pitch - DAngle::fromDeg(wpitch - off.pitch - vr_weapon_rot_pitch);
 
 	/*
@@ -360,7 +370,18 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	pos.Y = -vp.Pos.Y;
 	pos.Z = -vp.Pos.Z;
 
-	DVector2 posXY(wx * hupm, wy * hupm);
+	/*
+		The nudges are folded in here, before the rotation, so they live in the
+		same frame as the tracked offset by construction.
+
+		Measured, not assumed: with the player facing (0.28, 0.96), the frame's
+		first axis comes out at (0.96, -0.27) - perpendicular to the facing -
+		and the second at (0.27, 0.96), along it. So the first component is
+		lateral and the second is forward, which is the opposite of what the
+		names in get_weapon_pos_and_angle suggest.
+	*/
+	DVector2 posXY(wx * hupm - vr_weapon_off_right,
+				   wy * hupm - vr_weapon_off_forward);
 	posXY = posXY.Rotated(-DAngle90 + playerYaw);
 	pos.X -= posXY.X;
 	pos.Y -= posXY.Y;
@@ -374,12 +395,12 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 		Applying it again would raise the weapon by a further player height.
 		It remains reachable through vr_weapon_off_up if that reading is wrong.
 	*/
-	// Per weapon placement, in the weapon's own facing.
-	DVector2 fwd = yaw.ToVector();
-	const float fwdAmt = off.forward + vr_weapon_off_forward;
-	const float rightAmt = off.right + vr_weapon_off_right;
-	pos.X += fwd.X * fwdAmt - fwd.Y * rightAmt;
-	pos.Y += fwd.Y * fwdAmt + fwd.X * rightAmt;
+	/*
+		off.forward and off.right are zero for every Duke weapon, and applying
+		them here in a second frame is what produced the 90 degree error. If a
+		game turns out to use them they belong folded in above, alongside the
+		nudges.
+	*/
 	/*
 		Build's Z runs downwards - their own crosshair goes up with
 		plusZ(-(z * hunits)) - while VRaze's "up" is positive upwards. The
@@ -415,6 +436,14 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 		Printf("   floor %.0f ceil %.0f | wz %.2f m -> %.0f u | off.up %.0f | hupm %.1f\n",
 			owner->sector() ? owner->sector()->floorz : 0.0, owner->sector() ? owner->sector()->ceilingz : 0.0,
 			wz, wz * hupm, off.up, hupm);
+		{
+			DVector2 aWorld = DVector2(1,0).Rotated(-DAngle90 + playerYaw);
+			DVector2 bWorld = DVector2(0,1).Rotated(-DAngle90 + playerYaw);
+			DVector2 fwdWorld = yaw.ToVector();
+			Printf("   yaw %.0f | axisA (%.2f %.2f) axisB (%.2f %.2f) | yawvec (%.2f %.2f) | viewvec (%.2f %.2f)\n",
+				playerYaw.Degrees(), aWorld.X, aWorld.Y, bWorld.X, bWorld.Y,
+				fwdWorld.X, fwdWorld.Y, vp.ViewVector.X, vp.ViewVector.Y);
+		}
 	}
 
 	auto tspr = tsprites.newTSprite();
