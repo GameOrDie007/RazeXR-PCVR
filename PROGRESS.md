@@ -1908,3 +1908,24 @@ rewritten in place.
 The game data itself. Copying `run/` to another PC needs
 `E:/Games/Quest Ports/RazeXR/raze/*` placed in `run/games/`. That is the owner's
 call - 5 GB - and nothing here moves it.
+
+## Assembled and verified
+
+The self-contained build lives at `E:\Games\RazeXR (PC)` - 5.0 GB, runtime plus
+all seven games' data under `games/`, a README, and the eleven launchers.
+
+Verified rather than assumed, twice over:
+
+- Launched Duke from the new folder. The log reads
+  `adding E:/Games/RazeXR (PC)/games/duke/DUKE3D.GRP`, with **zero** references
+  to the old data folder - so the local copy is what is being used, not the
+  fallback that would have masked a broken path on this machine.
+- Every launcher's `%~dp0games\...` path checked against the filesystem. All
+  eleven resolve.
+
+Data copied with robocopy and each folder's size compared against its source.
+Three attempts were needed, and the failures were all shell quoting rather than
+robocopy - `\$d` inside a double-quoted bash string escapes the dollar instead
+of expanding it, so the paths were malformed and every copy "failed" while
+robocopy itself was fine. Doing it from Python with an argument list removed the
+quoting from the problem entirely, which is the same lesson as the heredoc note.
