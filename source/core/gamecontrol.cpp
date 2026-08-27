@@ -784,6 +784,25 @@ static TArray<GrpEntry> SetupGame()
 	if (groupno == -1 && userConfig.gamegrp.Len())
 	{
 		FString gamegrplower = userConfig.gamegrp.MakeLower();
+		/*
+			PC branch: normalise the separators before matching.
+
+			Every path it is compared against below goes through
+			FixPathSeperator, so a -gamegrp given with backslashes could never
+			match one - and Windows hands out backslashes everywhere. A .bat
+			built on %~dp0 gets them unavoidably, and so does anything typed or
+			pasted from Explorer.
+
+			The failure is silent and looks nothing like a path problem: no
+			group matches, groupno stays -1, and the code below quietly falls
+			through to defaultiwad or the first game found. Every launcher in a
+			folder of seven games started Duke.
+
+			It also has to happen before the drive-letter test on the next line,
+			or an absolute Windows path is mistaken for a relative one and gets
+			a leading slash it should not have.
+		*/
+		FixPathSeperator(gamegrplower);
 		if (gamegrplower[1] != ':' || gamegrplower[2] != '/') gamegrplower.Insert(0, "/");
 
 		int g = 0;

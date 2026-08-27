@@ -1929,3 +1929,72 @@ robocopy - `\$d` inside a double-quoted bash string escapes the dollar instead
 of expanding it, so the paths were malformed and every copy "failed" while
 robocopy itself was fine. Doing it from Python with an argument list removed the
 quoting from the problem entirely, which is the same lesson as the heredoc note.
+
+---
+
+# Every launcher started Duke, and the check that missed it
+
+Reported from the gaming PC: `PLAY.bat` started Duke, and so did Exhumed, and so
+did Blood. Reproduced here immediately once the right test was run.
+
+## Cause
+
+`-gamegrp` is matched in `gamecontrol.cpp` by comparing the user's value against
+each scanned group's filename:
+
+```cpp
+FString gamegrplower = userConfig.gamegrp.MakeLower();
+if (gamegrplower[1] != ':' || gamegrplower[2] != '/') gamegrplower.Insert(0, "/");
+...
+auto grplower = grp.FileName.MakeLower();
+FixPathSeperator(grplower);
+auto pos = grplower.LastIndexOf(gamegrplower);
+```
+
+Every path it compares against goes through `FixPathSeperator`; the user's own
+value never does. A `-gamegrp` given with backslashes therefore cannot match
+anything, `groupno` stays -1, and the code below **silently** falls through to
+`defaultiwad` or the first game found.
+
+Which is Duke.
+
+The new launchers build their path from `%~dp0`, and `%~dp0` is backslashes -
+unavoidably. So this appeared the moment the launchers became relative, and it
+would equally hit any path typed or pasted from Explorer. `FixPathSeperator` on
+the user's value, before the drive-letter test that would otherwise mistake an
+absolute Windows path for a relative one, fixes it for every form.
+
+## The check that missed it
+
+The portable folder was "verified" by launching **Duke** and confirming it
+loaded `games/duke/DUKE3D.GRP`. That proved nothing at all: Duke is the fallback
+pick, so it is the one game whose launcher looks correct whether the matching
+works or not. The control was chosen to be the only case that could not fail.
+
+This is the same lesson as the earlier note about running an instrument over a
+case whose answer is known - but the other way around. A control has to be able
+to *fail*. Verifying with the default is like testing a lookup by asking for the
+value it returns on a miss.
+
+Every launcher is now checked against the game it names, add-ons included:
+
+```
+  Duke Nukem 3D Atomic Edition (WT).bat  -> games/duke/duke3d.grp            OK
+  BLOOD One Unit Whole Blood.bat         -> games/blood/blood.rff            OK
+  BLOOD Cryptic Passage.bat              -> blood.rff ... cryptic.zip        OK
+  Shadow Warrior.bat                     -> games/shadowwarrior/sw.grp       OK
+  Shadow Warrior Wanton Destruction.bat  -> sw.grp, wt.grp                   OK
+  Shadow Warrior Twin Dragon.bat         -> sw.grp, td.grp                   OK
+  Redneck Rampage.bat                    -> games/rampage/redneck.grp        OK
+  NAM.bat                                -> games/nam/nam.grp                OK
+  WWII GI.bat                            -> games/ww2gi/ww2gi.grp            OK
+  Platoon Leader.bat                     -> ww2gi.grp, platoonl.dat          OK
+  Exhumed.bat                            -> games/exhumed/stuff.dat          OK
+```
+
+Add-ons load the base game first and layer on top, which is correct and briefly
+looked like four more failures until the test collected every loaded file rather
+than the first.
+
+`PLAY.bat blood`, `PLAY.bat exhumed` and `PLAY.bat sw` were checked separately
+and each starts the game it names.
