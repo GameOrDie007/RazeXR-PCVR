@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "player.h"
 #include "aistuff.h"
 #include "view.h"
+#include "vr_weapons.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -414,7 +415,13 @@ void seq_DrawPilotLightSeq(double xOffset, double yOffset)
             double x = ChunkXpos[nFrameBase] + (160 + xOffset);
             double y = ChunkYpos[nFrameBase] + (100 + yOffset);
 
-            hud_drawsprite(x, y, 65536, PlayerList[nLocalPlayer].pActor->spr.Angles.Yaw.Normalized180().Degrees() * 2., nTile, 0, 0, 1);
+            // PC branch: the pilot light is part of the flamer's flat art, so it
+            // goes with the rest of it rather than hanging in the air beside the
+            // model.
+            if (VRWeapons_DrawingModel())
+                VRWeapons_NoteDrawnTile(nTile);
+            else
+                hud_drawsprite(x, y, 65536, PlayerList[nLocalPlayer].pActor->spr.Angles.Yaw.Normalized180().Degrees() * 2., nTile, 0, 0, 1);
             nFrameBase++;
         }
     }
@@ -461,7 +468,15 @@ int seq_DrawGunSequence(int nSeqOffset, int16_t dx, double xOffs, double yOffs, 
             alpha = 0.3;
         }
 
-        hud_drawsprite(x + xOffs, y + yOffs, 65536, angle.Degrees(), nTile, nShade, nPal, stat, alpha);
+        /*
+            PC branch: with a voxel model in hand the flat weapon is not drawn,
+            but the sequence still runs, so every tile it would have drawn is
+            reported and the animation table can pick a variant among them.
+        */
+        if (VRWeapons_DrawingModel())
+            VRWeapons_NoteDrawnTile(nTile);
+        else
+            hud_drawsprite(x + xOffs, y + yOffs, 65536, angle.Degrees(), nTile, nShade, nPal, stat, alpha);
         nFrameBase++;
     }
 

@@ -16,6 +16,7 @@
 #include "sc_man.h"
 #include "printf.h"
 #include "c_cvars.h"
+#include "c_dispatch.h"
 #include "filesystem.h"
 #include "texturemanager.h"
 #include "tarray.h"
@@ -78,9 +79,10 @@ static bool Capturing = false;
 // Recovers the weapon name from a voxel model's filename.
 //
 // Duke names them vr_weapon_<name><frame>.kvx, the other games vr_<name><frame>.kvx,
-// and the trailing frame digit is present only on weapons that animate. The stem
-// that remains matches the name used by vr_weapon_offsets.def exactly, which is
-// what ties the three files together.
+// and the trailing frame digit is present only on weapons that animate. For five
+// of the seven games the stem that remains is already the name that
+// vr_weapon_offsets.def uses, which is what ties the three files together. NAM
+// and WW2GI are the exception, and go through CanonicalWeaponName below.
 //
 //==========================================================================
 
@@ -92,22 +94,87 @@ static bool WeaponStemFromPath(const char* path, FString& stem)
 
 	if (!s.Right(4).CompareNoCase(".kvx")) s.Truncate(s.Len() - 4);
 
-	// Each game prefixes its own models differently, and the longer prefixes
-	// have to be tried first or the shorter ones swallow them.
-	static const char* const prefixes[] = {
-		"vr_weapon_rr_", "vr_weapon_nam_", "vr_weapon_ww2gi_", "vr_weapon_", "vr_"
-	};
+	// Only the "this is a VR weapon model" prefix comes off here. The game
+	// prefix that follows it - rr_, nam_, ww2gi_ - is deliberately kept,
+	// because it is what makes a stem unique across all seven games, and that
+	// is what lets the alias table below be one flat list which never has to
+	// ask which game is running.
+	static const char* const prefixes[] = { "vr_weapon_", "vr_" };
 	for (auto pre : prefixes)
 	{
 		size_t n = strlen(pre);
 		if (s.Len() > n && !s.Left((int)n).Compare(pre))
 		{
-			s = s.Mid((int)n);
-			stem = s;
-			return !s.IsEmpty();
+			stem = s.Mid((int)n);
+			return !stem.IsEmpty();
 		}
 	}
 	return false;
+}
+
+/*
+	NAM and WW2GI run on Duke's weapon enum, so their vr_weapon_offsets.def
+	carries Duke's slot names - knee, pistol, chaingun - while their models are
+	named after the real weapons - knife, rifle, machinegun. The two files never
+	meet, and no rule over the names alone can join them.
+
+	The tile numbering joins them. Tiles run 30000 + slot*10, and each game's
+	offsets list is Duke's slots in enum order with handremote left out, so the
+	Nth name is the Nth decade. Their own animation defs confirm that reading
+	rather than leaving it an inference: NAM maps "shrinker" to 30060, which is
+	vr_weapon_nam_grenadelauncher, and "grow" to 30100, which is
+	vr_weapon_nam_sniperrifle. Both land exactly where the numbering says.
+
+	WW2GI ships no model in the tenth decade, so its "grow" slot has none and
+	keeps the flat sprite, as handremote does in all three games.
+*/
+struct VRWeaponAlias { const char* model; const char* slot; };
+
+static const VRWeaponAlias WeaponAliases[] = {
+	{ "nam_knife",             "knee" },
+	{ "nam_rifle",             "pistol" },
+	{ "nam_shotgun",           "shotgun" },
+	{ "nam_machinegun",        "chaingun" },
+	{ "nam_law",               "rpg" },
+	{ "nam_grenade",           "handbomb" },
+	{ "nam_grenadelauncher",   "shrinker" },
+	{ "nam_rocketlauncher",    "devastator" },
+	{ "nam_claymore",          "tripbomb" },
+	{ "nam_flamethrower",      "freeze" },
+	{ "nam_sniperrifle",       "grow" },
+
+	{ "ww2gi_knife",           "knee" },
+	{ "ww2gi_m1thompson",      "pistol" },
+	{ "ww2gi_mp40",            "shotgun" },
+	{ "ww2gi_bar",             "chaingun" },
+	{ "ww2gi_bazooka",         "rpg" },
+	{ "ww2gi_grenade",         "handbomb" },
+	{ "ww2gi_garand_launcher", "shrinker" },
+	{ "ww2gi_colt1911",        "devastator" },
+	{ "ww2gi_tnt",             "tripbomb" },
+	{ "ww2gi_flamethrower",    "freeze" },
+};
+
+/*
+	Turns a model stem into the name vr_weapon_offsets.def uses for it. An alias
+	where the two disagree; otherwise the game prefix comes off and what is left
+	is already the offsets name - Redneck's rr_crowbar against its "crowbar",
+	and Shadow Warrior's and Exhumed's models against theirs unchanged.
+*/
+static FString CanonicalWeaponName(const FString& stem)
+{
+	for (auto& a : WeaponAliases)
+	{
+		if (!stem.Compare(a.model)) return FString(a.slot);
+	}
+
+	static const char* const gamePrefixes[] = { "rr_", "nam_", "ww2gi_" };
+	for (auto pre : gamePrefixes)
+	{
+		size_t n = strlen(pre);
+		if (stem.Len() > n && !stem.Left((int)n).Compare(pre)) return stem.Mid((int)n);
+	}
+	return stem;
 }
 
 static void ParseWeaponTiles()
@@ -186,7 +253,7 @@ static void ParseWeaponTiles()
 			char last = name[name.Len() - 1];
 			if (last >= '0' && last <= '9') name.Truncate(name.Len() - 1);
 		}
-		WeaponBaseTile.Insert(name, pair->Key);
+		WeaponBaseTile.Insert(CanonicalWeaponName(name), pair->Key);
 	}
 }
 
@@ -334,6 +401,30 @@ void VRWeapons_SetCurrent(const char* name, int spriteTile)
 
 bool VRWeapons_BeginWeapon(const char* name)
 {
+	/*
+		Logged before the active check, and only when the weapon changes.
+
+		Deliberately not behind VRWeapons_Active: that is false on a desktop
+		with no OpenXR session, so gating this on it would hide exactly the
+		thing worth checking. This is what proves a game's hook fires at all and
+		hands over a name the definition files know, which together with the
+		vrweapons listing settles a newly wired game without a headset - Shadow
+		Warrior and Exhumed were both brought up this way. Needs developer 3.
+	*/
+	{
+		static FString lastLogged;
+		static bool everLogged = false;
+		if (!everLogged || lastLogged.Compare(name))
+		{
+			everLogged = true;
+			lastLogged = name;
+			DPrintf(DMSG_NOTIFY, "VR weapon hook: [%s] model %s, placement %s\n",
+				name,
+				VRWeapons_HasModel(name) ? "yes" : "no",
+				WeaponOffsets.CheckKey(FString(name)) ? "yes" : "no");
+		}
+	}
+
 	if (!VRWeapons_Active() || !VRWeapons_HasModel(name))
 	{
 		CurrentValid = false;
@@ -585,4 +676,54 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	*/
 	tspr->cstat2 = CSTAT2_SPRITE_NOANIMATE;
 	tspr->cstat = CSTAT_SPRITE_YCENTER;
+}
+
+
+//==========================================================================
+//
+// Diagnostic: what the three definition files actually resolved to.
+//
+// Prints every weapon name the running game ended up with, the voxel tile it
+// resolved to, whether that tile's model loaded, and whether it has a
+// placement. Names come from the models and placements from a separate file,
+// and the two only meet if the naming lines up - so this is what catches a game
+// wired to the wrong table, which is the one mistake the data cannot prevent.
+//
+// It needs no headset. The table is built at startup from the data alone, so
+//
+//     raze -gamegrp <game> -file vrweapons.pk3 +vrweapons
+//
+// settles whether a game is correct without costing a testing round.
+//
+//==========================================================================
+
+CCMD(vrweapons)
+{
+	if (!DefsLoaded)
+	{
+		Printf("VR weapons: no definitions loaded - is vrweapons.pk3 on the command line?\n");
+		return;
+	}
+
+	Printf("VR weapons: %d models, %d placements, %d animation frames\n",
+		WeaponBaseTile.CountUsed(), WeaponOffsets.CountUsed(), FrameToVoxel.CountUsed());
+
+	/*
+		Walked in tile order rather than map order, so the listing comes out in
+		the game's own weapon order and can be read straight against its weapon
+		enum. Tiles run 30000 + slot*10, and no Build game has twenty weapons.
+	*/
+	for (int tile = 30000; tile < 30200; tile += 10)
+	{
+		TMap<FString, int>::Iterator it(WeaponBaseTile);
+		TMap<FString, int>::Pair* pair;
+		while (it.NextPair(pair))
+		{
+			if (pair->Value != tile) continue;
+			Printf("  slot %2d  %-16s tile %5d  model %-3s  placement %-3s\n",
+				(tile - 30000) / 10, pair->Key.GetChars(), tile,
+				TileHasVoxel(tile) ? "yes" : "NO",
+				WeaponOffsets.CheckKey(pair->Key) ? "yes" : "NO");
+		}
+	}
 }
