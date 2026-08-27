@@ -88,3 +88,9 @@ dpadup togglemap
 pad_start pause
 pad_back menu_main
 lthumb crouch 
+// PC branch: the off-hand stick click. Their VR layer routes it here and
+// leaves it unbound - "No Default Binding" in VrInputDefault.cpp - and it is
+// the only way to reach Shadow Warrior's quad shotgun and nuke, which toggle
+// by re-selecting the weapon already in hand. Blood, Duke, Redneck and
+// Exhumed all handle WeaponSel_Alt too, so this is worth having everywhere.
+rthumb weapalt
