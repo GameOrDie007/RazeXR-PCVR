@@ -1623,3 +1623,68 @@ was not a better instrument but a session at the PC.
 The standing theory going in - that the engine copies its own 2D framebuffer to
 the backbuffer after `GLRenderer->Flush()` and overwrites the mirror - is wrong,
 and is recorded here only so it is not proposed a third time.
+
+---
+
+# Shadow Warrior's three state variants
+
+VRaze ships `vr_uzi_akimbo.kvx`, `vr_shotgun_quad.kvx` and `vr_nuke.kvx`, each
+with its own placement in `vr_weapon_offsets.def`. A placement is what says a
+model was meant to be *selected* rather than merely shipped, so these were the
+last place this build was visibly behind VRaze.
+
+Nothing could reach them before. They sit at `tile % 10 != 0`, so they were not
+base models, and Shadow Warrior draws no distinct sprite tile for any of them,
+so the animation table could not reach them either. The game's own state picks
+them, which means they need a name to be asked for by.
+
+## The conditions, measured rather than guessed
+
+Their engine was never published, so all three come from reading `panel.cpp`:
+
+| variant | condition | why that and not something else |
+|---|---|---|
+| `uzi_akimbo` | `pp->Flags & PF_TWO_UZI` | that flag is what spawns the second uzi panel sprite, in `InitWeaponUzi` and again in the fire handler "if you have two uzi's, but one didn't come up" |
+| `shotgun_quad` | `pp->WpnShotgunType == 1` | `ninja.cpp` clears it to 0 with "Shotgun has normal or fully automatic fire", and the reload counts shells four at a time when it is 1 |
+| `nuke` | `pp->WpnRocketType == 2` | the selector refuses to leave it at 2 unless `WpnRocketNuke` is set, so 2 on its own already means nuke-loaded |
+
+**The trap was `WpnUziType`.** It cycles 0 and 1 whenever the uzi is
+re-selected, which reads like a count of uzis and is not - it is the
+present/retract animation state, and `= 1` carries the comment "Use retracted
+state for single uzi". Keying akimbo off it would have been wrong in exactly the
+way that costs a testing round.
+
+The selection falls back to the base weapon unless the variant has a model of
+its own, so it is inert wherever the voxel pack lacks one: the worst case is the
+plain weapon, never nothing at all.
+
+## The listing caught a regression in the same change
+
+Registering variants by name meant registering every non-frame-0 model whose
+stem does not end in a digit. Run against all seven games, `vrweapons`
+immediately showed NAM's `grow` had moved from tile 30100 to 30061:
+
+```
+  slot  6* grow             tile 30061  model yes  placement yes
+                                   (and slot 10 gone)
+```
+
+NAM declares `vr_weapon_nam_sniperrifle` at **both** 30061 and 30100, and both
+alias to Duke's `grow` slot, so whichever the map iterated last won. Registration
+is now two passes - base names first, then variants, and a variant never
+displaces a name that is already a weapon in its own right.
+
+Worth noting what this would have cost otherwise: both tiles carry the same
+model at the same scale, so **nothing would have looked wrong in the headset.**
+It would have sat there until a future scale change made one of them differ. The
+listing is the only reason it was seen at all, on the same afternoon it was
+written.
+
+WW2GI's `mauser` at 30061 is now registered the same way. It has no placement
+and nothing selects it, so it is inert - it shows in the listing marked `*` and
+is left alone.
+
+## Not verified here
+
+That the three conditions fire. It needs one pass in Shadow Warrior with
+`give all`, which grants `PF_TWO_UZI`, all ammo and `WpnRocketNuke` in one go.

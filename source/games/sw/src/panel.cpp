@@ -7414,7 +7414,38 @@ void pDisplaySprites(PLAYER* pp, double interpfrac)
         ""          // WPN_SWORD   - placement commented out in VRaze's data
     };
     int vrWeap = (plActor && plActor->hasU()) ? plActor->user.WeaponNum : -1;
-    VRWeapons_BeginWeapon(vrWeap >= 0 && vrWeap < (int)countof(vrNames) ? vrNames[vrWeap] : "");
+    const char* vrName = (vrWeap >= 0 && vrWeap < (int)countof(vrNames)) ? vrNames[vrWeap] : "";
+
+    /*
+        Three weapons have a second model for a state this game tracks itself,
+        and VRaze ships a placement for each, which is what says they were meant
+        to be selected rather than merely shipped. Their engine was never
+        published, so the conditions are measured from this file:
+
+          uzi_akimbo    PF_TWO_UZI. That flag is what spawns the second uzi
+                        panel sprite, in InitWeaponUzi and again in the fire
+                        handler when one did not come up. WpnUziType is the
+                        present/retract animation state, not a count of uzis,
+                        which is the trap here.
+          shotgun_quad  WpnShotgunType 1. ninja.cpp clears it to 0 with the
+                        comment "Shotgun has normal or fully automatic fire",
+                        and the reload counts shells four at a time when it
+                        is 1.
+          nuke          WpnRocketType 2. The selection code refuses to leave it
+                        at 2 unless WpnRocketNuke is set, so 2 on its own is
+                        already the nuke-loaded state.
+
+        Falling back to the base name unless the variant has a model of its own
+        keeps this inert wherever the voxel pack lacks one: the worst case is
+        the plain weapon, never nothing at all.
+    */
+    const char* vrVariant = nullptr;
+    if (vrWeap == WPN_UZI && (pp->Flags & PF_TWO_UZI)) vrVariant = "uzi_akimbo";
+    else if (vrWeap == WPN_SHOTGUN && pp->WpnShotgunType == 1) vrVariant = "shotgun_quad";
+    else if (vrWeap == WPN_MICRO && pp->WpnRocketType == 2) vrVariant = "nuke";
+    if (vrVariant && VRWeapons_HasModel(vrVariant)) vrName = vrVariant;
+
+    VRWeapons_BeginWeapon(vrName);
     VRWeaponScope vrScope;
 
     auto list = pp->GetPanelSpriteList();
