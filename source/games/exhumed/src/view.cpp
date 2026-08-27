@@ -309,7 +309,20 @@ void DrawView(double interpfrac, bool sceneonly)
 
         if (!nFreeze && !sceneonly)
             DrawWeapons(interpfrac);
-        render_drawrooms(nullptr, nCamerapos, pSector, nCameraangles, interpfrac);
+        /*
+            PC branch: hand over the player actor. Exhumed was the only game
+            passing nullptr here - Duke, Blood and Shadow Warrior all pass the
+            player's - and it becomes FRenderViewpoint::CameraActor, which the
+            held weapon is positioned from. With it null every Exhumed weapon
+            resolved correctly, suppressed its flat sprite and then drew
+            nothing at all.
+
+            Inert for everything else. SetupViewpoint only otherwise uses the
+            actor for a remote-camera test guarded on isDuke(), and CameraActor
+            itself is read only by the portal callbacks, which Exhumed does not
+            implement - the base class methods are empty.
+        */
+        render_drawrooms(pPlayerActor, nCamerapos, pSector, nCameraangles, interpfrac);
 
         if (HavePLURemap())
         {

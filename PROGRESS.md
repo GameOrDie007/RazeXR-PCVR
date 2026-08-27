@@ -1756,3 +1756,77 @@ Smooth turn is in from launch with no menu changes, the off-hand stick click
 toggles Shadow Warriors quad shotgun and nuke, and crouch is untouched on both
 the dominant stick click and X. All three of Shadow Warriors state variants -
 akimbo uzis, quad shotgun, nuke - are confirmed showing their own models.
+
+---
+
+# Exhumed drew no weapons at all, and every diagnostic said it was fine
+
+Reported as "picked up the pistol, no voxel, not even a flat version". It was
+not the pistol: **no Exhumed weapon has ever had a model.** The flat sword at
+the start is correct - it has no model - and that is what disguised it.
+
+## What the log settled in one run
+
+The hook was working perfectly:
+
+```
+VR weapon hook: [sword] model no, placement yes
+VR weapon hook: [pistol] model yes, placement yes
+```
+
+Name resolved, model found, placement found, flat sprite suppressed on purpose.
+And **no `VR weapon:` placement line at all**, which is printed from
+`VRWeapons_AddSprite` after the position is computed. So the sprite was never
+added.
+
+Only three guards sit between the hook and that print:
+
+| guard | ruled out by |
+|---|---|
+| `!VRWeapons_Active() \|\| !CurrentValid` | both true, or the flat sprite would have been drawn |
+| `owner == nullptr` | **this one** |
+| `!TileHasVoxel(tile)` | the same call the hook made when it printed "model yes" |
+
+## The cause
+
+`FRenderViewpoint::CameraActor` is what the held weapon is positioned from, and
+Exhumed is the only game that never sets it:
+
+```
+blood/view.cpp     render_drawrooms(pPlayer->actor, ...)
+duke/render.cpp    render_drawrooms(viewer, ...)
+sw/draw.cpp        render_drawrooms(pp->actor, ...)
+exhumed/view.cpp   render_drawrooms(nullptr, ...)      <- stock Raze
+```
+
+Harmless in stock Raze, which has nothing that reads it. Our weapon placement
+does, so Exhumed silently produced nothing.
+
+Fixed by passing `pPlayerActor`, which is already in scope two lines up. Inert
+for everything else: `SetupViewpoint` otherwise uses the actor only for a
+remote-camera test guarded on `isDuke()`, and `CameraActor` itself is read only
+by the portal callbacks, which Exhumed does not implement - the base class
+methods are empty.
+
+## The real lesson: a silent return beat every instrument
+
+The `vrweapons` listing was correct. The hook log was correct. The definition
+files were correct. The model file was a perfectly ordinary 7x60x29 voxel. Each
+of those was checked and each said "fine", because each was true - the failure
+was in the gap *after* all of them, in a function that returned without a word.
+
+`VRWeapons_AddSprite` now reports why it drew nothing, once per weapon and
+reason:
+
+```
+VR weapon: pistol NOT DRAWN - no camera actor - this game passes nullptr to render_drawrooms
+```
+
+The two ordinary cases - VR off, no weapon selected - stay silent. Everything
+else says so. Had that line existed, this would have been the first thing read
+rather than the last, and it would not have cost a round.
+
+Worth putting alongside the earlier note that an instrument can be wrong: an
+instrument can also be perfectly right and still not cover the step that failed.
+Three correct instruments in a row are not a diagnosis if none of them watches
+the last hop.

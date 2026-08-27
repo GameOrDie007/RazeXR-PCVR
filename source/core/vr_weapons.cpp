@@ -519,12 +519,35 @@ void VRWeapons_ClearCurrent()
 //
 //==========================================================================
 
+/*
+	A silent return from VRWeapons_AddSprite is the worst failure this module
+	has, because every other diagnostic says the weapon is fine: the hook
+	resolves the name, finds the model, reports "model yes", and suppresses the
+	flat sprite - and then nothing is drawn and nothing is logged. That is
+	exactly how Exhumed lost every weapon while its vrweapons listing was
+	perfect. Report the reason instead, once per weapon and reason.
+*/
+static void VRWeapons_NotDrawn(const char* why)
+{
+	static FString last;
+	FString key;
+	key.Format("%s|%s", CurrentWeapon.GetChars(), why);
+	if (!last.Compare(key)) return;
+	last = key;
+	DPrintf(DMSG_NOTIFY, "VR weapon: %s NOT DRAWN - %s\n", CurrentWeapon.GetChars(), why);
+}
+
 void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 {
+	// Not logged: these are the ordinary "no VR" and "no weapon" cases.
 	if (!VRWeapons_Active() || !CurrentValid) return;
 
 	auto owner = vp.CameraActor;
-	if (owner == nullptr) return;
+	if (owner == nullptr)
+	{
+		VRWeapons_NotDrawn("no camera actor - this game passes nullptr to render_drawrooms");
+		return;
+	}
 
 	// Animation frame first, base model otherwise.
 	int tile = -1;
@@ -536,7 +559,11 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	{
 		if (auto v = WeaponBaseTile.CheckKey(CurrentWeapon)) tile = *v;
 	}
-	if (!TileHasVoxel(tile)) return;
+	if (!TileHasVoxel(tile))
+	{
+		VRWeapons_NotDrawn("resolved tile has no voxel");
+		return;
+	}
 
 	VRWeaponOffsets off;
 	if (auto o = WeaponOffsets.CheckKey(CurrentWeapon)) off = *o;
