@@ -1998,3 +1998,77 @@ than the first.
 
 `PLAY.bat blood`, `PLAY.bat exhumed` and `PLAY.bat sw` were checked separately
 and each starts the game it names.
+
+---
+
+# The voxel pack stopped loading, and why no test had caught it
+
+Reported after the move: no voxel weapons, in any game, on either machine. The
+log said it plainly once looked at:
+
+```
+Can't find '(PC)\vrweapons.pk3'
+```
+
+## Cause
+
+The generated launchers passed the pack like this:
+
+```
+set "VRW=-file ""%~dp0vrweapons.pk3"""
+```
+
+Those doubled quotes are wrong. `set "VAR=..."` strips one pair, leaving
+`-file ""<path>""`, and cmd reads a leading `""` as an empty
+argument followed by an **unquoted** path - which then splits at the first
+space. `E:\Games\RazeXR` and `(PC)\vrweapons.pk3` arrive as two arguments and
+neither is a file.
+
+`PLAY.bat` had the correct single-quoted form all along, which is why it was the
+one launcher that kept working.
+
+## Why it survived every test
+
+The build folder is `E:\Tools\Games\RazeXR-PCVR\run` - **no spaces**. Broken
+quoting and correct quoting are indistinguishable there, and every test of the
+voxel weapons, all seven games' listings, and the whole headset round, ran from
+that path. The bug was created and then exercised dozens of times without once
+being in a position to show.
+
+It appeared the moment the build was assembled into `RazeXR (PC)`, a name with
+both a space and parentheses.
+
+Worth stating as a rule: **a path with no spaces is not a test of path
+handling.** The same applies to the earlier `-gamegrp` bug, which needed a game
+that was not the fallback in order to show. Two launcher bugs in a row, both
+invisible to the environment they were written in.
+
+## Now checked properly
+
+One test now runs all eleven launchers and checks both failure modes at once -
+the game that actually loaded, and that the voxel definitions resolved - from
+the folder with the awkward name:
+
+```
+  Duke Nukem 3D Atomic Edition (WT).bat    duke           12 models, 12 placements
+  BLOOD One Unit Whole Blood.bat           blood          12 models, 12 placements
+  BLOOD Cryptic Passage.bat                blood          12 models, 12 placements
+  Shadow Warrior.bat                       shadowwarrior  17 models, 15 placements
+  Shadow Warrior Wanton Destruction.bat    shadowwarrior  17 models, 15 placements
+  Shadow Warrior Twin Dragon.bat           shadowwarrior  17 models, 15 placements
+  Redneck Rampage.bat                      rampage        13 models, 13 placements
+  NAM.bat                                  nam            11 models, 11 placements
+  WWII GI.bat                              ww2gi          11 models, 11 placements
+  Platoon Leader.bat                       ww2gi          11 models, 11 placements
+  Exhumed.bat                              exhumed        8 models, 8 placements
+```
+
+Shadow Warrior's 17 against 15 is right: fourteen slots plus the three state
+variants, against fifteen placements.
+
+Two "Can't find" messages show up and are **both pre-existing and harmless** -
+Blood probing for a `BLOOD.GRP` that does not exist in the source data either
+(it runs from `BLOOD.RFF`), and Shadow Warrior probing for CD audio when its
+music comes from its `music` folder. A first pass at the test flagged five
+launchers on those alone, which is a reminder that a check for "any error in the
+log" is not a check.
