@@ -78,7 +78,18 @@ CVAR(Bool, vr_move_use_offhand, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, vr_weaponPitchAdjust, 20.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, vr_weaponYawAdjust, 6.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, vr_allowPitchOverride, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-CVAR(Float, vr_snapTurn, 45.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+/*
+	PC branch: smooth turn by default, where theirs snaps 45 degrees.
+
+	The value is not a style flag - it is degrees, and the turning code treats
+	anything over 10 as a snap by latching the stick so it fires once per push,
+	while 10 or under repeats every frame and so turns smoothly. 3 is the
+	"Smooth Medium" preset in the Turning Mode menu.
+
+	A deliberate divergence, asked for. Note it is degrees per *frame* and so
+	scales with refresh rate, which is theirs and is left alone.
+*/
+CVAR(Float, vr_snapTurn, 3.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Int, vr_move_speed, 19, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, vr_run_multiplier, 1.5, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, vr_switch_sticks, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)

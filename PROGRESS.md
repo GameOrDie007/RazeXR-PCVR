@@ -1688,3 +1688,64 @@ is left alone.
 
 That the three conditions fire. It needs one pass in Shadow Warrior with
 `give all`, which grants `PF_TWO_UZI`, all ammo and `WpnRocketNuke` in one go.
+
+---
+
+# Smooth turn by default, and what the controller buttons actually do
+
+## Smooth turn
+
+`vr_snapTurn` now defaults to **3** instead of 45. Asked for, and a deliberate
+PC-branch divergence from RazeXR.
+
+The cvar is not a style flag, which is worth knowing before touching it: it is
+**degrees**, and the turning code in `VrInputDefault.cpp` decides snap against
+smooth from the magnitude. Over 10 latches the stick so one push turns once;
+10 or under leaves the latch alone so it repeats every frame and turns smoothly.
+3 is exactly the "Smooth Medium" entry in the Turning Mode menu, and it is what
+the owner's own older configs were already set to, so the value is his rather
+than invented.
+
+**Both halves were changed.** `vr_snapTurn` is `CVAR_ARCHIVE`, and every config
+in `run/` carried `vr_snapTurn=45`, which silently masks a changed default -
+the mistake that has now bitten this family of ports six times. All ten configs
+were rewritten to 3 alongside the source change.
+
+Left alone, because it is theirs: the turn is degrees per *frame*, so it scales
+with refresh rate. A 120 Hz headset turns a third faster than a 90 Hz one.
+
+## The controller map, written down
+
+Needed for the Alt Weapon question below, and not recorded anywhere until now.
+Right-handed default scheme, from `RazeXR_OpenXR.cpp` and `VrInputDefault.cpp`:
+
+| control | bound to | |
+|---|---|---|
+| dominant trigger | Fire | |
+| off-hand trigger | Alt Fire | |
+| A | Jump | |
+| B | Open Door / Use | |
+| X | — | **free**, their comment says "No Binding" |
+| Y | Toggle Map | |
+| dominant stick click | Crouch | |
+| off-hand stick click | — | **free**, their comment says "No Default Binding" |
+| dominant thumbrest | Quick Kick | Quest only |
+| grip + dominant trigger | Quick Kick | |
+| grip + A | Inventory Use | |
+| grip + B | Backspace | |
+| grip + dominant stick click | — | **free** |
+| grip + dominant thumbrest | — | **free** |
+| dominant stick up/down | weapnext / weapprev | |
+
+**There is no binding for `weapalt`.** That matters because `weapalt` is how
+Shadow Warrior reaches the quad shotgun and the nuke - it re-selects the weapon
+already in hand, which is what toggles `WpnShotgunType` and `WpnRocketType`.
+Cycling weapons with the stick can never do it, because cycling away changes
+`user.WeaponNum` first.
+
+So the two variants added in the previous section are, in a stock VR session,
+unreachable. The off-hand stick click and X are both free and either can be
+bound to Alt Weapon from the Controls menu, which already lists it for every
+game but Exhumed. No code change was made for this: RazeXR has no such binding,
+and adding a default would be diverging from them on a guess about what VRaze's
+scheme did.
