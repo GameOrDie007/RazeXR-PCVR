@@ -2250,3 +2250,48 @@ Worth noting the oddity in Raze's own entry: Alien World Order depends on
 with the missing files restored, an Atomic 1.5 GRP would still be wanted - which
 points at the same one acquisition solving all four of D.C., Caribbean, Nuclear
 Winter and Alien World Order.
+
+---
+
+# Eleven games became seventeen
+
+Two acquisitions settled everything the survey had flagged.
+
+## The Atomic 1.5 GRP
+
+The first candidate was 44,356,548 bytes - the right size - but CRC 0xC0FD1EE1,
+in a folder alongside IP.BIN and 1ST_READ.BIN. A Dreamcast repack, not in Raze
+database at all. Size is not identity; the CRC is the whole point here.
+
+The second was 0xFD3DCFF1, DUKE15_CRC exactly.
+
+Installed as games/duke/DUKE3D15.GRP - a different filename deliberately, since
+detection is by CRC and size, and two files called DUKE3D.GRP in one search path
+would be needless ambiguity. That one file brought up four entries: Atomic
+Edition itself, Duke it out in D.C., Duke Caribbean and Nuclear Winter, all
+through stock detection.
+
+The wt-addons.grpinfo workaround was deleted. It is no longer needed, and its
+Nuclear Winter entry would have duplicated the real one.
+
+## The GOG Redneck Rampage Collection
+
+Rides Again at AGAIN/REDNECK.GRP, 0x958018C6, RRRA_CRC. Route 66 needs no
+archive - grpinfo identifies it by loose files, and all five it asks for were
+present.
+
+Two things needed care:
+
+- **Route 66 has no GRP**, so the generated launcher came out with an empty
+  -gamegrp. The engine has a dedicated -route66 switch which also sets the CON,
+  swaps in two ART files and performs four renames. vrwritelaunchers now emits
+  that when GAMEFLAG_ROUTE66 is set.
+- **Rides Again ships its GRP as REDNECK.GRP too**, and -route66 selects the
+  base game by the bare name REDNECK.GRP, which would now match either. Renamed
+  to RIDESAGAIN.GRP; detection is by CRC so the name is free.
+
+## Result
+
+Seventeen launchers, every data path verified against the filesystem. Still
+absent: Duke!ZONE II, Penthouse Paradise, and Alien World Order, which needs the
+World Tour CON and sound files rather than any GRP.

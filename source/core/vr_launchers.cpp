@@ -26,6 +26,13 @@ struct VRGame
 	FString name;		// as grpinfo.txt names it
 	FString path;		// what goes to -gamegrp
 	bool isAddon = false;
+	/*
+		Route 66 has no archive of its own - grpinfo identifies it by loose
+		files sitting beside Redneck's GRP - so there is nothing to hand to
+		-gamegrp and the engine has a dedicated switch for it instead, which
+		also sets the CON, the replacement art and four renames.
+	*/
+	bool isRoute66 = false;
 };
 
 static TArray<VRGame> Games;
@@ -40,6 +47,7 @@ void VRLaunchers_SetScannedGames(const TArray<GrpEntry>& games)
 		e.name = g.FileInfo.name.IsNotEmpty() ? g.FileInfo.name : ExtractFileBase(g.FileName.GetChars(), true);
 		e.path = g.FileName;
 		e.isAddon = g.FileInfo.isAddon || (g.FileInfo.flags & GAMEFLAG_ADDON) != 0;
+		e.isRoute66 = (g.FileInfo.flags & GAMEFLAG_ROUTE66) != 0;
 		Games.Push(e);
 	}
 }
@@ -133,6 +141,25 @@ CCMD(vrwritelaunchers)
 			<game folder>/<file> - which is the shape every Build game's data
 			takes here, and the same shape the search path addition walks.
 		*/
+		if (g.isRoute66)
+		{
+			// No path to resolve, and -route66 does the whole setup itself.
+			body << "\"%~dp0raze.exe\" -nosetup -route66 %VRW% ";
+			body << "-config \"%~dp0cfg_" << base << ".ini\" +logfile \"%~dp0raze.log\"\r\n";
+
+			FileWriter* w66 = FileWriter::Open(file.GetChars());
+			if (w66 == nullptr)
+			{
+				Printf(TEXTCOLOR_RED "Could not write %s\n", file.GetChars());
+				continue;
+			}
+			w66->Write(body.GetChars(), body.Len());
+			delete w66;
+			Printf("  %s%s\n", base.GetChars(), g.isAddon ? "   (add-on)" : "");
+			written++;
+			continue;
+		}
+
 		FString rel = g.path;
 		rel.Substitute("\\", "/");
 		FString tail = rel;
