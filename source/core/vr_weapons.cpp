@@ -685,11 +685,25 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 
 	if (vr_weapon_debug > 0)
 	{
+		/*
+			Pinned a fixed distance ahead of the eye, ignoring the controller.
+
+			Ahead of the *eye* deliberately, not the player actor. Built on the
+			actor this diagnostic ghosted under movement entirely by itself -
+			the actor steps at tic rate while the scene is drawn from the
+			interpolated view - and it needed no eye-height fudge either.
+
+			That cost a round. Left archived after a diagnostic run, the pin was
+			reported as three separate faults in the weapon: sitting too far
+			away, not twisting with the wrist, and ghosting while moving. All
+			three were the instrument. A diagnostic should differ from the real
+			path in exactly the one way it is testing, so that anything else it
+			shows is real.
+		*/
 		DVector2 ahead = playerYaw.ToVector();
-		pos = owner->spr.pos;
-		pos.X += ahead.X * vr_weapon_debug;
-		pos.Y += ahead.Y * vr_weapon_debug;
-		pos.Z -= 20;	// roughly eye height above the actor origin
+		pos.X = vp.Pos.X + ahead.X * vr_weapon_debug;
+		pos.Y = -vp.Pos.Y + ahead.Y * vr_weapon_debug;
+		pos.Z = -vp.Pos.Z;
 		yaw = playerYaw;
 		pitch = nullAngle;
 	}

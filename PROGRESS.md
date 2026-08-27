@@ -1830,3 +1830,22 @@ Worth putting alongside the earlier note that an instrument can be wrong: an
 instrument can also be perfectly right and still not cover the step that failed.
 Three correct instruments in a row are not a diagnosis if none of them watches
 the last hop.
+
+## The three faults that followed were the instrument
+
+Exhumed then reported three more: the weapon two feet from the hand, no twist or
+turn, and ghosting while moving. None was real. vr_weapon_debug was still
+archived at 60 in cfg_Exhumed.ini from the diagnostic run, and the pin
+reproduces all three by construction - it places the model a fixed distance
+ahead, forces yaw to the body and pitch to zero, and built the position on the
+player actor, which steps at tic rate while the scene is drawn from the
+interpolated view.
+
+That last one is the same actor-against-view mismatch as the smooth-turn weapon
+swim, reappearing inside the tool meant to diagnose it.
+
+The pin is now built on the eye like the real path, and needs no eye-height
+fudge. A diagnostic should differ from the real path in exactly the one way it
+is testing, so that anything else it shows can be trusted as real. It is also
+archived, which is the other half of why this happened - see the standing note
+about archived values masking behaviour.
