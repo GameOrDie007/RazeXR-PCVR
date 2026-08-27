@@ -1409,3 +1409,168 @@ there reaches the screen. One run separates the two.
 Also worth ruling out: the owner was on Remote Desktop. RDP detaches the
 physical display and redirects presentation, so a black physical monitor is
 expected under it regardless of this code.
+
+---
+
+# PC branch: the last four games, and a table that can be checked
+
+Shadow Warrior and Exhumed now have voxel weapons, and NAM and WW2GI have the
+models they were always shipped with but could never find. All seven Build games
+are wired up.
+
+## The instrument came first
+
+The previous four games cost seven headset rounds between them, and every bug was
+the same one: a name derived from VRaze's data by a rule that turned out not to
+hold. So before wiring anything, `vrweapons` was added - a console command that
+prints what the three definition files actually resolved to:
+
+```
+VR weapons: 14 models, 15 placements, 5 animation frames
+  slot  0  fist             tile 30000  model NO   placement NO
+  slot  1  star             tile 30010  model yes  placement yes
+  slot  2  shotgun          tile 30020  model yes  placement yes
+  ...
+  slot 13  sword            tile 30130  model NO   placement NO
+```
+
+It needs no headset - the table is built at startup from the data alone - so
+
+    raze -gamegrp <game> -file vrweapons.pk3 +vrweapons
+
+settles a newly wired game for the price of a launch. All seven games were
+checked this way and the listings are reproduced below.
+
+## Shadow Warrior and Exhumed needed no guessing at all
+
+Both games' weapon enums **are** the voxel slot numbering, which was measured
+rather than assumed:
+
+| game | enum | tiles |
+|---|---|---|
+| Shadow Warrior | `damage.h`, `WPN_FIST` 0 to `WPN_SWORD` 13 | 30000 to 30130 |
+| Exhumed | `aistuff.h`, `kWeaponSword` 0 to `kWeaponMummified` 7 | 30000 to 30070 |
+
+Every model stem is already the name `vr_weapon_offsets.def` uses, so each
+game's table is just its enum written out. Exhumed's `WeaponInfo[]` is in the
+same order and confirms it - `kSeqCobra` is the staff, `kSeqRavolt` the ring.
+
+Hooked the same way as the others: the display code runs with its draws
+suppressed and reports the tiles it would have drawn.
+
+| game | hooked at |
+|---|---|
+| Shadow Warrior | `panel.cpp`, `pDisplaySprites` |
+| Exhumed | `gun.cpp` `DrawWeapons`, `sequence.cpp` `seq_DrawGunSequence` |
+
+Shadow Warrior captures the whole panel sprite list rather than one weapon's
+draw. Every panel sprite in that game is created in `panel.cpp` and belongs to
+the weapon - the ejected uzi clips, the reload, the hothead's flames - so with a
+model in hand none of them should be drawn flat. Exhumed's flamer pilot light is
+suppressed with it for the same reason.
+
+**Fist and sword are deliberately left unnamed.** VRaze declares a model for
+each in `vr_weapons.def` but ships neither `.kvx`, gives fist no placement at
+all, and has the sword's placement commented out in its own file. Naming them
+would put both at the origin, so they keep the flat sprite - which is what
+VRaze's data asks for. Exhumed's sword and mummified hands are the same case:
+declared, no model shipped. Every melee weapon across Duke, Redneck and NAM is
+also `model NO`, so this is consistent and is VRaze's, not ours.
+
+## NAM and WW2GI: the tile numbering is the join
+
+Recorded earlier as needing "an explicit per-game table, which is what VRaze's
+engine must have had", and that turned out to be right - but the table did not
+have to be guessed.
+
+Both games run on Duke's weapon enum, so their `vr_weapon_offsets.def` carries
+Duke's slot names - `knee`, `pistol`, `chaingun` - while their models are named
+after the real weapons - `knife`, `rifle`, `machinegun`. No rule over the names
+alone can join those: `knife` and `knee` have nothing in common.
+
+The tile numbering joins them. Tiles run 30000 + slot*10, and each game's
+offsets list is Duke's slots in enum order with `handremote` left out, so the
+Nth name is the Nth decade. **NAM's own animation def confirms the reading**
+rather than leaving it an inference:
+
+```
+weapon shrinker { frame 2556 30060 }   // 30060 is vr_weapon_nam_grenadelauncher
+weapon grow     { frame 2554 30100 }   // 30100 is vr_weapon_nam_sniperrifle
+```
+
+Both land exactly where the numbering says they should. The alias table in
+`vr_weapons.cpp` is that correspondence written out.
+
+One supporting change: `WeaponStemFromPath` now strips only `vr_weapon_`/`vr_`
+and keeps the game prefix, so a stem is unique across all seven games and the
+alias table can be one flat list that never has to ask which game is running.
+The game prefix comes off afterwards for everything not aliased, which is what
+keeps Redneck's `rr_crowbar` matching its `crowbar`.
+
+WW2GI ships no model in the tenth decade, so its `grow` slot has a placement and
+no model, exactly as the numbering predicts.
+
+## What the seven listings say
+
+| game | models | placements | gaps, all VRaze's |
+|---|---|---|---|
+| Duke | 12 | 12 | `knee` model unreadable |
+| Blood | 12 | 12 | none |
+| Redneck | 13 | 13 | `crowbar`, `bowling` no model; `blaster`, `throwdyn` no placement |
+| Shadow Warrior | 14 | 15 | `fist`, `sword` neither - see above |
+| Exhumed | 8 | 8 | `sword`, `mummified` no model |
+| NAM | 11 | 11 | `knee` model unreadable |
+| WW2GI | 10 | 11 | `grow` no model |
+
+Shadow Warrior's fifteenth placement is the three state variants - `nuke`,
+`uzi_akimbo`, `shotgun_quad` - which have placements but sit at `tile % 10 != 0`
+and so are not base models.
+
+## What is verified, and what is not
+
+**Verified here, without a headset:** every name each game's hook passes exists
+in that game's table, resolves to a voxel tile, and has a placement. That is the
+entire class of bug that cost the seven rounds on the first four games.
+
+**Not verified here:** that the hooks fire in a running level. In-level testing
+from outside the headset did not work this time, and the reason is worth
+recording so it is not chased again. The game reaches the end of startup - `+`
+commands execute, so the console is live - and then sits with its main thread in
+`Sleep` at about 1% CPU, rendering nothing, with the level never starting. It is
+the same whether the window is fullscreen or windowed, whether `-map` carries the
+`.MAP` extension or not, with `-quick`, with `i_pauseinbackground 0`, with the
+console dismissed, and after `AppActivate` reports success. A window grab shows
+the startup log and no level. Two instruments lied along the way and both were
+caught by controls: `+map` never worked at all (Duke, the known-good control,
+failed identically, so it was the harness and not the new games), and six
+repetitions of "no head mounted display available" in `razexr_vr.log` looked like
+a retry loop but were one line per run appended across six launches.
+
+So the hooks themselves need one headset round. What to look for:
+
+- **Shadow Warrior** - twelve weapons should appear as models. Fist and sword
+  stay flat, and that is correct. The shuriken, shotgun, uzi, missile launcher,
+  grenade launcher, sticky bomb, railgun, hothead, ripper heart, napalm, guardian
+  head and rocket are the twelve.
+- **Exhumed** - six of eight. Sword and mummified hands stay flat, and that is
+  correct.
+- **NAM and WW2GI** - models should appear at last. If one shows the *wrong*
+  model for a weapon, the alias table is one line per weapon and trivial to
+  correct; that is the only thing the data could not settle by itself.
+
+Placement, scale and grip are untuned for all four and will need the usual
+dialling in with `vr_weapon_off_*` and `vr_weapon_rot_*`.
+
+## Still not done
+
+- Shadow Warrior's three state variants: `uzi_akimbo`, `shotgun_quad` and
+  `nuke`. Their models and placements are present and the listing shows them,
+  but nothing selects them. VRaze's animation def maps only `rail`, so the
+  selection lived in engine code that was never published - `WpnUziType`,
+  `WpnRocketType`/`WpnRocketNuke` and the shotgun's `WeaponType` are the
+  candidate flags. Not guessed at: a wrong guess here shows the wrong gun in the
+  hand, which is worse than showing the plain one.
+- Exhumed and Redneck have no animation frames in VRaze's data, so their weapons
+  do not cycle models.
+- The offsets menu, and the model rotating about the voxel pivot rather than the
+  grip, are both still open from earlier.

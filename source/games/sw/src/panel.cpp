@@ -38,6 +38,7 @@ Prepared for public release: 03/28/2005 - Charlie Wiederhold, 3D Realms
 #include "player.h"
 #include "v_2ddrawer.h"
 #include "gamehud.h"
+#include "vr_weapons.h"
 
 #include "weapon.h"
 #include "razemenu.h"
@@ -7387,6 +7388,35 @@ void pDisplaySprites(PLAYER* pp, double interpfrac)
     const auto offpair = pp->Angles.getWeaponOffsets(interpfrac);
     const auto offsets = offpair.first;
 
+    /*
+        PC branch. Shadow Warrior's weapon enum is the voxel slot numbering
+        outright - WPN_FIST 0 through WPN_SWORD 13 against tiles 30000 to 30130,
+        in the order damage.h declares them - and every model's stem is already
+        the name vr_weapon_offsets.def uses, so the table is just the enum.
+
+        Fist and sword are deliberately unnamed. VRaze declares a voxel for each
+        in vr_weapons.def but ships neither .kvx, and gives neither a placement:
+        there is no "fist" entry in its offsets at all and the "sword" one is
+        commented out in their file. Naming them here would put both at the
+        origin, so they keep the flat sprite, which is what VRaze's own data
+        asks for.
+
+        Unlike the other games the whole panel sprite list is captured rather
+        than one weapon's draw. Every panel sprite in this game is created in
+        this file and belongs to the weapon - the ejected uzi clips, the reload,
+        the hothead's flames - so with a model in hand none of them should be
+        drawn flat.
+    */
+    static const char* const vrNames[] = {
+        "",         // WPN_FIST    - model, but no placement in VRaze's data
+        "star", "shotgun", "uzi", "micro", "grenade", "mine", "rail",
+        "hothead", "heart", "napalm", "ring", "rocket",
+        ""          // WPN_SWORD   - placement commented out in VRaze's data
+    };
+    int vrWeap = (plActor && plActor->hasU()) ? plActor->user.WeaponNum : -1;
+    VRWeapons_BeginWeapon(vrWeap >= 0 && vrWeap < (int)countof(vrNames) ? vrNames[vrWeap] : "");
+    VRWeaponScope vrScope;
+
     auto list = pp->GetPanelSpriteList();
     for (auto psp = list->Next; next = psp->Next, psp != list; psp = next)
     {
@@ -7634,7 +7664,10 @@ void pDisplaySprites(PLAYER* pp, double interpfrac)
                 break;
         }
 
-		hud_drawsprite(x, y, psp->scale, ang, picnum, shade, pal, flags);
+		if (VRWeapons_DrawingModel())
+			VRWeapons_NoteDrawnTile(picnum);
+		else
+			hud_drawsprite(x, y, psp->scale, ang, picnum, shade, pal, flags);
 
         // do overlays (if any)
         for (i = 0; i < SIZ(psp->over); i++)
@@ -7654,7 +7687,10 @@ void pDisplaySprites(PLAYER* pp, double interpfrac)
 
             if (picnum)
             {
-                hud_drawsprite((x + psp->over[i].xoff), (y + psp->over[i].yoff), psp->scale, ang, picnum, overlay_shade, pal, flags);
+                if (VRWeapons_DrawingModel())
+                    VRWeapons_NoteDrawnTile(picnum);
+                else
+                    hud_drawsprite((x + psp->over[i].xoff), (y + psp->over[i].yoff), psp->scale, ang, picnum, overlay_shade, pal, flags);
             }
         }
     }

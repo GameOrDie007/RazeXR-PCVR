@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <assert.h>
 #include "v_2ddrawer.h"
 #include "sequence.h"
+#include "vr_weapons.h"
 
 BEGIN_PS_NS
 
@@ -929,13 +930,34 @@ loc_flag:
 void DrawWeapons(double interpfrac)
 {
     if (bCamera) {
+        VRWeapons_ClearCurrent();
         return;
     }
 
     int nWeapon = PlayerList[nLocalPlayer].nCurrentWeapon;
     if (nWeapon < -1) {
+        VRWeapons_ClearCurrent();
         return;
     }
+
+    /*
+        PC branch. Exhumed needs no mapping table worth the name: its weapon
+        enum is the voxel slot numbering outright - kWeaponSword 0 through
+        kWeaponMummified 7 against tiles 30000 to 30070 - and every model's stem
+        is already the name vr_weapon_offsets.def uses. WeaponInfo[] at the top
+        of this file is in the same order, kSeqCobra being the staff and
+        kSeqRavolt the ring.
+
+        As in Duke and Blood the display code below still runs; its draws are
+        suppressed in seq_DrawGunSequence, which reports the tiles instead. The
+        scope guard is what closes the capture window, because this function
+        returns from several places below and the M60 draws a second time.
+    */
+    static const char* const vrNames[] = {
+        "sword", "pistol", "m60", "flamer", "grenade", "staff", "ring", "mummified"
+    };
+    VRWeapons_BeginWeapon(nWeapon >= 0 && nWeapon < (int)countof(vrNames) ? vrNames[nWeapon] : "");
+    VRWeaponScope vrScope;
     int var_34 = PlayerList[nLocalPlayer].nState;
 
     int var_30 = SeqOffsets[WeaponInfo[nWeapon].nSeq];
