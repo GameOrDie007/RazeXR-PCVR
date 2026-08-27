@@ -1859,3 +1859,52 @@ The whole Exhumed episode came to one real defect - CameraActor never set - plus
 three phantom ones from a diagnostic left switched on. Worth the count: of the
 four symptoms reported against Exhumed, one was the code and three were the
 instrument.
+
+---
+
+# Portable: the whole run folder can be copied to another PC
+
+Two things were machine-specific. Neither was the config, which was already
+portable because every launcher passes `-config` into `run/`.
+
+## Savegames
+
+Raze has a portable mode: a writable `raze_portable.ini` beside the exe moves
+savegames to `<progdir>/Save/<game>/`, and screenshots alongside. Saves were
+already separated per game - the subfolder is the engine's `LumpFilter`, so
+`Duke.WorldTour`, `Blood`, `ShadowWarrior` and so on - they were just living in
+`%USERPROFILE%/Saved Games/Raze`.
+
+The marker is written, and existing saves were copied rather than moved.
+
+**Proving it needed a detour.** `IsPortable` announces itself through `Printf`,
+but `G_LoadConfig` runs at `RunGame` line 1038 while the logfile is not opened
+until 1058, and `execLogfile` does not replay console history - so the message
+never reaches the log and its absence proves nothing. The observable that does
+work: with no `+logfile`, Raze puts its default log at `M_GetDocumentsPath()`,
+which returns `progdir` **only** in portable mode. Run without `+logfile`, the
+log appeared in `run/`. Confirmed.
+
+## Game data
+
+The launchers carried an absolute path to the RazeXR standalone's data folder,
+5 GB at `E:/Games/Quest Ports/RazeXR/raze`. Each now prefers a local copy and
+falls back to that absolute path, so nothing changes on this machine and the
+folder works anywhere the data has been copied alongside it:
+
+```
+set "GRP=%~dp0games\shadowwarrior\Sw.grp"
+if not exist "%GRP%" set "GRP=E:/Games/Quest Ports/RazeXR/raze/shadowwarrior/Sw.grp"
+```
+
+The relative form is the last two components of the scanned path - `<game
+folder>/<file>` - which is the shape all seven games take here, and the same
+shape the search path addition already walks. `vrwritelaunchers` emits this now,
+so regenerating keeps it, and the eleven existing launchers plus `PLAY.bat` were
+rewritten in place.
+
+## What is still not in the folder
+
+The game data itself. Copying `run/` to another PC needs
+`E:/Games/Quest Ports/RazeXR/raze/*` placed in `run/games/`. That is the owner's
+call - 5 GB - and nothing here moves it.

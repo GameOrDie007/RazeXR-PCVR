@@ -113,7 +113,35 @@ CCMD(vrwritelaunchers)
 		body << "set \"VRW=\"\r\n";
 		body << "if exist \"%~dp0vrweapons.pk3\" set \"VRW=-file \"\"%~dp0vrweapons.pk3\"\"\"\r\n";
 		body << "\r\n";
-		body << "\"%~dp0raze.exe\" -nosetup -gamegrp \"" << g.path << "\" %VRW% ";
+		/*
+			Game data. A copy sitting beside the launcher wins, so the whole run
+			folder can be moved to another PC; the absolute path the scan found
+			is kept as the fallback, so nothing changes on the machine that
+			wrote it.
+
+			The portable form is the last two components of the scanned path -
+			<game folder>/<file> - which is the shape every Build game's data
+			takes here, and the same shape the search path addition walks.
+		*/
+		FString rel = g.path;
+		rel.Substitute("\\", "/");
+		FString tail = rel;
+		{
+			ptrdiff_t slash = rel.LastIndexOf('/');
+			if (slash > 0)
+			{
+				ptrdiff_t prev = rel.LastIndexOf('/', slash - 1);
+				tail = prev >= 0 ? rel.Mid(prev + 1) : rel.Mid(slash + 1);
+			}
+		}
+		tail.Substitute("/", "\\");
+
+		body << "rem Game data. A copy in games\\ beside this script wins, so this\r\n";
+		body << "rem folder can be moved to another PC; otherwise where it was found.\r\n";
+		body << "set \"GRP=%~dp0games\\" << tail << "\"\r\n";
+		body << "if not exist \"%GRP%\" set \"GRP=" << g.path << "\"\r\n";
+		body << "\r\n";
+		body << "\"%~dp0raze.exe\" -nosetup -gamegrp \"%GRP%\" %VRW% ";
 		body << "-config \"%~dp0cfg_" << base << ".ini\" +logfile \"%~dp0raze.log\"\r\n";
 
 		FileWriter* w = FileWriter::Open(file.GetChars());
