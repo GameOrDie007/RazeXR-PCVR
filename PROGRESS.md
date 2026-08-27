@@ -2072,3 +2072,62 @@ Blood probing for a `BLOOD.GRP` that does not exist in the source data either
 music comes from its `music` folder. A first pass at the test flagged five
 launchers on those alone, which is a reminder that a check for "any error in the
 log" is not a check.
+
+---
+
+# No music in Shadow Warrior or Redneck: a DLL that was never there
+
+Reported with the volume already at maximum, which correctly ruled out the
+obvious. Duke had music; Shadow Warrior and Redneck Rampage did not.
+
+## What the split told us
+
+Duke ships `.MID` **and** `.ogg`. Shadow Warrior ships `Track02.ogg` upwards, and
+Redneck `redneck02.ogg` upwards - Ogg only. So the games with music were the ones
+whose music was MIDI, and the silent ones were Ogg-only. That is a codec split,
+not a volume or a lookup problem.
+
+Confirmed against the data rather than guessed:
+
+- the tracks are present and *are* being read - `adding
+  games/shadowwarrior/, 19 lumps` is six files plus the thirteen tracks
+- `mus_redbook` is `true` for Shadow Warrior and Redneck in our configs, exactly
+  as in RazeXR's own `razexr.ini`, so the CD-audio path was being taken
+
+## Cause
+
+The ZMusic used here was built with `DYN_SNDFILE=ON` and `DYN_MPG123=ON`, which
+means it loads its Ogg/FLAC and MP3 decoders **at runtime**. Scanning
+`zmusiclite.dll` finds exactly what it wants:
+
+```
+libsndfile-1.dll
+libmpg123-0.dll
+```
+
+Neither was ever placed beside the exe. MIDI is built into ZMusic, so it worked;
+everything needing libsndfile failed. Silently - `Mus_Play` just returns false,
+and only Shadow Warrior happens to print anything at all when it does
+("Can't find CD track 2!"), which is why one game's log named a fault that
+affected several.
+
+## Fix
+
+`libsndfile-1.dll` 1.2.2 placed beside the exe. Shadow Warrior's CD track errors
+go from three to zero.
+
+Provenance worth recording: it came from the `soundfile` Python package bundled
+in the owner's own ClipSpotter install - an official libsndfile build, LGPL, and
+dynamically loaded, which is the arrangement that licence is written for. Not
+taken from a commercial application, and not built here.
+
+`libmpg123-0.dll` is not shipped. Nothing in these seven games uses MP3 music;
+if something ever does, it will fail the same silent way.
+
+## The shape of this one
+
+Three correct measurements said the music was fine - the files exist, they are
+loaded as lumps, and the cvar matches theirs. All true, and none of them touched
+the decoder. The same shape as Exhumed's missing weapons, where the listing, the
+hook log and the model file were all correct and the failure was in the hop none
+of them watched.
