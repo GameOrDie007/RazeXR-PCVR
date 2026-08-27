@@ -1849,3 +1849,13 @@ fudge. A diagnostic should differ from the real path in exactly the one way it
 is testing, so that anything else it shows can be trusted as real. It is also
 archived, which is the other half of why this happened - see the standing note
 about archived values masking behaviour.
+
+## Confirmed
+
+Exhumed sits in the hand and rotates and tilts correctly, with the pin off. All
+seven Build games now have working voxel weapons in the headset.
+
+The whole Exhumed episode came to one real defect - CameraActor never set - plus
+three phantom ones from a diagnostic left switched on. Worth the count: of the
+four symptoms reported against Exhumed, one was the code and three were the
+instrument.
