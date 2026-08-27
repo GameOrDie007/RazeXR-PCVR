@@ -242,9 +242,12 @@ static void ParseWeaponTiles()
 
 	TMap<int, FString>::Iterator it(stems);
 	TMap<int, FString>::Pair* pair;
+	// Frame 0 names the weapon. Done first and on its own pass, because the
+	// variant pass below must be able to see whether a name is already a
+	// weapon in its own right.
 	while (it.NextPair(pair))
 	{
-		if (pair->Key % 10 != 0) continue;		// frame 0 names the weapon
+		if (pair->Key % 10 != 0) continue;
 
 		FString name = pair->Value;
 		int* n = frameCount.CheckKey(pair->Key / 10);
@@ -254,6 +257,43 @@ static void ParseWeaponTiles()
 			if (last >= '0' && last <= '9') name.Truncate(name.Len() - 1);
 		}
 		WeaponBaseTile.Insert(CanonicalWeaponName(name), pair->Key);
+	}
+
+	/*
+		Everything that is not frame 0, where two different things live.
+
+		Animation frames, whose stems end in the frame digit - pistol1, napalm3,
+		rail2 - are reached through the animation table by sprite tile and never
+		need a name.
+
+		Named state variants do not end in a digit: Shadow Warrior's uzi_akimbo,
+		shotgun_quad and nuke. Nothing draws a distinct sprite tile for those, so
+		the animation table cannot reach them; the game's own state picks them,
+		and for that they need a name to be asked for by. VRaze ships a
+		placement for each, which is what says they were meant to be selected.
+
+		A variant never displaces a weapon that already owns its name. NAM
+		declares vr_weapon_nam_sniperrifle at both 30061 and 30100, and both
+		alias to Duke's "grow" slot, so without this the odd-numbered one would
+		overwrite the real weapon's tile depending on which the map iterated
+		last. Same model either way, so nothing would have looked wrong - which
+		is exactly why it needs to be written down rather than left to luck.
+	*/
+	TMap<int, FString>::Iterator vit(stems);
+	while (vit.NextPair(pair))
+	{
+		if (pair->Key % 10 == 0) continue;
+
+		FString name = pair->Value;
+		if (name.IsEmpty()) continue;
+
+		char last = name[name.Len() - 1];
+		if (last >= '0' && last <= '9') continue;
+
+		FString canon = CanonicalWeaponName(name);
+		if (WeaponBaseTile.CheckKey(canon)) continue;
+
+		WeaponBaseTile.Insert(canon, pair->Key);
 	}
 }
 
@@ -713,17 +753,19 @@ CCMD(vrweapons)
 		the game's own weapon order and can be read straight against its weapon
 		enum. Tiles run 30000 + slot*10, and no Build game has twenty weapons.
 	*/
-	for (int tile = 30000; tile < 30200; tile += 10)
+	for (int tile = 30000; tile < 30200; tile++)
 	{
 		TMap<FString, int>::Iterator it(WeaponBaseTile);
 		TMap<FString, int>::Pair* pair;
 		while (it.NextPair(pair))
 		{
 			if (pair->Value != tile) continue;
-			Printf("  slot %2d  %-16s tile %5d  model %-3s  placement %-3s\n",
-				(tile - 30000) / 10, pair->Key.GetChars(), tile,
+			Printf("  slot %2d%s %-16s tile %5d  model %-3s  placement %-3s\n",
+				(tile - 30000) / 10, tile % 10 ? "*" : " ",
+				pair->Key.GetChars(), tile,
 				TileHasVoxel(tile) ? "yes" : "NO",
 				WeaponOffsets.CheckKey(pair->Key) ? "yes" : "NO");
 		}
 	}
+	Printf("  (* is a named state variant of the slot above it)\n");
 }
