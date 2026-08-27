@@ -1596,3 +1596,30 @@ Seven games, one headset round. The first four cost seven rounds between them.
 The difference was the `vrweapons` listing: every failure mode it can see was
 removed before the headset went on, so the round was spent confirming rather
 than diagnosing.
+
+---
+
+# The desktop mirror works, and never needed the last theory
+
+Settled at the machine rather than over Remote Desktop: the monitor shows
+gameplay, matching the headset, in a level as well as in the menus.
+
+`vr_mirror_probe` was run and confirms it positively rather than by absence of
+the symptom. The probe clears the window to magenta and the mirror blit then
+paints over it, so **gameplay on screen with the probe on is the blit visibly
+winning.** Magenta would have meant the blit produced nothing.
+
+So the mirror was already fixed by the two changes made blind last session - the
+window and GL context handles being saved across `TBXR_InitialiseInstance`'s
+`memset`, and scissoring disabled around the blit. What kept it looking broken
+afterwards was **Remote Desktop**, which detaches the physical display and
+redirects presentation. A black monitor under RDP is expected and says nothing
+about this code.
+
+Worth keeping: the note in the previous section that this machine cannot observe
+the mirror without a headset streaming still holds. The thing that was missing
+was not a better instrument but a session at the PC.
+
+The standing theory going in - that the engine copies its own 2D framebuffer to
+the backbuffer after `GLRenderer->Flush()` and overwrites the mirror - is wrong,
+and is recorded here only so it is not proposed a third time.
