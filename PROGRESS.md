@@ -2187,6 +2187,66 @@ all three expansions with no override at all.
 - **Duke!ZONE II** and **Duke Nukem's Penthouse Paradise** - third-party Duke
   add-ons.
 
-Not worth chasing: NAPALM is a regional NAM, Powerslave is the US Exhumed, and
-Duke: Alien World Order is World Tour's fifth episode, already installed. The
-unidentified `games/rampage/Dead.grp` matches nothing in the database.
+Not worth chasing: NAPALM is a regional NAM and Powerslave is the US Exhumed.
+The unidentified `games/rampage/Dead.grp` matches nothing in the database.
+**Duke: Alien World Order was wrongly called "already installed" here - see the
+next section, it is not.**
+
+---
+
+# Atomic against World Tour, and where Alien World Order actually lives
+
+Both questions answered from the files rather than from memory.
+
+## The two GRPs hold the same game
+
+`DUKE3D.GRP` here is 44,356,548 bytes with World Tour's CRC. Reading its
+directory: **456 files, episodes 1 to 4, and not one E5 map.**
+
+```
+  Episode 1 :  8 maps
+  Episode 2 : 11 maps
+  Episode 3 : 11 maps
+  Episode 4 : 11 maps
+  other maps: 0
+```
+
+That is exactly the Atomic Edition content. Atomic and World Tour ship a
+same-sized GRP holding the same four episodes, and differ only by CRC. So
+nothing is gained from the World Tour GRP over the Atomic one, and something is
+lost: that CRC is what blocks D.C., Caribbean and Nuclear Winter.
+
+**Adding an Atomic 1.5 `DUKE3D.GRP` (`0xFD3DCFF1`) is a pure gain here** - three
+expansions unlocked, nothing given up, since the World Tour GRP contributes no
+content the Atomic one does not.
+
+## Alien World Order is not in the GRP at all
+
+Raze's entry for it carries no crc or size. It is identified entirely by loose
+files sitting beside the base game:
+
+```
+mustcontain "FIREFLYTROOPER.CON", "FLAMETHROWER.CON",
+            "music/E5L1_BulletDam.ogg", "sound/VO_E5L1_Duke_CreamAndSugar.ogg"
+dependency DUKE15_CRC
+```
+
+Episode 5 is scripts, music and voice files, not map data in a GRP. What is
+installed here is **partial**:
+
+| required | state |
+|---|---|
+| `music/E5L1_BulletDam.ogg` and the other eight E5 tracks | present |
+| `FIREFLYTROOPER.CON` | missing |
+| `FLAMETHROWER.CON` | missing |
+| `sound/` - the E5 voice-overs | the whole folder is missing |
+
+So the World Tour *music* was installed and the World Tour *content* was not,
+which is why the episode never appeared and why the earlier note in this file
+calling it "already installed" was wrong.
+
+Worth noting the oddity in Raze's own entry: Alien World Order depends on
+`DUKE15_CRC`, the Atomic GRP, while its gamefilter is `Duke.Worldtour`. So even
+with the missing files restored, an Atomic 1.5 GRP would still be wanted - which
+points at the same one acquisition solving all four of D.C., Caribbean, Nuclear
+Winter and Alien World Order.
