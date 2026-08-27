@@ -2131,3 +2131,62 @@ loaded as lumps, and the cvar matches theirs. All true, and none of them touched
 the decoder. The same shape as Exhumed's missing weapons, where the listing, the
 hook log and the model file were all correct and the failure was in the hop none
 of them watched.
+
+---
+
+# What else Raze runs, and what is actually here
+
+Raze's `engine/grpinfo.txt` knows 47 distinct entries across 61 blocks. Most are
+regional variants, censored releases, shareware and demos of games already
+installed. Setting those aside, the picture:
+
+## Installed and working (12)
+
+Duke Nukem 3D Atomic Edition (WT), Blood One Unit Whole Blood, Blood Cryptic
+Passage, Shadow Warrior, Wanton Destruction, Twin Dragon, Redneck Rampage, NAM,
+WWII GI, Platoon Leader, Exhumed - and now Duke: Nuclear Winter.
+
+## Present but not offered
+
+Three Duke expansions are on disk and are identified correctly by CRC:
+
+```
+dukedc.grp    0xA8CF80DA  DUKEDC_CRC   Duke it out in D.C.
+vacation.grp  0x18F01C5B  DUKECB_CRC   Duke Caribbean: Life's a Beach
+nwinter.grp   0xF1CAE8E4  DUKENW_CRC   Duke: Nuclear Winter
+```
+
+Each declares `dependency DUKE15_CRC` - Atomic Edition 1.5 - and this install
+has World Tour, `0x982AFE4A`. **Atomic and World Tour are byte-for-byte the same
+size**, 44,356,548, and differ only by CRC, which is why the earlier guess in
+this file ("most likely their grpinfo dependency is on the Atomic 1.5 GRP") was
+right and is now measured rather than assumed.
+
+Raze scans the search paths for `*.grpinfo` files and appends what it finds, so
+this needs no engine change. `games/duke/wt-addons.grpinfo` re-points the
+dependency at World Tour, and **Nuclear Winter now appears and gets a launcher.**
+
+The same change does **not** bring up D.C. or Caribbean, and the reason was not
+established. Ruled out by test: CRC mismatch (all four match exactly),
+`exclepisodes` (removing it changes nothing), and the missing `scriptname` that
+Nuclear Winter uniquely has (adding one changes nothing). Rather than ship two
+entries that do nothing, only the working one is kept and the file documents the
+rest.
+
+The clean fix for all three is an Atomic Edition 1.5 `DUKE3D.GRP` (`0xFD3DCFF1`)
+dropped in beside the World Tour one. Raze would then see both base games and
+all three expansions with no override at all.
+
+## Supported, and genuinely not here
+
+- **Redneck Rampage Rides Again** - a full sequel. Note `games/ridesagain/` holds
+  1.1 GB of upscale packs and music for it but no `.grp`, so the textures are
+  here and the game is not.
+- **Redneck Rampage: Suckin' Grits on Route 66** - same story, `66upscale.zip`
+  is present in `games/rampage/`.
+- **Duke!ZONE II** and **Duke Nukem's Penthouse Paradise** - third-party Duke
+  add-ons.
+
+Not worth chasing: NAPALM is a regional NAM, Powerslave is the US Exhumed, and
+Duke: Alien World Order is World Tour's fifth episode, already installed. The
+unidentified `games/rampage/Dead.grp` matches nothing in the database.
