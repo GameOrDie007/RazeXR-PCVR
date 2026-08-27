@@ -1749,3 +1749,10 @@ bound to Alt Weapon from the Controls menu, which already lists it for every
 game but Exhumed. No code change was made for this: RazeXR has no such binding,
 and adding a default would be diverging from them on a guess about what VRaze's
 scheme did.
+
+## Confirmed
+
+Smooth turn is in from launch with no menu changes, the off-hand stick click
+toggles Shadow Warriors quad shotgun and nuke, and crouch is untouched on both
+the dominant stick click and X. All three of Shadow Warriors state variants -
+akimbo uzis, quad shotgun, nuke - are confirmed showing their own models.
