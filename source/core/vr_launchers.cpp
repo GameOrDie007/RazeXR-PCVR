@@ -111,7 +111,17 @@ CCMD(vrwritelaunchers)
 		body << "\r\n";
 		body << "rem The voxel weapon pack, if it has been built.\r\n";
 		body << "set \"VRW=\"\r\n";
-		body << "if exist \"%~dp0vrweapons.pk3\" set \"VRW=-file \"\"%~dp0vrweapons.pk3\"\"\"\r\n";
+		/*
+			One pair of quotes, not two.
+
+			This used to emit set "VRW=-file ""<path>""", whose doubled quotes cmd
+			reads as an empty string followed by an unquoted path - so the argument
+			splits at the first space. It survived every test because the folder it
+			was written in had no spaces in its name; the moment the build was
+			assembled into "RazeXR (PC)" the voxel pack stopped loading, silently,
+			in every game.
+		*/
+		body << "if exist \"%~dp0vrweapons.pk3\" set \"VRW=-file \"%~dp0vrweapons.pk3\"\"\r\n";
 		body << "\r\n";
 		/*
 			Game data. A copy sitting beside the launcher wins, so the whole run
