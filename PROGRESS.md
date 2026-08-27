@@ -1574,3 +1574,25 @@ dialling in with `vr_weapon_off_*` and `vr_weapon_rot_*`.
   do not cycle models.
 - The offsets menu, and the model rotating about the voxel pivot rather than the
   grip, are both still open from earlier.
+
+## Confirmed in the headset
+
+All four games play with voxel weapons in hand. The only flat weapons are the
+ones predicted above - Shadow Warrior's fist and sword, Exhumed's sword and
+mummified hands - and those are VRaze's own gaps, not ours.
+
+**No wrong-model reports in NAM or WW2GI.** That was the one thing the data
+could not settle by itself, and the reading taken from the tile numbering turns
+out to be right. Deriving the mapping from `30000 + slot*10` and checking it
+against NAM's own animation def, rather than guessing at which real gun sits in
+which Duke slot, is what made a table nobody could verify from the names alone
+correct on the first attempt.
+
+Placement carried over from Duke's tuning well enough that nothing looked
+wrong, so the per-weapon dialling in that was expected did not turn out to be
+needed.
+
+Seven games, one headset round. The first four cost seven rounds between them.
+The difference was the `vrweapons` listing: every failure mode it can see was
+removed before the headset went on, so the round was spent confirming rather
+than diagnosing.
