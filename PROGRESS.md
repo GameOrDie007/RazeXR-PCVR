@@ -2295,3 +2295,56 @@ Two things needed care:
 Seventeen launchers, every data path verified against the filesystem. Still
 absent: Duke!ZONE II, Penthouse Paradise, and Alien World Order, which needs the
 World Tour CON and sound files rather than any GRP.
+
+---
+
+# Route 66 would not launch, for two separate reasons
+
+## One: a bare -gamegrp finds nothing
+
+The engine's own `-route66` switch sets gamegrp to the bare name `REDNECK.GRP`.
+A bare name has no directory part, so the PC branch's search path addition -
+which derives its root from `-gamegrp` - contributes nothing, and the configured
+paths only reach `games/` rather than `games/<game>/`. No game is found at all,
+and startup then dies with **"bad allocation"**, which says nothing whatever
+about the actual problem.
+
+`-gamegrp` is read after the switch and overrides it, so the launcher now passes
+the base game's full path alongside `-route66`, keeping everything else the
+switch does. A missing game is now a clear fatal error rather than a bad_alloc.
+
+## Two: the voxel pack crashes Route 66
+
+Exit code `0xC0000409` - a stack buffer overrun - before the first frame.
+Bisected the pack rather than guessed:
+
+| loaded alongside GAME66.CON | result |
+|---|---|
+| all 100 models, no defs | runs |
+| Redneck's own three defs | runs |
+| the `dummytile` line alone | runs |
+| a single `voxel` line | runs |
+| the other games' def files | **crash** |
+| the full pack | **crash** |
+
+Base Redneck with the full pack runs, so the trigger is `GAME66.CON` together
+with def files belonging to *other* games. It reproduces from `-con GAME66.CON`
+alone, without `-route66`, so it is not the switch.
+
+Not chased further - it is in stock filter and CON handling, and the fix keeps
+the feature rather than dropping it. `vrweapons_rr.pk3` carries Redneck's defs
+and the models only, and Route 66 gets the same thirteen weapons. The build tool
+emits both packs.
+
+## All seventeen verified
+
+Right game, voxel weapons resolved, no crash, checked from the folder with the
+awkward name.
+
+Two launchers first came back failing and were the **harness**, not the
+launchers: their filenames contain an apostrophe, which breaks PowerShell
+single-quoting. Invoked through cmd with an argument list they pass. That is the
+third time this session that shell quoting produced a false result - the others
+being the backslash-eating loop variable during the data copy and the doubled
+quotes in the launcher template - and each time the fix was the same: stop
+letting a shell parse the string.
