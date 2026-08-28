@@ -1081,6 +1081,22 @@ int RunGame()
 	GetGames();
 	auto usedgroups = SetupGame();
 
+	/*
+		PC branch: say so, rather than falling over further in.
+
+		With no game found at all this used to reach a std::bad_alloc and put
+		"bad allocation" on screen, which says nothing about the actual problem.
+		It is reachable whenever -gamegrp names a file with no directory part -
+		the engine's own -route66 does exactly that - because the search paths
+		then never reach the folder the data is in.
+	*/
+	if (usedgroups.Size() == 0)
+	{
+		I_FatalError("No game data found.\n\n"
+			"Nothing matched -gamegrp, and no game was found on the search paths.\n"
+			"If -gamegrp was given a bare filename, give it the full path instead.");
+	}
+
 	bool colorset = false;
 	for (int i = usedgroups.Size()-1; i >= 0; i--)
 	{

@@ -58,6 +58,26 @@ def main():
     defs = len(names) - vox
     print("%s: %d voxel models, %d definition files" % (out, vox, defs))
 
+    """
+    A second, Redneck-only pack.
+
+    Route 66 crashes on startup with the full pack - 0xC0000409, a stack buffer
+    overrun, before the first frame - and the trigger is GAME66.CON together
+    with the other games' def files. Redneck's own defs are fine, and so are all
+    the models, so this pack gives Route 66 the same thirteen weapons without
+    tripping it. Its launcher picks this one up.
+    """
+    rrout = os.path.join(os.path.dirname(out), "vrweapons_rr.pk3") if os.path.dirname(out) else "vrweapons_rr.pk3"
+    with zipfile.ZipFile(src) as zin:
+        keep = [n for n in names
+                if n.startswith("filter/redneck/") or n.endswith(".kvx")]
+        with zipfile.ZipFile(rrout, "w", zipfile.ZIP_STORED) as zout:
+            for n in sorted(keep):
+                zout.writestr(n, zin.read(n))
+    rrvox = sum(1 for n in keep if n.endswith(".kvx"))
+    print("%s: %d voxel models, %d definition files (Route 66)"
+          % (rrout, rrvox, len(keep) - rrvox))
+
 
 if __name__ == "__main__":
     main()

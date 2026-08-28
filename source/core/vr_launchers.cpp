@@ -143,8 +143,69 @@ CCMD(vrwritelaunchers)
 		*/
 		if (g.isRoute66)
 		{
-			// No path to resolve, and -route66 does the whole setup itself.
-			body << "\"%~dp0raze.exe\" -nosetup -route66 %VRW% ";
+			/*
+				-route66 does the rest of the setup - the CON, the replacement
+				art and four renames - but it points -gamegrp at the bare name
+				"REDNECK.GRP", and a bare name contributes no search path, so
+				nothing is found and startup dies. -gamegrp is read after the
+				switch and overrides it, so passing the base game's full path
+				alongside fixes that without losing anything -route66 does.
+			*/
+			FString basegrp;
+			for (auto& other : Games)
+			{
+				FString lower = other.path;
+				lower.ToLower();
+				FixPathSeperator(lower);
+				if (lower.Right(11).Compare("redneck.grp") == 0)
+				{
+					basegrp = other.path;
+					break;
+				}
+			}
+
+			if (basegrp.IsEmpty())
+			{
+				Printf(TEXTCOLOR_YELLOW "  %s: skipped, its base game was not found\n", base.GetChars());
+				continue;
+			}
+
+			/*
+				Route 66 crashes on startup with the full voxel pack - exit code
+				0xC0000409, a stack buffer overrun, before the first frame. It is
+				GAME66.CON together with the *other* games' def files: Redneck's
+				own three are fine, and so are all hundred models. Measured by
+				bisecting the pack, and it reproduces without -route66, from
+				-con GAME66.CON alone.
+
+				vrweapons_rr.pk3 carries Redneck's defs and the models only, so
+				Route 66 gets the same thirteen weapons without tripping it.
+			*/
+			body << "rem Route 66 trips a fault in the full pack, so it takes the\r\n";
+			body << "rem Redneck-only one, which gives it the same weapons.\r\n";
+			body << "set \"VRW=\"\r\n";
+			body << "if exist \"%~dp0vrweapons_rr.pk3\" set \"VRW=-file \"%~dp0vrweapons_rr.pk3\"\"\r\n";
+			body << "\r\n";
+
+			FString rel66 = basegrp;
+			rel66.Substitute("\\", "/");
+			FString tail66 = rel66;
+			{
+				ptrdiff_t slash = rel66.LastIndexOf('/');
+				if (slash > 0)
+				{
+					ptrdiff_t prev = rel66.LastIndexOf('/', slash - 1);
+					tail66 = prev >= 0 ? rel66.Mid(prev + 1) : rel66.Mid(slash + 1);
+				}
+			}
+			tail66.Substitute("/", "\\");
+
+			body << "rem Route 66 has no archive of its own. -route66 sets the CON, the\r\n";
+			body << "rem art and the renames; the base game still has to be named in full.\r\n";
+			body << "set \"GRP=%~dp0games\\" << tail66 << "\"\r\n";
+			body << "if not exist \"%GRP%\" set \"GRP=" << basegrp << "\"\r\n";
+			body << "\r\n";
+			body << "\"%~dp0raze.exe\" -nosetup -route66 -gamegrp \"%GRP%\" %VRW% ";
 			body << "-config \"%~dp0cfg_" << base << ".ini\" +logfile \"%~dp0raze.log\"\r\n";
 
 			FileWriter* w66 = FileWriter::Open(file.GetChars());
