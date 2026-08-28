@@ -2348,3 +2348,67 @@ third time this session that shell quoting produced a false result - the others
 being the backslash-eating loop variable during the data copy and the doubled
 quotes in the launcher template - and each time the fix was the same: stop
 letting a shell parse the string.
+
+---
+
+# The VRaze backup repo, measured against this port
+
+`Tobbe85/VRaze` on GitHub. Cloned to `../RazeXR-refs/vraze-src`.
+
+**It is not source.** Ten files: a README and nine APKs under `Older_Builds`,
+857 MB of them. So the standing note in this file - that VRaze's engine source
+was never published - still holds, and everything below came from reading their
+compiled `libraze.so` and their `raze.pk3`.
+
+## Their assets are older than the ones already in use
+
+The newest build in the repo is VRaze 1.5.2, and the owner's installed VRaze is
+**newer**: 3,905 pk3 entries against 1.5.2's 3,846. 1.5.2 has no weapon
+definitions at all for Exhumed, NAM, Redneck, Rides Again or WW2GI - only Duke,
+Blood and Shadow Warrior. Nothing to take.
+
+**The missing models are missing there too.** Checked directly against the
+installed pk3: 100 `.kvx` in total, which is exactly what `vrweapons.pk3` ships.
+No `sw/vr_fist`, no `sw/vr_sword`, no `exhumed/vr_sword`, no
+`exhumed/vr_mummified`, no Duke knee, no Redneck crowbar or bowling ball. Every
+`model NO` in the `vrweapons` listing is VRaze's own gap, now confirmed rather
+than inferred.
+
+## The feature gap is four items
+
+Extracted `libraze.so` from 1.5.2 and pulled every `vr_*` string: 32 distinct
+names. Twenty-nine are already in this tree. The same three come up again when
+the *newer* installed menudef is checked the same way, so the answer is stable
+across both versions:
+
+| missing | what it does |
+|---|---|
+| `vr_face_sprites` | DOOM-style sprite rotation - sprites always face the viewer |
+| `vr_hair_trigger` | hair-trigger deadzone on the fire trigger |
+| `vr_controller_use` | activate switches by touching them with the controller |
+| `+toggle_two_hand_grip` | a bindable two-hand grip toggle |
+
+The last is not a cvar. `vr_two_handed_weapons` itself is already here - it is
+RazeXR's, in `VrInputDefault.cpp` - but theirs adds a bindable action to toggle
+it in play rather than only through a menu.
+
+## What this port has that VRaze does not
+
+It runs on PC at all, which is the whole point. Beyond that: seventeen games
+against their eight paths, the Duke expansions and Atomic, Rides Again and Route
+66, a desktop mirror, per-game launchers, a self-contained portable folder, the
+`vrweapons` diagnostic, Shadow Warrior's three state variants, smooth turn by
+default and Alt Weapon bound.
+
+## Verdict
+
+Ours is ahead. The four gaps are comfort and interaction polish, not
+capability, and two of them - the hair trigger and the two-hand grip bind - are
+small. Recorded rather than acted on; the owner's call whether they are worth
+diverging further for.
+
+Worth noting the one genuinely useful thing in the README, which is
+documentation rather than code: VRaze accepts `WORLDTOUR.ZIP`, a zipped World
+Tour folder, and `WORLDORDER.GRP`, a script-extracted version, as the route to
+Alien World Order. That is a different approach to the loose CON and sound files
+Raze's own grpinfo asks for.
