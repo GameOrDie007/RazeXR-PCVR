@@ -22,7 +22,7 @@ This exists because of other people's work.
   tracking, the VR projection and the input scheme are all their design.
 - **VRaze** — Domyoji, whose voxel weapon data this port's weapon code was written
   against. See "Voxel weapons" below.
-- **Voxel Duke 3D** — Daniel Peterson ("Cheello").
+- **Voxel Duke 3D** — Daniel Peterson ("Cheello"), included with his permission.
 - **Duke3D Voxel Pack** — ReaperMan and the Duke4.net community.
 - The original developers: 3D Realms, Monolith, Lobotomy Software, Xatrix, TNT Team.
 
@@ -80,12 +80,11 @@ games use their ordinary flat weapon sprites instead. Everything else works norm
 **Voxel monsters and props** — two packs, and the launcher takes whichever is present,
 preferring the first:
 
-- **Voxel Duke 3D** by Daniel Peterson ("Cheello") — `voxel_duke3d.zip` from
-  [ModDB](https://www.moddb.com/mods/voxel-duke-nukem-3d/downloads). 1,024 voxels
-  including the Pig Cops, Troopers, Enforcers and Octabrains. ModDB needs a browser,
-  so setup cannot fetch this one; download it and drop it in. Its readme says it does
-  not work with Raze — that was Raze's voxel ceiling, which this port raises, and it
-  runs correctly here.
+- **Voxel Duke 3D** by Daniel Peterson ("Cheello") — 1,024 voxels including the Pig
+  Cops, Troopers, Enforcers and Octabrains. **Included with the author's permission**,
+  so there is nothing to download. Its own readme says it does not work with Raze —
+  that was Raze's voxel ceiling, which this port raises, and it runs correctly here.
+  Original at [ModDB](https://www.moddb.com/mods/voxel-duke-nukem-3d).
 - **Duke3D Voxel Pack** by ReaperMan and the Duke4.net community — props, pickups,
   switches and signs, but not the humanoid enemies. Setup downloads this one
   automatically. Its art is non-commercial and share-alike, so it is not bundled.
@@ -139,7 +138,8 @@ GPL-2.0, inherited from Raze — see `package/common/gpl-2.0.txt`. The additions
 this port are under the same licence. The OpenXR SDK headers in `vr/OpenXR-SDK/` are
 Khronos', under `Apache-2.0 OR MIT`.
 
-No game data, and no third-party art, is contained in this repository.
+No game data is contained in this repository. Third-party content shipped with the
+release, and the basis for each, is listed in `THIRD-PARTY-PERMISSIONS.md`.
 
 ## Building
 
