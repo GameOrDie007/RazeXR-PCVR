@@ -1,3 +1,16 @@
+### RazeXR (Quest VR build this port is based on):
+  * Team Beef - DrBeef and contributors
+  * https://www.teambeef.org/
+
+### RazeXR PCVR port:
+  * The PC/OpenGL platform layer, desktop mirror, voxel weapons and launchers
+
+### Voxel weapon data modelled on:
+  * VRaze by Domyoji
+
+### Duke3D Voxel Pack (optional, not included):
+  * ReaperMan and the Duke4.net community
+
 ### Raze programming:
   * Christoph Oelckers, Mitchell Richters
 

@@ -2,6 +2,11 @@
 	vr_launchers.cpp - PC branch. See vr_launchers.h.
 
 	Copyright (C) 2026 RazeXR PCVR port
+
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version. See package/common/gpl-2.0.txt.
 */
 
 #include "vr_launchers.h"
