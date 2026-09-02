@@ -2412,3 +2412,53 @@ documentation rather than code: VRaze accepts `WORLDTOUR.ZIP`, a zipped World
 Tour folder, and `WORLDORDER.GRP`, a script-extracted version, as the route to
 Alien World Order. That is a different approach to the loose CON and sound files
 Raze's own grpinfo asks for.
+
+---
+
+# The Duke3D Voxel Pack
+
+466 voxels covering pickups, props, projectiles, signs, switches **and monsters**,
+plus map lighting fixes for Duke, D.C., Nuclear Winter, Caribbean and World Tour.
+By ReaperMan and the Duke4.net community, v2.0 RC2.
+
+It needed no VR work at all. Raze already renders voxels; the pack is data, and it
+ships a Raze-specific def of its own. The whole change is a `-file` on the Duke
+launchers.
+
+## Not ours to ship
+
+The art licence permits redistribution with attribution, but is **non-commercial
+and share-alike**, which does not belong inside a GPL archive. So the pack is not
+bundled: the user downloads it from its own release page and drops it beside the
+exe, and `vrwritelaunchers` picks it up if it is there. We host nothing, the two
+licences never meet in one archive, and the launcher says nothing when it is
+absent.
+
+The same reasoning as the VRaze weapon pack, and the same mechanism.
+
+## Gated to Duke
+
+`GAMEFLAG_DUKE` is exactly Duke and its three expansions - NAM, WW2GI and Redneck
+carry their own flags despite running on Duke's module. The pack replaces Duke's
+own tiles, so loading it into NAM would be wrong. Verified: `VOX` appears in the
+five Duke launchers and in none of the others.
+
+## Verified
+
+All five Duke launchers: pack loaded (673 lumps), maphacks loaded, voxel weapons
+still resolving at 12 models, nothing crashed.
+
+The readme in the pack is stale on one point worth knowing - it says monster
+voxels must be enabled by uncommenting an include. In RC2 they are already
+enabled, in both `dukegdx.def` and `duke3d_voxels.def`, and Raze takes
+`duke3d-raze.def` which chains to the latter.
+
+One pre-existing error still shows in the log and is not from the pack:
+
+```
+Script error, "vrweapons.pk3:engine/vr_weapons.def" line 1:
+Unable to load voxel file "models/weapons/duke/vr_weapon_knee.kvx"
+```
+
+That is VRaze's own unreadable knee model, recorded earlier in this file, and it
+appears with or without the voxel pack.

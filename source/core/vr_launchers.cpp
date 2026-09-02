@@ -33,6 +33,12 @@ struct VRGame
 		also sets the CON, the replacement art and four renames.
 	*/
 	bool isRoute66 = false;
+	/*
+		Duke Nukem 3D and its three expansions, and nothing else. The community
+		voxel pack replaces Duke's own tiles, so it must not be loaded into NAM,
+		WW2GI or Redneck, which run on Duke's module but have their own art.
+	*/
+	bool isDuke = false;
 };
 
 static TArray<VRGame> Games;
@@ -48,6 +54,7 @@ void VRLaunchers_SetScannedGames(const TArray<GrpEntry>& games)
 		e.path = g.FileName;
 		e.isAddon = g.FileInfo.isAddon || (g.FileInfo.flags & GAMEFLAG_ADDON) != 0;
 		e.isRoute66 = (g.FileInfo.flags & GAMEFLAG_ROUTE66) != 0;
+		e.isDuke = (g.FileInfo.flags & GAMEFLAG_DUKE) != 0;
 		Games.Push(e);
 	}
 }
@@ -131,6 +138,23 @@ CCMD(vrwritelaunchers)
 		*/
 		body << "if exist \"%~dp0vrweapons.pk3\" set \"VRW=-file \"%~dp0vrweapons.pk3\"\"\r\n";
 		body << "\r\n";
+
+		/*
+			The Duke3D Voxel Pack, if the user has installed it. Duke and its
+			expansions only - it replaces Duke's own tiles.
+
+			Not shipped with this port and not ours to ship: it is ReaperMan and
+			the Duke4.net community's, under a non-commercial share-alike art
+			licence. The user downloads it from its own release page and drops it
+			in; the launcher picks it up if it is there and says nothing if not.
+		*/
+		if (g.isDuke)
+		{
+			body << "rem The Duke3D Voxel Pack, if it has been installed beside this script.\r\n";
+			body << "set \"VOX=\"\r\n";
+			body << "if exist \"%~dp0duke3d_voxels.zip\" set \"VOX=-file \"%~dp0duke3d_voxels.zip\"\"\r\n";
+			body << "\r\n";
+		}
 		/*
 			Game data. A copy sitting beside the launcher wins, so the whole run
 			folder can be moved to another PC; the absolute path the scan found
@@ -239,7 +263,9 @@ CCMD(vrwritelaunchers)
 		body << "set \"GRP=%~dp0games\\" << tail << "\"\r\n";
 		body << "if not exist \"%GRP%\" set \"GRP=" << g.path << "\"\r\n";
 		body << "\r\n";
-		body << "\"%~dp0raze.exe\" -nosetup -gamegrp \"%GRP%\" %VRW% ";
+		body << "\"%~dp0raze.exe\" -nosetup -gamegrp \"%GRP%\"";
+		if (g.isDuke) body << " %VOX%";
+		body << " %VRW% ";
 		body << "-config \"%~dp0cfg_" << base << ".ini\" +logfile \"%~dp0raze.log\"\r\n";
 
 		FileWriter* w = FileWriter::Open(file.GetChars());
