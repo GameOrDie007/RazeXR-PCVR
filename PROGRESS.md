@@ -2495,3 +2495,69 @@ All five Duke launchers verified again with the new pack.
 Raze has `r_voxels`, and `menudef.txt` already exposes it at Options - Display
 Options - Voxels. Nothing to build. Worth knowing that it turns off *all* voxels,
 the VR weapons included, since those are voxels too.
+
+---
+
+# One-file setup
+
+`SETUP.bat` finds the Build games already installed on the machine, brings their
+data in, fetches the optional voxel pack, and writes a launcher for each game it
+ends up with. No arguments, no prompts.
+
+## What it looks for, and where
+
+Steam through the registry and every library in `libraryfolders.vdf`; GOG through
+its registry keys; then the usual manual folders. A game is identified by a
+recognised data file - `DUKE3D.GRP`, `BLOOD.RFF`, `SW.GRP` and so on - and its
+whole folder comes across, so expansion archives, extra art, maps and music
+arrive with it rather than needing a list per game.
+
+Rides Again ships its data as `REDNECK.GRP` too, like base Redneck, so the two are
+told apart by size.
+
+**Raze does the validating.** The script copies plausible data and then asks the
+engine what it actually recognised, which is `vrwritelaunchers` reporting the game
+list. No CRC table is duplicated here; the engine already has one.
+
+## Copy, or link
+
+The default copies, because the point of this folder is that it can be moved to
+another PC.
+
+`-InPlace` makes directory junctions instead. That started as "just point the
+launchers at the games where they are", which found **11 games instead of 13**:
+the engine finds other games by walking out from the one it was given, so a Duke
+under Steam never sees a Redneck under GOG. Linking them into `games/` puts
+everything under one root, which is what the copy achieves, without duplicating
+gigabytes. Junctions need no administrator rights and do not survive being copied
+elsewhere, which is the trade the switch makes.
+
+## What it downloads, and what it cannot
+
+The Duke3D Voxel Pack comes from its own GitHub release - four megabytes, and the
+size is checked against the known-good figure. Failure is not fatal: it prints the
+URL and carries on, and `-NoDownload` skips the step.
+
+Two things cannot be fetched. **Voxel Duke 3D** is on ModDB, which refuses
+automated requests, so the script prints the link and picks the file up if the user
+has dropped it in. **The voxel weapons** need a VRaze copy whose downloads have
+been withdrawn; the script says so plainly rather than failing, and the games fall
+back to flat sprites.
+
+## Three faults the awkward test folder found
+
+Tested from `E:\Games\RazeXR Setup Test (Miles's)` - a space, parentheses and an
+apostrophe - into a folder holding only the runtime, so setup had to do everything.
+
+- **`$args` is a PowerShell automatic variable.** Assigning it left `Start-Process`
+  running with the script's own arguments. The launcher step did nothing.
+- **`Start-Process -ArgumentList` does not quote.** PowerShell 5.1 joins an array
+  with spaces and quotes nothing, so every path containing a space arrived split.
+  A path without spaces would never have shown this.
+- **The launcher step failed silently.** It printed nothing at all when it did
+  nothing, which is how the first two hid. It now says so loudly and prints the
+  command it tried.
+
+End to end from that folder: data copied, pack downloaded, 13 launchers written,
+and Duke, Shadow Warrior and Exhumed each start and load their own data with the
+voxel pack correctly present only for Duke.
