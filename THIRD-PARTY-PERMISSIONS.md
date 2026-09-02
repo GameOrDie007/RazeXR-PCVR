@@ -11,8 +11,13 @@ supply themselves.
 - **Author:** Daniel Peterson ("Cheello")
 - **Version used:** 1.0, released 21 November 2025
 - **Source:** https://www.moddb.com/mods/voxel-duke-nukem-3d
-- **Basis:** the author was asked directly whether it could be included with
-  credit, and agreed — *"Sure, go ahead! Thanks for asking!"*, September 2026.
+- **Basis:** the author was asked directly, in public, and agreed.
+
+  Asked: *"I have a question about Duke Voxel, I made a PCVR port of duke, and
+  was wondering, would you be OK with me bundling it with credit?"*
+
+  Answered: *"Sure, go ahead! Thanks for asking!"* — September 2026.
+  Public record: https://x.com/gameordie007/status/2095200356858728548
 
 Distributed with the release archive rather than committed here, and credited in
 `README.md` and `AUTHORS.md`. The pack itself is unmodified.
