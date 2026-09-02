@@ -155,9 +155,23 @@ CCMD(vrwritelaunchers)
 		*/
 		if (g.isDuke)
 		{
-			body << "rem The Duke3D Voxel Pack, if it has been installed beside this script.\r\n";
+			/*
+				Either Duke voxel pack, whichever is present. They replace the
+				same tiles, so loading both would leave the result to whichever
+				parsed last - the second test overrides the first rather than
+				adding to it.
+
+				Voxel Duke 3D wins because it is a superset in the way that
+				matters: it covers the monsters, which the older pack does not
+				beyond a few machines. Its readme says eDuke32 only; that is
+				untested-elsewhere rather than incompatible, and Raze loads its
+				duke3d.def without complaint.
+			*/
+			body << "rem A Duke voxel pack, if one has been installed beside this script.\r\n";
+			body << "rem Voxel Duke 3D wins where both are present - it covers monsters too.\r\n";
 			body << "set \"VOX=\"\r\n";
 			body << "if exist \"%~dp0duke3d_voxels.zip\" set \"VOX=-file \"%~dp0duke3d_voxels.zip\"\"\r\n";
+			body << "if exist \"%~dp0voxel_duke3d.zip\" set \"VOX=-file \"%~dp0voxel_duke3d.zip\"\"\r\n";
 			body << "\r\n";
 		}
 		/*
