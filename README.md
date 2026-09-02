@@ -22,6 +22,7 @@ This exists because of other people's work.
   tracking, the VR projection and the input scheme are all their design.
 - **VRaze** — Domyoji, whose voxel weapon data this port's weapon code was written
   against. See "Voxel weapons" below.
+- **Voxel Duke 3D** — Daniel Peterson ("Cheello").
 - **Duke3D Voxel Pack** — ReaperMan and the Duke4.net community.
 - The original developers: 3D Realms, Monolith, Lobotomy Software, Xatrix, TNT Team.
 
@@ -33,6 +34,28 @@ This exists because of other people's work.
 - Smooth turn by default, and Alt Weapon bound to the off-hand stick click
 - Per-game launcher scripts and a self-contained portable layout
 - A `vrweapons` console command that prints the resolved weapon table
+- `MAXVOXELS` raised from 1024 to 2048, so the community voxel packs fit
+
+## Installing
+
+**Run `SETUP.bat`. That is the whole thing.**
+
+It finds the Build games you already own on Steam and GOG, copies their data into
+this folder, downloads the optional voxel pack, and writes a launcher for each
+game it ends up with. No prompts and no arguments.
+
+Afterwards the folder is self-contained: copy it to another PC and it runs there
+with nothing installed and no setup to repeat.
+
+    SETUP                 the normal way
+    SETUP -InPlace        link to the games where they are instead of copying,
+                          if disk space matters more than being able to move this
+                          folder elsewhere
+    SETUP -NoDownload     skip the network step
+    SETUP -Root D:\Games   also search this folder
+
+If a game is missing afterwards, setup did not find it — re-run with `-Root`
+pointing at where it lives.
 
 ## Requirements
 
@@ -46,19 +69,28 @@ You need your own copies of the games. Nothing here contains game data.
 
 ## Optional extras
 
-Neither is included, and neither is ours to distribute. Both are picked up
-automatically if you put them beside the executable.
+None of these ship with this port and none are ours to distribute. Each is picked up
+automatically if the file is beside the executable.
 
-**Voxel weapons** need `vrweapons.pk3`, built from your own VRaze installation with
-`tools/build-vrweapons-pk3.py`. **VRaze's public downloads have been withdrawn**, so if
-you do not already have a copy you will not be able to build this pack, and the games
-will use their ordinary flat weapon sprites instead. Everything else works normally.
+**Voxel weapons in your hands** need `vrweapons.pk3`, built from your own VRaze
+installation with `tools/build-vrweapons-pk3.py`. **VRaze's public downloads have been
+withdrawn**, so if you do not already have a copy you cannot build this pack, and the
+games use their ordinary flat weapon sprites instead. Everything else works normally.
 
-**The Duke3D Voxel Pack** — `duke3d_voxels.zip` from
-[its release page](https://github.com/NightFright2k19/duke3d_voxelpack/releases) —
-turns Duke's pickups, props and monsters into voxels and adds map lighting fixes. Drop
-the zip in and the Duke launchers use it. Its art is non-commercial and share-alike, so
-it is deliberately not bundled here.
+**Voxel monsters and props** — two packs, and the launcher takes whichever is present,
+preferring the first:
+
+- **Voxel Duke 3D** by Daniel Peterson ("Cheello") — `voxel_duke3d.zip` from
+  [ModDB](https://www.moddb.com/mods/voxel-duke-nukem-3d/downloads). 1,024 voxels
+  including the Pig Cops, Troopers, Enforcers and Octabrains. ModDB needs a browser,
+  so setup cannot fetch this one; download it and drop it in. Its readme says it does
+  not work with Raze — that was Raze's voxel ceiling, which this port raises, and it
+  runs correctly here.
+- **Duke3D Voxel Pack** by ReaperMan and the Duke4.net community — props, pickups,
+  switches and signs, but not the humanoid enemies. Setup downloads this one
+  automatically. Its art is non-commercial and share-alike, so it is not bundled.
+
+Both are Duke only, and the launchers for the other games ignore them.
 
 ## Controls
 
@@ -94,6 +126,10 @@ alternate weapon in a shared slot.
   from `DUKE3D.GRP`. Without them the episode does not appear.
 - VRaze's own Duke "knee" model cannot be read by Raze and logs an error at startup.
   Harmless, and it happens in VRaze too.
+- Voxel Duke 3D covers the first three episodes. Its author left the episode-four set
+  out because it is unfinished, so The Birth uses sprites.
+- Turning voxels off in Options → Display Options also turns off the weapons in your
+  hands, since those are voxels too.
 - Turn speed is degrees per rendered frame, so it is faster on a 120 Hz headset than a
   90 Hz one. Options → VR Options → Turning Mode.
 
