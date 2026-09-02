@@ -2462,3 +2462,36 @@ Unable to load voxel file "models/weapons/duke/vr_weapon_knee.kvx"
 
 That is VRaze's own unreadable knee model, recorded earlier in this file, and it
 appears with or without the voxel pack.
+
+## Voxel Duke 3D - the one with the monsters
+
+The first pack turned out to be props and pickups: 303 props against fourteen
+"monsters", all of them machines - slimer eggs, sentry drone, pig tank, turrets.
+The humanoid enemies are simply not in it, which is why the fire hydrants changed
+and the Pig Cops did not.
+
+The owner remembered a different mod, and was right. **Voxel Duke 3D**, by Daniel
+Peterson ("Cheello"), v1.0, November 2025: 1,024 voxels with real monster folders
+- ENFORCER, TROOPER, PIGCOP, OVERLORD, CYCLOID - plus npcs, player, gore and
+effects.
+
+**Its readme says eDuke32 only. That is untested-elsewhere, not incompatible.**
+The defs are ordinary Build syntax, and Raze loads its `duke3d.def` and echoes
+both banners without complaint. Tested before wiring anything, with the other
+pack out of the picture.
+
+Both packs replace the same tiles, so the launcher takes one or the other rather
+than both: two `if exist` lines where the second overrides the first, and Voxel
+Duke 3D wins because it is the superset that matters.
+
+Worth knowing: Cheello ships `voxels/atomic.def` but leaves it commented out in
+his own `duke3d_voxels.def`, so episode four is not covered. That is his call and
+is left alone rather than enabled behind his back.
+
+All five Duke launchers verified again with the new pack.
+
+## The voxel toggle already existed
+
+Raze has `r_voxels`, and `menudef.txt` already exposes it at Options - Display
+Options - Voxels. Nothing to build. Worth knowing that it turns off *all* voxels,
+the VR weapons included, since those are voxels too.
