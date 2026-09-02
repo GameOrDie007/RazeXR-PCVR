@@ -2561,3 +2561,38 @@ apostrophe - into a folder holding only the runtime, so setup had to do everythi
 End to end from that folder: data copied, pack downloaded, 13 launchers written,
 and Duke, Shadow Warrior and Exhumed each start and load their own data with the
 voxel pack correctly present only for Duke.
+
+## The voxel ceiling, and why the author said it does not work in Raze
+
+Cheello's readme says plainly: *"This mod will NOT work correctly with the Raze
+port. Some voxels will not load in Raze, for some reason."*
+
+The reason is `MAXVOXELS`, which stock Raze sets to 1024. Counting his
+definitions:
+
+```
+props 369  monsters 197  effects 101  npcs 51  player 47
+items  41  buttons   40  gore     27  weapons 11     = 884 loaded
+atomic 132  (commented out in his own def)
+```
+
+884 plus this port's weapon voxels is about 898, comfortably under - which is
+why it works here and why nothing in the log complains. Turn his episode-4 set
+on and it becomes 1030, and the engine reports *"Maximum number of voxels (1024)
+already defined"* and drops everything after it. Reproduced deliberately with a
+one-line def and `-adddef`, then fixed and reproduced clean.
+
+**Raised to 2048.** Nothing about 1024 is a format constraint: it sizes four
+static arrays - `voxlumps`, `voxscale`, `voxmodels` and the `voxrotate` bit array
+- at sixteen bytes a slot, so the change costs sixteen kilobytes. A voxel index
+is never saved or sent. The real ceiling is `texinfo`'s `tiletovox`, an
+`int16_t`, so anything up to 32767 is safe.
+
+Verified before and after: the same command that reported the limit now loads all
+1030 definitions with no error, weapons intact, and all five Duke launchers still
+pass.
+
+Worth being clear that this does not by itself make episode four good. Cheello
+left `atomic.def` off because the set is unfinished - *"will be completed at a
+later date"* - not only because of the ceiling. The limit is no longer the thing
+standing in the way, which is different from the content being ready.
