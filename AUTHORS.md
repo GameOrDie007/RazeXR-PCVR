@@ -8,6 +8,9 @@
 ### Voxel weapon data modelled on:
   * VRaze by Domyoji
 
+### Voxel Duke 3D (optional, not included):
+  * Daniel Peterson ("Cheello")
+
 ### Duke3D Voxel Pack (optional, not included):
   * ReaperMan and the Duke4.net community
 
