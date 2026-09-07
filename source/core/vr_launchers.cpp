@@ -127,8 +127,6 @@ void VRLaunchers_SetScannedGames(const TArray<GrpEntry>& games)
 		e.isWorldTour = g.FileInfo.gamefilter.CompareNoCase("Duke.WorldTour") == 0;
 		Games.Push(e);
 	}
-
-	PreferLocalCopies();
 }
 
 //==========================================================================
@@ -167,6 +165,8 @@ static FString SafeFileName(const char* name)
 
 CCMD(vrwritelaunchers)
 {
+	PreferLocalCopies();
+
 	if (Games.Size() == 0)
 	{
 		Printf("No games were found to write launchers for.\n");
