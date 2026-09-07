@@ -2853,3 +2853,14 @@ Every launcher writes `%~dp0raze.log`, so the successor overwrote the log of the
 process that crashed before anyone could read it. A log named per game would
 have kept it. Not changed here, because it would mean regenerating all
 seventeen launchers.
+
+## Confirmed
+
+7 September 2026, by the owner, in the headset: many switches across the
+seventeen games, all of them clean. The main menus are right too - he reached
+Quit in all four families to leave them.
+
+Both lessons went to the shared skills the same day rather than staying here:
+"a menu item that quits or relaunches must not do it from inside the menu" to
+`vr-port-diagnostics`, and "the path you test has to be the path the feature is"
+plus "verify the diagnosis before dropping a feature" to `game-mod-shipping`.
