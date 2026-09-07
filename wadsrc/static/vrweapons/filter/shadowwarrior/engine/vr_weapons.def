@@ -1,0 +1,32 @@
+// Voxel weapon definitions from VRaze, by Domyoji, used with permission --
+// Team Beef Discord, September 2026. See THIRD-PARTY-PERMISSIONS.md.
+//
+// The models these name are NOT redistributed. tools/build-vrweapons.ps1
+// assembles them on the user's machine: the ones that are the game's own
+// pickup voxels come out of their own game archives, Duke's come from
+// Cheello's Voxel Duke 3D, and Domyoji's animation frames and edits are
+// overlaid only when a VRaze install is supplied.
+
+dummytile 30703 1 1
+
+voxel "models/weapons/sw/vr_fist.kvx"          { tile 30000  scale 1.0 }
+voxel "models/weapons/sw/vr_star.kvx"          { tile 30010  scale 0.3 }
+voxel "models/weapons/sw/vr_shotgun.kvx"       { tile 30020  scale 0.4 }
+voxel "models/weapons/sw/vr_shotgun_quad.kvx"  { tile 30021  scale 0.4 }
+voxel "models/weapons/sw/vr_uzi.kvx"           { tile 30030  scale 0.30 }
+voxel "models/weapons/sw/vr_uzi_akimbo.kvx"    { tile 30031  scale 0.30 }
+voxel "models/weapons/sw/vr_micro.kvx"         { tile 30040  scale 0.45 }
+voxel "models/weapons/sw/vr_nuke.kvx"          { tile 30041  scale 0.45 }
+voxel "models/weapons/sw/vr_grenade.kvx"       { tile 30050  scale 0.45 }
+voxel "models/weapons/sw/vr_mine.kvx"          { tile 30060  scale 0.3 }
+voxel "models/weapons/sw/vr_rail0.kvx"         { tile 30070  scale 0.4 }
+voxel "models/weapons/sw/vr_rail1.kvx"         { tile 30071  scale 0.4 }
+voxel "models/weapons/sw/vr_rail2.kvx"         { tile 30072  scale 0.4 }
+voxel "models/weapons/sw/vr_rail3.kvx"         { tile 30073  scale 0.4 }
+voxel "models/weapons/sw/vr_rail4.kvx"         { tile 30074  scale 0.4 }
+voxel "models/weapons/sw/vr_hothead.kvx"       { tile 30080  scale 0.3 }
+voxel "models/weapons/sw/vr_heart.kvx"         { tile 30090  scale 0.3 }
+voxel "models/weapons/sw/vr_napalm.kvx"        { tile 30100  scale 0.3 }
+voxel "models/weapons/sw/vr_ring.kvx"          { tile 30110  scale 0.3 }
+voxel "models/weapons/sw/vr_rocket.kvx"        { tile 30120  scale 0.45 }
+voxel "models/weapons/sw/vr_sword.kvx"         { tile 30130  scale 1.0 }

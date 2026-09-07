@@ -1,0 +1,199 @@
+// Voxel weapon definitions from VRaze, by Domyoji, used with permission --
+// Team Beef Discord, September 2026. See THIRD-PARTY-PERMISSIONS.md.
+//
+// The models these name are NOT redistributed. tools/build-vrweapons.ps1
+// assembles them on the user's machine: the ones that are the game's own
+// pickup voxels come out of their own game archives, Duke's come from
+// Cheello's Voxel Duke 3D, and Domyoji's animation frames and edits are
+// overlaid only when a VRaze install is supplied.
+
+// Player height: 40
+
+weapon pistol
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       -90
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    casing_forward  -7
+    casing_right    1
+    casing_up       42
+    casing_yaw      0
+    casing_pitch    0
+    casing_roll     0
+    two_hand_compatible  1
+}
+
+weapon shotgun
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       -90
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    casing_forward  -8
+    casing_right    0
+    casing_up       40
+    casing_yaw      0
+    casing_pitch    0
+    casing_roll     0
+    two_hand_compatible  1
+}
+
+weapon chaingun
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       -90
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    casing_forward  -8
+    casing_right    0
+    casing_up       40
+    casing_yaw      0
+    casing_pitch    0
+    casing_roll     0
+    two_hand_compatible  1
+}
+
+weapon rpg
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       -90
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon handbomb
+{
+    swap_pitch_roll   1
+    forward   0
+    right     0
+    up        -40
+    yaw       180
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon shrinker
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       -90
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon devastator
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       -90
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon tripbomb
+{
+    swap_pitch_roll   1
+    forward   0
+    right     0
+    up        -40
+    yaw       180
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon freeze
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       -90
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon handremote
+{
+    swap_pitch_roll   1
+    forward   0
+    right     0
+    up        -40
+    yaw       180
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon grow
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       -90
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon flamethrower
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       -90
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}

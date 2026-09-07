@@ -1,0 +1,209 @@
+// Voxel weapon definitions from VRaze, by Domyoji, used with permission --
+// Team Beef Discord, September 2026. See THIRD-PARTY-PERMISSIONS.md.
+//
+// The models these name are NOT redistributed. tools/build-vrweapons.ps1
+// assembles them on the user's machine: the ones that are the game's own
+// pickup voxels come out of their own game archives, Duke's come from
+// Cheello's Voxel Duke 3D, and Domyoji's animation frames and edits are
+// overlaid only when a VRaze install is supplied.
+
+// Player height: 40
+
+//   knee       slot 0   Knife
+//   pistol     slot 1   M1 Thompson
+//   shotgun    slot 2   MP40
+//   chaingun   slot 3   BAR Automatic Rifle
+//   rpg        slot 4   Bazooka
+//   handbomb   slot 5   Grenade
+//   shrinker   slot 6   Garand Grenade Launcher (6A) / Mauser Sniper Rifle (6B, toggle)
+//   devastator slot 7   Colt 1911
+//   tripbomb   slot 8   TNT
+//   freeze     slot 9   Flame Thrower
+
+weapon knee
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    gimbal_lock_fix  1
+}
+
+weapon pistol
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    casing_forward  -12
+    casing_right    2
+    casing_up       44
+    casing_yaw      -90
+    casing_pitch    0
+    casing_roll     0
+    two_hand_compatible  1
+    gimbal_lock_fix  1
+}
+
+weapon shotgun
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    casing_forward  -10
+    casing_right    0
+    casing_up       44
+    casing_yaw      -90
+    casing_pitch    0
+    casing_roll     0
+    two_hand_compatible  1
+    gimbal_lock_fix  1
+}
+
+weapon chaingun
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    casing_forward  -15
+    casing_right    2
+    casing_up       43
+    casing_yaw      -90
+    casing_pitch    0
+    casing_roll     0
+    two_hand_compatible  1
+    gimbal_lock_fix  1
+}
+
+weapon rpg
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+    gimbal_lock_fix  1
+}
+
+weapon handbomb
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+    gimbal_lock_fix  1
+}
+
+weapon shrinker
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+    gimbal_lock_fix  1
+}
+
+weapon devastator
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    casing_forward  0
+    casing_right    0
+    casing_up       40
+    casing_yaw      0
+    casing_pitch    0
+    casing_roll     0
+    two_hand_compatible  1
+    gimbal_lock_fix  1
+}
+
+weapon tripbomb
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+    gimbal_lock_fix  1
+}
+
+weapon freeze
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+    gimbal_lock_fix  1
+}
+
+weapon grow
+{
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+    gimbal_lock_fix  1
+}

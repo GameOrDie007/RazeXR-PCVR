@@ -1,0 +1,18 @@
+// Voxel weapon definitions from VRaze, by Domyoji, used with permission --
+// Team Beef Discord, September 2026. See THIRD-PARTY-PERMISSIONS.md.
+//
+// The models these name are NOT redistributed. tools/build-vrweapons.ps1
+// assembles them on the user's machine: the ones that are the game's own
+// pickup voxels come out of their own game archives, Duke's come from
+// Cheello's Voxel Duke 3D, and Domyoji's animation frames and edits are
+// overlaid only when a VRaze install is supplied.
+
+weapon rail
+{
+    frame  2010  30070  // rest frame 0
+    frame  2011  30071  // rest frame 1
+    frame  2012  30072  // rest frame 2
+    frame  2013  30073  // rest frame 3
+    frame  2014  30074  // rest frame 4
+}
+

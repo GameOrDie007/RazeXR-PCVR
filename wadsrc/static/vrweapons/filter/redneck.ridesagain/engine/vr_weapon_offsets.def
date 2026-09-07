@@ -1,0 +1,239 @@
+// Voxel weapon definitions from VRaze, by Domyoji, used with permission --
+// Team Beef Discord, September 2026. See THIRD-PARTY-PERMISSIONS.md.
+//
+// The models these name are NOT redistributed. tools/build-vrweapons.ps1
+// assembles them on the user's machine: the ones that are the game's own
+// pickup voxels come out of their own game archives, Duke's come from
+// Cheello's Voxel Duke 3D, and Domyoji's animation frames and edits are
+// overlaid only when a VRaze install is supplied.
+
+// Player height: 40
+
+weapon slingblade
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon chicken
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon crowbar
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon pistol
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon shotgun
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon rifle
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    casing_forward  -10
+    casing_right    4
+    casing_up       41
+    casing_yaw      -90
+    two_hand_compatible  1
+}
+
+weapon dynamite
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon crossbow
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon throwsaw
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon alienblaster
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon powderkeg
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon titgun
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon throwingdynamite
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon buzzsaw
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon bowling
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}

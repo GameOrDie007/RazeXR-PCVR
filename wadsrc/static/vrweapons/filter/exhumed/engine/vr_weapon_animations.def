@@ -1,0 +1,30 @@
+// Voxel weapon definitions from VRaze, by Domyoji, used with permission --
+// Team Beef Discord, September 2026. See THIRD-PARTY-PERMISSIONS.md.
+//
+// The models these name are NOT redistributed. tools/build-vrweapons.ps1
+// assembles them on the user's machine: the ones that are the game's own
+// pickup voxels come out of their own game archives, Duke's come from
+// Cheello's Voxel Duke 3D, and Domyoji's animation frames and edits are
+// overlaid only when a VRaze install is supplied.
+
+// Exhumed/PowerSlave VR weapon animation frame mappings
+// Location: wadsrc/static/filter/exhumed/engine/vr_weapon_animations.def
+//
+// Maps specific game sequence tiles to alternate voxel tiles so the
+// VR weapon model can change appearance mid-animation (e.g. open/closed
+// bolt, raised/lowered weapon). Only needed for weapons that have
+// visually distinct animation states worth representing in 3D.
+//
+// Format:
+//   weapon <name>
+//   {
+//       frame <game_seq_tile>  <vr_tile>
+//       ...
+//   }
+//
+// The base tile (vr_tile = 30000 + weapon_slot*10) is always the default;
+// entries here override it for specific sequence frames only.
+//
+// Exhumed sequences have not yet been mapped. Add entries here once
+// voxel models are authored and specific frames are identified.
+// See Blood's vr_weapon_animations.def (pitchfork, napalm) for examples.

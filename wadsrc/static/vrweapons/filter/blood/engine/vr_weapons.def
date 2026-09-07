@@ -1,0 +1,30 @@
+// Voxel weapon definitions from VRaze, by Domyoji, used with permission --
+// Team Beef Discord, September 2026. See THIRD-PARTY-PERMISSIONS.md.
+//
+// The models these name are NOT redistributed. tools/build-vrweapons.ps1
+// assembles them on the user's machine: the ones that are the game's own
+// pickup voxels come out of their own game archives, Duke's come from
+// Cheello's Voxel Duke 3D, and Domyoji's animation frames and edits are
+// overlaid only when a VRaze install is supplied.
+
+dummytile 30703 1 1
+
+voxel "models/weapons/blood/vr_pitchfork0.kvx" { tile 30000  scale 0.45 }
+voxel "models/weapons/blood/vr_pitchfork1.kvx" { tile 30001  scale 0.45 }
+voxel "models/weapons/blood/vr_pitchfork2.kvx" { tile 30002  scale 0.45 }
+voxel "models/weapons/blood/vr_flaregun.kvx"   { tile 30010  scale 0.35 }
+voxel "models/weapons/blood/vr_shotgun.kvx"    { tile 30020  scale 0.45 }
+voxel "models/weapons/blood/vr_tommygun.kvx"   { tile 30030  scale 0.3 }
+voxel "models/weapons/blood/vr_napalm0.kvx"    { tile 30040  scale 0.5 }
+voxel "models/weapons/blood/vr_napalm1.kvx"    { tile 30041  scale 0.5 }
+voxel "models/weapons/blood/vr_napalm2.kvx"    { tile 30042  scale 0.5 }
+voxel "models/weapons/blood/vr_napalm3.kvx"    { tile 30043  scale 0.5 }
+voxel "models/weapons/blood/vr_napalm4.kvx"    { tile 30044  scale 0.5 }
+voxel "models/weapons/blood/vr_napalm5.kvx"    { tile 30045  scale 0.5 }
+voxel "models/weapons/blood/vr_dynamite.kvx"   { tile 30050  scale 0.4 }
+voxel "models/weapons/blood/vr_spraycan.kvx"   { tile 30060  scale 0.3 }
+voxel "models/weapons/blood/vr_tesla.kvx"      { tile 30070  scale 0.5 }
+voxel "models/weapons/blood/vr_lifeleech.kvx"  { tile 30080  scale 0.35 }
+voxel "models/weapons/blood/vr_voodoo.kvx"     { tile 30090  scale 0.3 }
+voxel "models/weapons/blood/vr_proximity.kvx"  { tile 30100  scale 0.4 }
+voxel "models/weapons/blood/vr_remote.kvx"     { tile 30110  scale 0.4 }

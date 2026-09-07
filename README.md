@@ -72,10 +72,22 @@ You need your own copies of the games. Nothing here contains game data.
 None of these ship with this port and none are ours to distribute. Each is picked up
 automatically if the file is beside the executable.
 
-**Voxel weapons in your hands** need `vrweapons.pk3`, built from your own VRaze
-installation with `tools/build-vrweapons-pk3.py`. **VRaze's public downloads have been
-withdrawn**, so if you do not already have a copy you cannot build this pack, and the
-games use their ordinary flat weapon sprites instead. Everything else works normally.
+**Voxel weapons in your hands** work out of the box for Duke, Blood and Shadow
+Warrior. Setup builds `vrweapons.pk3` for you, because the models are not ours to
+ship and do not need to be: Blood's and Shadow Warrior's weapons are the pickup
+voxels those games already contain, taken from your own `BLOOD.RFF` and `SW.GRP`,
+and Duke's come from a voxel pack setup downloads. Thirty-four weapons, no extra
+downloads, nothing of anyone else's redistributed.
+
+The remaining four games - Exhumed, NAM, Redneck Rampage and WWII GI - use models
+that are neither the games' own nor ours, along with the animation frames that make
+a weapon cycle. Those come only from a VRaze install, whose **public downloads have
+been withdrawn**. If you have a copy, point setup at it:
+
+    SETUP.bat -VRaze "path\to\VRaze\raze.pk3"
+
+Without it those four games use their ordinary flat weapon sprites, and the three
+above stay still rather than animating. Everything else works normally.
 
 **Voxel monsters and props** — two packs, and the launcher takes whichever is present,
 preferring the first:
@@ -114,17 +126,19 @@ alternate weapon in a shared slot.
 
 ## Known issues
 
-- Some weapons stay as flat sprites because VRaze ships no model for them: Shadow
-  Warrior's fists and sword, Exhumed's sword and mummified hands, Duke's mighty foot,
-  Redneck's crowbar and bowling ball. That is their data, not a fault here.
+- Some weapons stay as flat sprites because no voxel model exists for them anywhere:
+  Shadow Warrior's fists and sword, Exhumed's sword and mummified hands, Duke's mighty
+  foot, Redneck's crowbar and bowling ball, Blood's pitchfork.
+- Without a VRaze install, Exhumed, NAM, Redneck and WWII GI have no weapon models at
+  all and use flat sprites throughout. See Optional extras.
 - Shadow Warrior's akimbo uzis, quad shotgun and nuke are only reachable if Alt Weapon
   is bound — it is by default, to the off-hand stick click.
-- Exhumed and Redneck have no weapon animation frames in VRaze's data, so their weapons
-  do not cycle models.
+- Weapon animation frames - Duke's pistol slide, Blood's napalm launcher and Shadow
+  Warrior's railgun - are Domyoji's own models and come only with a VRaze install.
+  Without one those weapons appear, but hold a single pose. Exhumed and Redneck have
+  no animation frames in VRaze's data either way.
 - Alien World Order needs World Tour's loose script and sound files, which are separate
   from `DUKE3D.GRP`. Without them the episode does not appear.
-- VRaze's own Duke "knee" model cannot be read by Raze and logs an error at startup.
-  Harmless, and it happens in VRaze too.
 - Voxel Duke 3D covers the first three episodes. Its author left the episode-four set
   out because it is unfinished, so The Birth uses sprites.
 - Turning voxels off in Options → Display Options also turns off the weapons in your

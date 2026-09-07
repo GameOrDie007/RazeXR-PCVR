@@ -2596,3 +2596,98 @@ Worth being clear that this does not by itself make episode four good. Cheello
 left `atomic.def` off because the set is unfinished - *"will be completed at a
 later date"* - not only because of the ceiling. The limit is no longer the thing
 standing in the way, which is different from the content being ready.
+
+
+# The weapons stop needing VRaze
+
+Domyoji was asked in the Team Beef Discord whether his assets could be bundled.
+The answer was yes, but the useful part was the correction that came with it:
+
+> *"You don't actually need my permission since nearly all the models aren't
+> mine. They're either from the games themselves (weapon pickup voxel models from
+> Blood and Shadow Warrior), or from modders like Cheello, Ermac, fgsfds, etc.
+> [...] The only ones that I actually made/edited are the models for the animation
+> frames (duke pistol sliding, blood napalm and sw railgun pulsing) and for the
+> unique weapon mode overlays in sw (shotgun/head)."*
+
+Both halves were checked rather than taken on trust, by hashing. `BLOOD.RFF` and
+`SW.GRP` were unpacked - the RFF directory is encrypted with its own offset as the
+key, which is eleven lines of arithmetic - and every voxel in them hashed against
+VRaze's hundred weapon models.
+
+```
+Blood            21 models, 11 byte-identical to BLOOD.RFF
+Shadow Warrior   27 models, 12 byte-identical to SW.GRP
+Duke             14 models, 11 byte-identical to Cheello's Voxel Duke 3D
+```
+
+`vr_tommygun.kvx` is `TOMMYGUN.KVX`. `vr_uzi.kvx` is `UZI.KVX`. `vr_star.kvx` is
+`VOXEL000.KVX`. He had even left the proof in his own pk3: `models/weapons/sw/
+originals/` holds seven untouched copies, and all seven match `SW.GRP` exactly.
+The files that match nothing anywhere are precisely the ones he named as his own -
+`vr_napalm0-5`, `vr_rail0-4`, `vr_weapon_pistol0-2`, `vr_shotgun_quad`.
+
+Only Blood and Shadow Warrior ship voxels at all; every other game archive was
+scanned and has none, which is also exactly what he said.
+
+## What this made possible
+
+Blood's and Shadow Warrior's weapons are the user's own game data. They never
+needed anyone's permission and they never needed VRaze - they only needed to be
+unpacked from the archives sitting in `games/`. Duke's are Cheello's, and where
+his pack is absent the Duke3D Voxel Pack that setup already downloads has the same
+ten pickups in different art on the same voxel grid, checked dimension by
+dimension, so the placements hold without retuning.
+
+`tools/build-vrweapons.ps1` replaces the Python builder and assembles the pack
+from whatever the machine has, in that order of preference, with a VRaze install
+as an optional overlay for the rest. Setup runs it. **Duke, Blood and Shadow
+Warrior now have voxel weapons out of the box: 34 models, nothing downloaded from
+us, nothing of anyone else's redistributed.**
+
+The definition files do ship, inside `raze.pk3` under `vrweapons/`. That path is
+inert - Raze only flattens a leading `filter/` - so nothing loads them there. The
+builder writes the ones it has models for to the path that does load, dropping
+every `voxel` line naming a model it could not supply and every animation frame
+pointing at a tile that went with it. A game that gets no models gets no defs
+either, and behaves exactly as it did before.
+
+## Three things that bit on the way
+
+**PowerShell rounds, it does not truncate.** The RFF directory decrypt is
+`byte ^= (key + i/2)`. `[int]($i / 2)` gives 0.5 -> 0 and 1.5 -> 2, because the
+cast rounds half to even. The directory decoded to garbage and Blood reported zero
+voxels. `$i -shr 1` is the fix.
+
+**PowerShell variables are case-insensitive.** The mapping table was `$MODELS` and
+the assembled output was `$models`. They are the same variable, so `$models =
+[ordered]@{}` silently emptied the table it was about to iterate. Renamed to
+`$SOURCEMAP`. Nothing warned; the loop simply ran zero times.
+
+**A hashtable's `.Keys` collapses to a scalar when there is one key.** Passing
+`$kept.Keys` into the animation filter worked for Blood and threw
+*"[System.Int32] does not contain a method named 'Contains'"* for the game with a
+single surviving tile. Pass the hashtable.
+
+## Verified
+
+Built and run for each game with `+quit` and no headset, reading the count the
+engine reports back:
+
+```
+without VRaze     Duke 11 models   Blood 11   Shadow Warrior 12   others none
+with VRaze        Shadow Warrior 15 + 5 frames   Exhumed 6   WWII GI 10
+```
+
+The full build reproduces the previously shipped pack byte for byte across all 93
+referenced models - the only difference is the seven `sw/originals/` files, which
+no def has ever referenced. Zero dangling model references in any emitted def, and
+the games that get nothing log nothing.
+
+## Still open
+
+Roughly 40 models - Exhumed's 6, Redneck's 12, NAM's 10, WWII GI's 10 and Blood's
+four pitchfork files - are third-party and still come only from VRaze. Permission
+is settled; every contributor in that Discord has given it. Attribution is not:
+Domyoji names Ermac and fgsfds and points at a Contributors list we do not have a
+copy of. Ask him for it before crediting.
