@@ -277,7 +277,25 @@ TArray<FString> CollectSearchPaths()
 		}
 	}
 
-	if (GameConfig->SetSection("GameSearch.Directories"))
+	/*
+		PC branch: -portable confines the scan to the folder the launchers live
+		in, and is what every generated launcher passes.
+
+		Without it the config's $STEAM entry sends the scan through every Steam
+		and GOG install on the machine. That is right for a normal Raze, and
+		wrong for a self-contained run folder: a user who owns Duke on Steam -
+		which is most of them, since setup COPIES it out of Steam - then has two
+		of everything, and which copy answers to -gamegrp stopped being
+		predictable. The same command was seen to load the portable GRP on one
+		run and a Steam GRP on the next, with nothing changed in between.
+
+		Restricting the search to <root> and its subdirectories, added above
+		from -gamegrp, makes the answer deterministic, keeps the run folder
+		honestly portable, and takes a large amount of time off startup.
+
+		Anything launched without the switch behaves exactly as stock Raze does.
+	*/
+	if (!Args->CheckParm("-portable") && GameConfig->SetSection("GameSearch.Directories"))
 	{
 		const char *key;
 		const char *value;

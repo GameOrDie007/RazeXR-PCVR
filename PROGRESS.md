@@ -3062,3 +3062,72 @@ Worth writing down, because most of the time went here rather than on the bug.
 
 All three are already written down in `game-mod-shipping`. Having them in the
 skill did not stop me repeating them.
+
+---
+
+# The real bug: the scan went shopping in Steam
+
+Everything in the previous two sections - the launchers pointing into
+`C:\Program Files`, World Tour dying on `Missing con file(s)`, the claim that
+adding 400 files breaks GRP identification, the run that loaded the portable GRP
+and the identical run twenty minutes later that did not - was one cause.
+
+`CollectSearchPaths` reads `$STEAM` out of the config and hands the scan every
+Steam and GOG install on the machine. That is correct for a normal Raze. It is
+wrong for a self-contained run folder, because **setup COPIES the data out of
+Steam**, so any user who owns these games there has two of everything - and
+which copy answered to `-gamegrp` was not stable between runs.
+
+The instrumentation that finally settled it printed every scanned entry with its
+path. It showed the portable `DUKE3D15.GRP` present and correct, which killed
+every theory about the scan losing it, and left the fallback as the only
+explanation.
+
+**`-portable`** confines the search to `<root>` and its subdirectories - the
+paths already derived from `-gamegrp` - and skips the config section entirely.
+Every generated launcher passes it. Anything launched without it behaves exactly
+as stock Raze.
+
+```
+                        before          after
+launchers outside games/   3               0
+games found               18 (2 dupes)    17
+scan time                 minutes         1.8 seconds
+```
+
+Startup went from minutes to under two seconds, because it is no longer walking
+Program Files.
+
+## Episode five, again, and this time properly
+
+With the fallback gone, World Tour works. The files go back into `games/duke` -
+the three renamed scripts, the three E5 CONs, `TILES020-022`, `maps/E5L*.map`
+keeping their prefix, and the 394 voice-overs - and the launcher carries
+`-portable -con WT_GAME.CON`.
+
+```
+adding E:/Games/RazeXR (PC)/games/duke/DUKE3D.GRP, 456 lumps
+adding E:/Games/RazeXR (PC)/games/duke/, 870 lumps
+Compiling: 'WT_GAME.CON'.
+```
+
+No missing CONs, no missing level, **exit code 0 through the game's own quit
+path** - which is the check that was missing last time, when a run sitting on a
+fatal dialog was reported as a pass. Atomic, D.C., Nuclear Winter and Caribbean
+each still compile their own `game.con` and `NWINTER.CON` with zero errors, so
+the renaming really does keep them apart.
+
+Still only verified headless. What it looks like is his.
+
+## What this cost, and the lesson
+
+Six hours and a dozen wrong turns, most of them from measurements that could not
+fail: reading buffered logs mid-write, calling a run that sat on a fatal dialog a
+pass, and using a `.hidden` suffix against a scan that matches on size and CRC.
+The fix, once the scan was made to print what it actually found, was fifteen
+lines.
+
+**Print what the program decided, not what happened afterwards.** Every
+inference in this file above that section was drawn from downstream symptoms -
+which game loaded, how many launchers were written, how long it took - and
+almost all of them were wrong.
