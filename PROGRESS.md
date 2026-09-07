@@ -2934,3 +2934,59 @@ duplicated, `games/duke` is untouched, and the "(WT)" launcher finally runs
 actual World Tour - its maps and art - instead of Atomic content under a World
 Tour name. It needs the launcher writer taught about add-ons without a file, and
 it needs testing across all six Duke games. Owner's call.
+
+## World Tour runs, episode five and all
+
+The add-on entry was the wrong thing to chase. Episode five is not a separate
+game to be selected - it is `definevolumename 4` in World Tour's `USER.CON`,
+which `GAME.CON` includes alongside `FLAMETHROWER.CON`, `FIREFLYTROOPER.CON` and
+`EPISODE5BOSS.CON`. Load World Tour's scripts and the episode is simply there.
+
+The obstacle was only ever the name collision. Measured against the Atomic GRP's
+456 lumps, exactly four of World Tour's files collide - `GAME.CON`, `USER.CON`,
+`DEFS.CON` and `TILES009.ART` - plus 41 of its 49 maps. Everything episode five
+actually needs does not: the three E5 scripts, `TILES020-022.ART`, the eight
+`E5L*.MAP`, and all 394 files of `sound/`.
+
+So the three colliding scripts are copied under a `WT_` prefix with their
+`include` lines rewritten to match, on the user's machine, from data the user
+already owns - the same pattern the voxel weapons already use. The launcher then
+says `-con WT_GAME.CON`, and nothing shadows anything.
+
+Verified: `-gamegrp DUKE3D.GRP -con WT_GAME.CON -map E5L1.MAP` compiles
+`WT_GAME.CON` with zero errors and loads the map, where the same command without
+the scripts reported *Level "E5L1.MAP" not found*. Atomic, Duke it out in D.C.
+and Nuclear Winter were each launched afterwards and still compile their own
+`game.con` and `NWINTER.CON`, zero errors - the collision really is avoided,
+not just hoped away.
+
+`TILES009.ART` is deliberately not copied, so any World Tour art that lives in it
+is missing. Nothing in episode five's eight levels showed a problem, but this has
+not been looked at level by level.
+
+## Two things the scan taught, both the hard way
+
+**A second copy of a base GRP steals its entry.** Putting the Atomic GRP in a
+second folder so an add-on could resolve beside it moved the "Duke Nukem 3D
+Atomic Edition" launcher to that folder, which would have quietly turned Atomic
+Edition into World Tour. Caught in the generated `.bat`, backed out.
+
+**Renaming a file does not hide it from the scan**, which matches on size and
+CRC and ignores the extension. A `.hidden` suffix was used to prove a folder was
+being searched; the file was still found, the conclusion was wrong, and it stood
+for an hour. An instrument that cannot fail teaches nothing.
+
+## Duplicate launchers, once Steam has the same games
+
+Raze searches the portable `games/` folder *and* every Steam and GOG install it
+can find on its own. With Duke owned on Steam and also copied into `games/`,
+both are found under one name - and because the launcher file is named after the
+game, the one written last silently won. That put `Duke it out in D.C` in the
+run folder pointing at `C:\Program Files`, which is the exact thing the portable
+copy exists to prevent.
+
+`PreferLocalCopies()` now collapses duplicates by name and keeps the copy beside
+`raze.exe`. A game found *only* outside the run folder is still kept, which is
+how someone who has never run setup gets launchers at all - and how **Duke!ZONE
+II**, which was never in `games/`, became available from the Megaton install.
+Eighteen launchers now, from seventeen.
