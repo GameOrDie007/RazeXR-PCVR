@@ -2990,3 +2990,32 @@ copy exists to prevent.
 how someone who has never run setup gets launchers at all - and how **Duke!ZONE
 II**, which was never in `games/`, became available from the Megaton install.
 Eighteen launchers now, from seventeen.
+
+## The episode listed, and every level in it failed
+
+Five episodes in the menu, Alien World Order among them, and starting it errored.
+
+`USER.CON` names the levels with a path: `definelevelname 4 0 maps/E5L1.map`. The
+maps had been copied flat, on the assumption that a map is looked up by bare
+name, so the engine asked for `maps/E5L1.map` and there was nothing there. The
+menu is built from the CON and the CON was right, which is why the episode
+listed perfectly and then had nothing to load - the one failure that looks like
+success right up to the moment you press start.
+
+Copied to `games/duke/maps/` under their own names, `-map maps/E5L1.map` loads
+with no complaint. Only `E5*` goes there; the other 41 maps in that folder carry
+the same names as lumps in the Atomic GRP.
+
+Two things worth keeping from how this was found:
+
+- **The log said nothing.** It is buffered, and the run ended at
+  `player 1 of 1` with the failure after it. The answer was in `WT_USER.CON`,
+  not in the log - reading what the game was asking for beat waiting for it to
+  say what it could not find.
+- **`-map E5L1.MAP` had "verified" this earlier.** It loaded, because a bare
+  name given on the command line is resolved differently from a name the CON
+  hands the level loader. The test used a path the feature does not use, which
+  is the same mistake as testing a menu item from the console, twice in one day.
+
+`E5L9` is defined in World Tour's own `USER.CON` and ships nowhere in the
+install - not in `maps/`, not anywhere. Episode five is eight levels here.
