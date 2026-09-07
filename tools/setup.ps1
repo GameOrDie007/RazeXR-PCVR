@@ -137,8 +137,10 @@ function CopyGameFolder($src, $targetName) {
 Line "Copying game data"
 $found = 0
 $seedPath = ""      # a real data file, to hand the engine as -gamegrp later
+$wtDir = ""         # a World Tour install, if one turns up while looking for Duke
 foreach ($g in $games) {
     $hit = $null
+    $wtFallback = $null
     foreach ($r in $roots) {
         foreach ($fn in $g.Files) {
             $c = Get-ChildItem -Path $r -Filter $fn -Recurse -File -Depth 4 -ErrorAction SilentlyContinue |
@@ -146,12 +148,34 @@ foreach ($g in $games) {
             foreach ($cand in $c) {
                 if ($g.Folder -eq "ridesagain" -and $cand.Length -ne $RIDESAGAIN_SIZE) { continue }
                 if ($g.Folder -eq "rampage"    -and $cand.Length -eq $RIDESAGAIN_SIZE) { continue }
+                <#
+                    World Tour ships DUKE3D.GRP like every other Duke release,
+                    so it answers the search for Duke - but its folder must not
+                    become games\duke. Four of its loose files carry the same
+                    names as lumps inside the Atomic GRP (GAME.CON, USER.CON,
+                    DEFS.CON, TILES009.ART) and 41 of its 49 maps do too, and a
+                    loose file wins over a GRP lump. Copying it wholesale would
+                    quietly re-script and re-map Atomic, Duke it out in D.C.,
+                    Caribbean and Nuclear Winter as well.
+
+                    So it is remembered and set aside. Its episode five is added
+                    afterwards, by name, without the four that collide.
+                #>
+                if ($g.Folder -eq "duke" -and
+                    (Test-Path (Join-Path $cand.DirectoryName "FIREFLYTROOPER.CON"))) {
+                    if (-not $wtDir) { $wtDir = $cand.DirectoryName }
+                    if (-not $wtFallback) { $wtFallback = $cand }
+                    continue
+                }
                 $hit = $cand; break
             }
             if ($hit) { break }
         }
         if ($hit) { break }
     }
+
+    # Only World Tour was found, so it has to serve as the base game after all.
+    if (-not $hit -and $wtFallback) { $hit = $wtFallback; $wtDir = "" }
 
     if (-not $hit) { Info ("{0,-24} not found" -f $g.Name); continue }
 
@@ -185,6 +209,79 @@ foreach ($g in $games) {
         $n = CopyGameFolder $hit.DirectoryName $g.Folder
         Ok ("{0,-24} {1} files from {2}" -f $g.Name, $n, $hit.DirectoryName)
     }
+}
+
+<#
+    Duke Nukem 3D: World Tour - episode five, Alien World Order.
+
+    Episode five is not a separate game to select. It is definevolumename 4 in
+    World Tour's USER.CON, which its GAME.CON includes alongside the three
+    scripts that add the incinerator and the firefly trooper. Load those scripts
+    and the episode is simply in the list.
+
+    The three that collide are copied under a WT_ prefix with their own include
+    lines repointed to match, so nothing shadows what the other Duke games load
+    out of the GRP. The launcher for World Tour then names WT_GAME.CON and gets
+    all five episodes; every other Duke launcher is untouched.
+
+    Nothing here is redistributed - it is copied from the user's own install.
+#>
+if ($wtDir -and -not $InPlace) {
+    Line "Duke Nukem 3D: World Tour"
+    $dukeDir = Join-Path (Join-Path $dest "games") "duke"
+    if (-not (Test-Path $dukeDir)) {
+        Warn "World Tour found but Duke was not copied - skipping episode five"
+    } else {
+        $n = 0
+
+        # Names that appear nowhere in the Atomic GRP, so they are safe as they are.
+        foreach ($f in @("FIREFLYTROOPER.CON", "FLAMETHROWER.CON", "EPISODE5BOSS.CON",
+                         "TILES020.ART", "TILES021.ART", "TILES022.ART")) {
+            $srcf = Join-Path $wtDir $f
+            if (Test-Path $srcf) { Copy-Item $srcf (Join-Path $dukeDir $f) -Force; $n++ }
+        }
+
+        # Episode five's maps, flat, because a map is looked up by bare name.
+        $mapsrc = Join-Path $wtDir "maps"
+        if (Test-Path $mapsrc) {
+            foreach ($m in Get-ChildItem -Path $mapsrc -Filter "E5L*.MAP" -File) {
+                Copy-Item $m.FullName (Join-Path $dukeDir $m.Name.ToUpper()) -Force; $n++
+            }
+        }
+
+        # The episode five voice-overs. None of these collide either.
+        $sndsrc = Join-Path $wtDir "sound"
+        if (Test-Path $sndsrc) {
+            $snddst = Join-Path $dukeDir "sound"
+            if (-not (Test-Path $snddst)) { New-Item -ItemType Directory -Force -Path $snddst | Out-Null }
+            foreach ($f in Get-ChildItem -Path $sndsrc -File) {
+                $o = Join-Path $snddst $f.Name
+                if (-not (Test-Path $o)) { Copy-Item $f.FullName $o -Force; $n++ }
+            }
+        }
+
+        # The three whose names collide, renamed, with their includes repointed.
+        $enc = [System.Text.Encoding]::GetEncoding("iso-8859-1")
+        $conok = $true
+        foreach ($c in @("GAME.CON", "USER.CON", "DEFS.CON")) {
+            $srcf = Join-Path $wtDir $c
+            if (-not (Test-Path $srcf)) { $conok = $false; continue }
+            $txt = [System.IO.File]::ReadAllText($srcf, $enc)
+            $txt = $txt -replace "(?im)^(\s*include\s+)GAME\.CON", '${1}WT_GAME.CON'
+            $txt = $txt -replace "(?im)^(\s*include\s+)USER\.CON", '${1}WT_USER.CON'
+            $txt = $txt -replace "(?im)^(\s*include\s+)DEFS\.CON", '${1}WT_DEFS.CON'
+            [System.IO.File]::WriteAllText((Join-Path $dukeDir ("WT_" + $c)), $txt, $enc)
+            $n++
+        }
+
+        if ($conok) {
+            Ok ("{0,-24} {1} files from {2}" -f "episode five", $n, $wtDir)
+        } else {
+            Warn "World Tour scripts incomplete - episode five may not appear"
+        }
+    }
+} elseif ($wtDir -and $InPlace) {
+    Info "World Tour episode five needs copied data; re-run without -InPlace for it"
 }
 
 if ($found -eq 0) {
