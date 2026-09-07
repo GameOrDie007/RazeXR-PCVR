@@ -2806,3 +2806,50 @@ headset.
 the first attempt and the code path is the same shape, but the five second wait
 is new and the whole point of it is a case that only appears with a real runtime
 holding a real headset.
+
+
+## Switching crashed, and why
+
+An access violation leaving Duke it out in D.C. for Redneck Rampage, in the
+process that was quitting - `C0000005` reading `000002302DA80118`. Not every
+time; several switches in the same session were clean.
+
+`vrselectgame` ended in `AddCommandString("quit")`, and Raze's `quit` is
+`throw CExitEvent(0)`. From the console that is an ordinary C++ throw in
+ordinary C++ code. From the menu it is not: the item's command runs as a native
+call out of `OptionMenuItemCommand.Activate`, which is ZScript, which is JIT
+compiled - so the exception was unwinding straight out through a VM frame. That
+it worked most of the time is the worst way for it to behave.
+
+Nothing else in the engine leaves this way. Raze's own Quit is not a command at
+all; it is a submenu that opens a message box, and the message box's handler
+calls `M_ClearMenus()` before `gi->ExitFromMenu()`. There is no path in stock
+Raze where an option menu command quits the game.
+
+So the menu now only books the request. `VRLaunchers_StartPendingSwitch()` at
+the top of `MainLoop`'s `for(;;)` starts the launcher and returns true, and the
+loop throws from there - ordinary loop code, nothing of the VM's on the stack,
+the same place every other exit unwinds from.
+
+This is the same shape of mistake as the empty menu it replaced, and it was
+made the same way. The first attempt was declared verified because
+`vrselectgame 1` was fired at the console and the right process survived - a
+test that exercised everything except the thing the feature is, which is a menu
+item. The console cannot reach the bug, and the console is what was tested,
+twice.
+
+Verified: from `Duke it out in D.C.`, `+vrselectgame 10` leaves with exit code 0
+having reached `Reverb Environment Off` in its own teardown, and the process
+that comes up five seconds later has `games/rampage/REDNECK.GRP` in its file
+list. It closes on a plain `taskkill` with no zombie left behind. **Still not
+reproduced here: the crash itself, which needs the menu item, which needs a key
+press.** The fix removes the throw from that stack rather than proving what the
+throw did to it - if a crash-on-switch survives this, the report the crash
+dialog offers to save is what settles it.
+
+## One thing this cost
+
+Every launcher writes `%~dp0raze.log`, so the successor overwrote the log of the
+process that crashed before anyone could read it. A log named per game would
+have kept it. Not changed here, because it would mean regenerating all
+seventeen launchers.
