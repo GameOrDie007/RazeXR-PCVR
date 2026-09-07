@@ -2864,3 +2864,73 @@ Both lessons went to the shared skills the same day rather than staying here:
 "a menu item that quits or relaunches must not do it from inside the menu" to
 `vr-port-diagnostics`, and "the path you test has to be the path the feature is"
 plus "verify the diagnosis before dropping a feature" to `game-mod-shipping`.
+
+---
+
+# Alien World Order: why it never appeared, and what still blocks it
+
+World Tour was installed so this could be checked properly. Everything the
+episode needs is there, at the top level beside the GRP: `FIREFLYTROOPER.CON`,
+`FLAMETHROWER.CON`, `EPISODE5BOSS.CON`, the `sound/` folder of 394 voice-overs,
+`maps/E5L1-E5L8`, `TILES020-022.ART`, and the music that was already installed.
+`GAME.CON` is what includes the three episode-5 scripts.
+
+## The detection bug, which is upstream
+
+Copying the files somewhere Raze could see them changed nothing, and the reason
+is in `grpinfo.txt`, not in the data. The Alien World Order entry is declared
+
+```
+grpinfo { name "Duke: Alien World Order" ... mustcontain "FIREFLYTROOPER.CON", ... }
+```
+
+An entry with `mustcontain` and no `crc` is classified as a **content group**,
+and `GrpScan` only searches content groups *inside archives* -
+`resf->FindLump(lump)`. World Tour ships those four as loose files on disk, so
+the entry can never match, on any machine, in stock Raze.
+
+The two add-ons that *are* found from loose files - Cryptic Passage and Route 66
+- are declared `addon { }`, which routes them to `CheckAddon`, the on-disk check
+that resolves `mustcontain` against the base game's own folder.
+
+**Changed to `addon`, and Alien World Order is detected** - eighteen games where
+there were seventeen. One word.
+
+## What still blocks it: the shared Duke folder
+
+`CheckAddon` resolves the files against the folder holding the base game the
+add-on depends on, and Alien World Order depends on `DUKE15_CRC`, the *Atomic*
+GRP. So the World Tour files have to sit beside `DUKE3D15.GRP` - which is
+`games/duke`, the one folder all six Duke games share. Measured against the
+Atomic GRP's 456 lumps, dropping World Tour's files there collides on:
+
+```
+GAME.CON  USER.CON  DEFS.CON  TILES009.ART   and 41 of the 49 maps
+```
+
+Every one of those would be shadowed for Atomic, D.C., Caribbean, Nuclear Winter
+and the WT launcher, not just for episode five. That is not a trade worth making
+to gain one add-on.
+
+Giving World Tour its own folder was tried and does work for detection - the
+scan does reach `games/duke_wt`, proved by hiding the real `DUKE3D15.GRP` and
+watching Atomic still be found - but a second copy of the Atomic GRP **steals
+the "Duke Nukem 3D Atomic Edition" entry**, and its launcher came out pointing
+at `games/duke_wt`, which would have silently turned Atomic Edition into World
+Tour. Backed out; the install is as it was, seventeen launchers, Atomic pointing
+at `games/duke`.
+
+A second bug turned up while looking: the add-on branch of the scan sets
+`fga.FileInfo` but never `fga.FileName`, so `vrwritelaunchers` wrote
+`-gamegrp "...\games"` for it. Any fix has to give an add-on with no file of
+its own something to name.
+
+## The shape of the fix, not yet done
+
+Give World Tour its own `games/duke_wt/` holding the *World Tour* GRP and its
+loose files, take `DUKE3D.GRP` out of `games/duke`, and point Alien World Order's
+dependency at `DukeWorldTour_CRC` rather than `DUKE15_CRC`. Then nothing is
+duplicated, `games/duke` is untouched, and the "(WT)" launcher finally runs
+actual World Tour - its maps and art - instead of Atomic content under a World
+Tour name. It needs the launcher writer taught about add-ons without a file, and
+it needs testing across all six Duke games. Owner's call.
