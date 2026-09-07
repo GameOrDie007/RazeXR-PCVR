@@ -241,11 +241,24 @@ if ($wtDir -and -not $InPlace) {
             if (Test-Path $srcf) { Copy-Item $srcf (Join-Path $dukeDir $f) -Force; $n++ }
         }
 
-        # Episode five's maps, flat, because a map is looked up by bare name.
+        <#
+            Episode five's maps, keeping the maps\ folder and the exact names.
+
+            USER.CON names them with the prefix - "definelevelname 4 0
+            maps/E5L1.map" - so the engine asks the file system for
+            "maps/E5L1.map" and nothing else will do. Copied flat, they are
+            found by no lookup at all, the episode appears in the menu and
+            every level in it fails to start.
+
+            Only E5* is copied. The other 41 maps in that folder carry the same
+            names as lumps in the Atomic GRP.
+        #>
         $mapsrc = Join-Path $wtDir "maps"
         if (Test-Path $mapsrc) {
-            foreach ($m in Get-ChildItem -Path $mapsrc -Filter "E5L*.MAP" -File) {
-                Copy-Item $m.FullName (Join-Path $dukeDir $m.Name.ToUpper()) -Force; $n++
+            $mapdst = Join-Path $dukeDir "maps"
+            if (-not (Test-Path $mapdst)) { New-Item -ItemType Directory -Force -Path $mapdst | Out-Null }
+            foreach ($m in Get-ChildItem -Path $mapsrc -Filter "E5L*.map" -File) {
+                Copy-Item $m.FullName (Join-Path $mapdst $m.Name) -Force; $n++
             }
         }
 
