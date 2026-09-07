@@ -349,7 +349,10 @@ CCMD(vrwritelaunchers)
 		body << "set \"GRP=%~dp0games\\" << tail << "\"\r\n";
 		body << "if not exist \"%GRP%\" set \"GRP=" << g.path << "\"\r\n";
 		body << "\r\n";
-		body << "\"%~dp0raze.exe\" -nosetup";
+		// -portable: look for game data in this folder only, never in Steam
+		// or GOG. See CollectSearchPaths - it is what makes -gamegrp below
+		// resolve to the copy sitting beside this script, every time.
+		body << "\"%~dp0raze.exe\" -nosetup -portable";
 
 		/*
 			Episode five. WT_GAME.CON is World Tour's own GAME.CON with its
