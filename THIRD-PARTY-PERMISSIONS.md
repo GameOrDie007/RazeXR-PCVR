@@ -123,12 +123,25 @@ are exactly the files that match nothing anywhere:
 
 These are covered by the permission above.
 
-**Still unattributed: roughly 40 models** — Exhumed's 6, Redneck's 12, NAM's 10,
-WWII GI's 10, and Blood's four `vr_pitchfork` files. Domyoji names Ermac and
-fgsfds among the modders and says the full list is in his Contributors section,
-which is not in the pk3 and which we do not have a copy of. Permission is not the open question — that was given in the same
-channel — but **attribution is**, so ask him for the list before crediting. Until then they are in the same position as before:
-built on the user's machine from their own VRaze install, never redistributed.
+**Roughly 40 models have no known author** — Exhumed's 6, Redneck's 12, NAM's
+10, WWII GI's 10, and Blood's four `vr_pitchfork` files.
+
+Domyoji was asked for the Contributors list he had pointed at. **He does not have
+one**: he said he does not know exactly who made them and that they are unknown.
+The list is not in the pk3, and no copy of it has been found. The names he could
+give are **Ermac** and **fgsfds**, alongside the wider Build voxel modding
+community the models came out of. Both are credited in the README.
+
+That is as far as attribution can honestly be taken, and it does not hold up a
+release, because **this project redistributes none of these models.** They exist
+only where the user has pointed setup at their own VRaze install with `-VRaze`,
+and they are assembled on that user's machine from files they already had.
+Nothing of anyone else's is in this repository or in any archive published from
+it. Permission was given in the same channel and is not the open question;
+attribution was, and this is the answer to it.
+
+If you recognise your own work among them, please open an issue — it will be
+credited properly and gladly.
 
 ## Other Build voxel packs (not bundled)
 

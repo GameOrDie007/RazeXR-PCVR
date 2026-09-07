@@ -22,6 +22,10 @@ This exists because of other people's work.
   tracking, the VR projection and the input scheme are all their design.
 - **VRaze** — Domyoji, whose voxel weapon data this port's weapon code was written
   against. See "Voxel weapons" below.
+- **The Build voxel modders** — **Ermac**, **fgsfds** and others whose names are
+  not recorded anywhere we could find. Around forty of the weapon models VRaze
+  collected are theirs; this port ships none of them, and builds them on your
+  machine only if you already have VRaze. If one is yours, please open an issue.
 - **Voxel Duke 3D** — Daniel Peterson ("Cheello"), included with his permission.
 - **Duke3D Voxel Pack** — ReaperMan and the Duke4.net community.
 - The original developers: 3D Realms, Monolith, Lobotomy Software, Xatrix, TNT Team.
