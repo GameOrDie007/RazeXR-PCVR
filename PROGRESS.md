@@ -3019,3 +3019,46 @@ Two things worth keeping from how this was found:
 
 `E5L9` is defined in World Tour's own `USER.CON` and ships nowhere in the
 install - not in `maps/`, not anywhere. Episode five is eight levels here.
+
+## World Tour: backed out, and what actually stopped it
+
+The episode listed, the maps loaded, and then the launcher died on startup with
+*WT_GAME.CON: Missing con file(s)* - because it was not running the portable Duke
+data at all. The log showed it loading `C:/.../steamapps/common/Duke Nukem 3D
+359850/`, which has no `WT_GAME.CON` in it.
+
+The cause is not the CONs. With World Tour's files in `games/duke`,
+`-gamegrp E:/.../games/duke/DUKE3D.GRP` stops matching and the engine falls back
+to `defaultiwad`, which now finds a Steam copy. Remove those files and the same
+command loads the portable GRP again, first time, every time. Reproduced in both
+directions. **Adding roughly 400 files to a game folder breaks identification of
+the GRPs already in it**, and why is not yet understood - `IdentifyGroup` reads
+as though duplicates and same-size files both survive the scan's pruning.
+
+So it is reverted: `games/duke` is back to its original eighteen entries and all
+eighteen launchers write. Episode five is not shipped.
+
+**Separately, and not caused by that:** with Duke also installed through Steam,
+three launchers - Atomic Edition, Nuclear Winter and Duke!ZONE II - now resolve
+to the Steam copies rather than the ones in `games/`. `PreferLocalCopies()` was
+moved to the CCMD, where `progdir` is certainly valid, and it made no difference,
+which says the local `DUKE3D15.GRP` is not reaching the found list at all rather
+than losing a tie. Same shape of problem as above, and probably the same cause.
+
+## How this investigation went wrong
+
+Worth writing down, because most of the time went here rather than on the bug.
+
+- **The log is buffered.** Conclusions were drawn from logs that were still being
+  written, including one truncated by a `taskkill` of my own. Two "findings" -
+  that a folder was being scanned, and that a scan returned five games - were
+  artifacts of reading an unflushed file.
+- **A process that is still running is not a process that is working.** An early
+  "verified" run was very likely sitting on this same fatal dialog; it was force
+  killed without checking, and reported as a pass.
+- **`.hidden` does not hide a file** from a scan that matches on size and CRC,
+  which invalidated the experiment that was supposed to prove where the scan
+  looks.
+
+All three are already written down in `game-mod-shipping`. Having them in the
+skill did not stop me repeating them.
