@@ -47,6 +47,16 @@ struct VRGame
 		WW2GI or Redneck, which run on Duke's module but have their own art.
 	*/
 	bool isDuke = false;
+	/*
+		World Tour, told apart by the game filter rather than by its file name,
+		which is DUKE3D.GRP like every other Duke release. Episode five lives in
+		loose scripts beside the GRP whose names collide with the Atomic ones in
+		the GRP itself, so setup copies those three under a WT_ prefix. Where
+		that copy exists, this launcher points the engine at it and World Tour
+		runs with all five episodes; where it does not, the launcher is exactly
+		what it was and the game runs its first four.
+	*/
+	bool isWorldTour = false;
 };
 
 static TArray<VRGame> Games;
@@ -114,6 +124,7 @@ void VRLaunchers_SetScannedGames(const TArray<GrpEntry>& games)
 		e.isAddon = g.FileInfo.isAddon || (g.FileInfo.flags & GAMEFLAG_ADDON) != 0;
 		e.isRoute66 = (g.FileInfo.flags & GAMEFLAG_ROUTE66) != 0;
 		e.isDuke = (g.FileInfo.flags & GAMEFLAG_DUKE) != 0;
+		e.isWorldTour = g.FileInfo.gamefilter.CompareNoCase("Duke.WorldTour") == 0;
 		Games.Push(e);
 	}
 
@@ -338,7 +349,25 @@ CCMD(vrwritelaunchers)
 		body << "set \"GRP=%~dp0games\\" << tail << "\"\r\n";
 		body << "if not exist \"%GRP%\" set \"GRP=" << g.path << "\"\r\n";
 		body << "\r\n";
-		body << "\"%~dp0raze.exe\" -nosetup -gamegrp \"%GRP%\"";
+		body << "\"%~dp0raze.exe\" -nosetup";
+
+		/*
+			Episode five. WT_GAME.CON is World Tour's own GAME.CON with its
+			include lines repointed at the other two renamed copies; naming it
+			here is what brings in FLAMETHROWER.CON, FIREFLYTROOPER.CON and
+			EPISODE5BOSS.CON, and the definevolumename that puts Alien World
+			Order in the episode list. Written by setup, from the user's own
+			World Tour install, and absent for everyone else.
+		*/
+		if (g.isWorldTour)
+		{
+			FString wtcon = ExtractFilePath(g.path.GetChars());
+			if (wtcon.Len() > 0 && wtcon.Back() != '/' && wtcon.Back() != '\\') wtcon += '/';
+			wtcon += "WT_GAME.CON";
+			if (FileExists(wtcon.GetChars())) body << " -con WT_GAME.CON";
+		}
+
+		body << " -gamegrp \"%GRP%\"";
 		if (g.isDuke) body << " %VOX%";
 		body << " %VRW% ";
 		body << "-config \"%~dp0cfg_" << base << ".ini\" +logfile \"%~dp0raze.log\"\r\n";

@@ -141,8 +141,12 @@ alternate weapon in a shared slot.
   Warrior's railgun - are Domyoji's own models and come only with a VRaze install.
   Without one those weapons appear, but hold a single pose. Exhumed and Redneck have
   no animation frames in VRaze's data either way.
-- Alien World Order needs World Tour's loose script and sound files, which are separate
-  from `DUKE3D.GRP`. Without them the episode does not appear.
+- Alien World Order - World Tour's fifth episode - needs a **Duke Nukem 3D: 20th
+  Anniversary World Tour** install for setup to build it from; its scripts, maps and
+  voice-overs are loose files, not part of `DUKE3D.GRP`. With one, setup adds them and
+  the World Tour launcher runs all five episodes. `TILES009.ART` is deliberately not
+  copied, because its name collides with art the other Duke games load, so any World
+  Tour art inside it is absent.
 - Voxel Duke 3D covers the first three episodes. Its author left the episode-four set
   out because it is unfinished, so The Birth uses sprites.
 - Turning voxels off in Options → Display Options also turns off the weapons in your
