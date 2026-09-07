@@ -16,7 +16,7 @@ LISTMENU "MainMenu"
 	ifgame(Duke, Nam, WW2GI, Redneck, RedneckRides)
 	{
 		position 160, 35
-		Linespacing 20
+		Linespacing 17
 		animatedtransition
 		DukeLogo
 		DukeTextItem "$MNU_NEWGAME", "n", "EpisodeMenu"
@@ -24,6 +24,7 @@ LISTMENU "MainMenu"
 		DukeTextItem "$MNU_LOADGAME", "l", "LoadGameMenu"
 		DukeTextItem "$MNU_OPTIONS", "o", "OptionsMenu"
 		DukeTextItem "VR Options", "v", "VROptionsMenu"
+		DukeTextItem "Switch Game", "g", "VRGameSelectMenu"
 		DukeTextItem "$MNU_HELP", "h", "HelpMenu"
 		DukeTextItem "$MNU_CREDITS", "c", "CreditsMenu"
 		DukeTextItem "$MNU_QUITGAME", "q", "QuitMenu"
@@ -32,11 +33,12 @@ LISTMENU "MainMenu"
 	{
 		CaptionItem "Blood"
 		position 160, 45
-		Linespacing 20
+		Linespacing 17
 		BloodTextItem "$MNU_NEWGAME", "n", "EpisodeMenu"
 		//BloodTextItem "$MNU_MULTIPLAYER", "m", "MultiMenu"
 		BloodTextItem "$MNU_OPTIONS", "o", "OptionsMenu"
 		BloodTextItem "VR Options", "v", "VROptionsMenu"
+		BloodTextItem "Switch Game", "g", "VRGameSelectMenu"
 		BloodTextItem "$MNU_LOADGAME", "l", "LoadGameMenu"
 		BloodTextItem "$MNU_HELP", "h", "HelpMenu"
 		BloodTextItem "$MNU_CREDITS", "c", "CreditsMenu"
@@ -55,6 +57,7 @@ LISTMENU "MainMenu"
 		SWTextItem "$MNU_SAVEGAME", "s", "none"
 		SWTextItem "$MNU_OPTIONS", "o", "OptionsMenu"
 		SWTextItem "VR Options", "v", "VROptionsMenu"
+		SWTextItem "Switch Game", "g", "VRGameSelectMenu"
 		ifnotgame (shareware)
 		{
 			SWTextItem "$MNU_CREDITS", "c", "CreditsMenu"
@@ -69,7 +72,7 @@ LISTMENU "MainMenu"
 	{
 		class ExhumedMainMenu
 		Position 160, 65
-		linespacing 22
+		linespacing 18
 		Animated
 		ExhumedPlasma
 		ExhumedTextItem "$MNU_NEWGAME", "n", "EpisodeMenu"
@@ -77,6 +80,7 @@ LISTMENU "MainMenu"
 		//ExhumedTextItem "$TXT_EX_MAP00", "m", "StartGameNoSkill", 1
 		ExhumedTextItem "$MNU_OPTIONS", "v", "OptionsMenu"
 		ExhumedTextItem "VR Options", "v", "VROptionsMenu"
+		ExhumedTextItem "Switch Game", "g", "VRGameSelectMenu"
 		ExhumedTextItem "$MNU_QUITGAME", "q", "QuitMenu"
 	}
 }
@@ -544,9 +548,32 @@ OptionValue "ControlScheme"
 	10, "Left Handed"
 }
 
+//-------------------------------------------------------------------------------------------
+//
+// VR Game Select Menu
+//
+// Entries are added at runtime from C++ by BuildVRGameSelectMenu() in
+// vr_launchers.cpp, one per game launcher sitting beside raze.exe, and each
+// fires CCMD "vrselectgame <index>". They are added when the menu is opened,
+// not when the menus are created, because the game scan has not run by then.
+//
+// Kept to the shape VRaze's menudef declares, so that its definitions and this
+// one describe the same menu.
+//
+//-------------------------------------------------------------------------------------------
+
+OptionMenu "VRGameSelectMenu" protected
+{
+	Title "Select Game"
+	StaticText ""
+	// Game entries are inserted here at runtime by BuildVRGameSelectMenu()
+}
+
 OptionMenu "VROptionsMenu" protected
 {
 	Title "VR Options"
+	StaticText 	""
+	Submenu "Switch Game",	"VRGameSelectMenu"
 	StaticText 	""
 	Option "Control Scheme",		"vr_control_scheme", "ControlScheme"
 	Option "Switch Sticks",	"vr_switch_sticks", "YesNo"

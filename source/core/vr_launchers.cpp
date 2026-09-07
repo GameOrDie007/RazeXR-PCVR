@@ -18,6 +18,9 @@
 #include "zstring.h"
 #include "m_argv.h"
 #include "filesystem.h"
+#include "menu.h"
+
+#include <algorithm>
 
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
@@ -304,4 +307,257 @@ CCMD(vrwritelaunchers)
 #else
 	Printf("vrwritelaunchers is only implemented for Windows.\n");
 #endif
+}
+
+//==========================================================================
+//
+// The Switch Game menu
+//
+// It lists the launchers rather than the games, and starts the chosen .bat
+// rather than rebuilding a command line.
+//
+// That is not a shortcut, it is the only correct source. A launcher carries
+// more than -gamegrp: the game's own config, the voxel weapon pack, the Duke
+// voxel pack for Duke and its expansions only, and Route 66's -route66 and
+// base GRP. The first attempt at this menu carried the running process's
+// command line over to the next game, which would have handed Blood Duke's
+// config and Duke's voxel pack. Reading the launchers means switching lands
+// in exactly what double-clicking that game does, and there stays one place
+// where how a game starts is decided.
+//
+// The list is filled when the menu is opened, not when the menus are built.
+// M_CreateMenus runs before the startup scan, so anything built there is built
+// from nothing - which is why the first version came up empty in the headset
+// while the console command it fires worked perfectly.
+//
+//==========================================================================
+
+struct VRLauncher
+{
+	FString name;	// what the player sees, taken from the launcher itself
+	FString file;	// the .bat to start
+};
+
+static TArray<VRLauncher> Launchers;
+
+// Every launcher vrwritelaunchers writes carries this line, and nothing else
+// does. It is what tells a game launcher from PLAY.bat, SETUP.bat or whatever
+// else the user keeps beside raze.exe.
+static const char* const LauncherMarker = "Written by the vrwritelaunchers console command.";
+
+//==========================================================================
+//
+// A launcher's second line is "rem <the name grpinfo gave the game>", which is
+// the name the menu shows. Anything without the marker is not ours.
+//
+//==========================================================================
+
+static bool ReadLauncherName(const char* path, FString& nameOut)
+{
+	FileReader fr;
+	if (!fr.OpenFile(path)) return false;
+
+	char buf[1024];
+	auto got = fr.Read(buf, sizeof(buf) - 1);
+	if (got <= 0) return false;
+	buf[got] = 0;
+
+	if (strstr(buf, LauncherMarker) == nullptr) return false;
+
+	const char* p = strstr(buf, "rem ");
+	if (p == nullptr) return false;
+	p += 4;
+
+	const char* end = p;
+	while (*end != 0 && *end != '\r' && *end != '\n') end++;
+
+	nameOut = FString(p, end - p);
+	nameOut.StripRight();
+	return nameOut.IsNotEmpty();
+}
+
+//==========================================================================
+
+static void ScanLaunchers()
+{
+	Launchers.Clear();
+
+#ifdef _WIN32
+	FString dir = progdir;
+	FixPathSeperator(dir);
+	while (dir.Len() > 1 && dir.Back() == '/') dir.Truncate(dir.Len() - 1);
+	if (dir.IsEmpty()) dir = ".";
+
+	FString pattern;
+	pattern.Format("%s/*.bat", dir.GetChars());
+	std::wstring wpattern = pattern.WideString().c_str();
+
+	WIN32_FIND_DATAW fd = {};
+	HANDLE h = FindFirstFileW(wpattern.c_str(), &fd);
+	if (h == INVALID_HANDLE_VALUE) return;
+
+	do
+	{
+		if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
+
+		VRLauncher e;
+		e.file.Format("%s/%s", dir.GetChars(), FString(fd.cFileName).GetChars());
+		if (!ReadLauncherName(e.file.GetChars(), e.name)) continue;
+		Launchers.Push(e);
+	}
+	while (FindNextFileW(h, &fd));
+
+	FindClose(h);
+
+	// Alphabetical, which is the order they appear in the folder and in the
+	// front end, so the menu is not a third arrangement to learn.
+	std::sort(Launchers.begin(), Launchers.end(), [](const VRLauncher& a, const VRLauncher& b)
+		{ return stricmp(a.name.GetChars(), b.name.GetChars()) < 0; });
+#endif
+}
+
+//==========================================================================
+//
+// Fills the menu the menudef declares. Called every time it is opened.
+//
+//==========================================================================
+
+void BuildVRGameSelectMenu()
+{
+	DMenuDescriptor** menu = MenuDescriptors.CheckKey("VRGameSelectMenu");
+	if (menu == nullptr) return;
+
+	auto desc = static_cast<DOptionMenuDescriptor*>(*menu);
+
+	// Whatever the menudef itself declared is kept; everything a previous build
+	// of this menu added goes. Counting once is what makes a rebuild idempotent
+	// - matching on "has no action" would have kept accumulating the static
+	// text used to report an empty list.
+	static int declaredItems = -1;
+	if (declaredItems < 0) declaredItems = (int)desc->mItems.Size();
+	while ((int)desc->mItems.Size() > declaredItems) desc->mItems.Delete(desc->mItems.Size() - 1);
+
+	ScanLaunchers();
+
+	DPrintf(DMSG_NOTIFY, "Switch Game: %u launcher%s found\n",
+		Launchers.Size(), Launchers.Size() == 1 ? "" : "s");
+
+	if (Launchers.Size() == 0)
+	{
+		// Say so on screen. An empty menu in a headset looks like a broken
+		// build, and the fix is one console command.
+		desc->mItems.Push(CreateOptionMenuItemStaticText("No game launchers were found"));
+		desc->mItems.Push(CreateOptionMenuItemStaticText("beside raze.exe. Run vrwritelaunchers"));
+		desc->mItems.Push(CreateOptionMenuItemStaticText("at the console to write them."));
+		return;
+	}
+
+	for (unsigned i = 0; i < Launchers.Size(); i++)
+	{
+		desc->mItems.Push(CreateOptionMenuItemCommand(Launchers[i].name.GetChars(),
+			FStringf("vrselectgame %u", i), true));
+	}
+
+	desc->mScrollPos = 0;
+	desc->mSelectedItem = -1;
+}
+
+//==========================================================================
+//
+// Starting the next game
+//
+// GameMain calls RunGame exactly once and there is no way back into it - the
+// file system, the tile store, the ZScript VM and GameStartupInfo all belong
+// to that call - so switching is a new process, not a reload. GZDoom has never
+// supported changing IWAD without a restart and Raze inherits that.
+//
+//==========================================================================
+
+static bool StartLauncher(const char* bat)
+{
+#ifdef _WIN32
+	/*
+		Through cmd, because a .bat is not an executable, and after a wait.
+
+		The wait is the part that matters. This process still holds the OpenXR
+		session when the successor is created, and the runtime does not hand
+		the headset over until this one is actually gone. Without it the new
+		process can reach its own session creation first and be refused, which
+		presents as a game that launches to a black headset for no visible
+		reason. Six pings is about five seconds - far longer than the quit path
+		needs, and nothing beside the load that follows.
+
+		ping rather than timeout: timeout exits immediately with an error when
+		it cannot read console input, which is exactly the case here.
+	*/
+	FString cmd;
+	cmd.Format("cmd.exe /c ping -n 6 127.0.0.1 >nul & \"%s\"", bat);
+
+	STARTUPINFOW si = {};
+	si.cb = sizeof(si);
+	si.dwFlags = STARTF_USESHOWWINDOW;
+	si.wShowWindow = SW_SHOWMINNOACTIVE;
+
+	PROCESS_INFORMATION pi = {};
+
+	std::wstring buf = cmd.WideString().c_str();
+
+	BOOL ok = CreateProcessW(nullptr, buf.data(), nullptr, nullptr, FALSE,
+		CREATE_NEW_CONSOLE, nullptr, nullptr, &si, &pi);
+
+	if (ok)
+	{
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+	}
+	return ok != 0;
+#else
+	(void)bat;
+	return false;
+#endif
+}
+
+//==========================================================================
+//
+// The CCMD each menu entry fires. Also usable on its own, which is how this
+// gets tested without a headset.
+//
+//==========================================================================
+
+CCMD(vrselectgame)
+{
+	if (Launchers.Size() == 0) ScanLaunchers();
+
+	if (Launchers.Size() == 0)
+	{
+		Printf("No game launchers beside raze.exe. Run vrwritelaunchers first.\n");
+		return;
+	}
+
+	if (argv.argc() < 2)
+	{
+		Printf("vrselectgame <index>: leave this game and start another\n");
+		for (unsigned i = 0; i < Launchers.Size(); i++)
+			Printf("  %u  %s\n", i, Launchers[i].name.GetChars());
+		return;
+	}
+
+	int idx = atoi(argv[1]);
+	if (idx < 0 || idx >= (int)Launchers.Size())
+	{
+		Printf("vrselectgame: no game %d\n", idx);
+		return;
+	}
+
+	Printf("Switching to %s\n", Launchers[idx].name.GetChars());
+
+	if (!StartLauncher(Launchers[idx].file.GetChars()))
+	{
+		Printf(TEXTCOLOR_RED "Could not start %s - staying in this game.\n", Launchers[idx].file.GetChars());
+		return;
+	}
+
+	// Out through the ordinary quit path, so the config is written and the
+	// OpenXR session is ended rather than abandoned.
+	AddCommandString("quit");
 }

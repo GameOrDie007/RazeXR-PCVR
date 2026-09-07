@@ -2691,3 +2691,118 @@ four pitchfork files - are third-party and still come only from VRaze. Permissio
 is settled; every contributor in that Discord has given it. Attribution is not:
 Domyoji names Ermac and fgsfds and points at a Contributors list we do not have a
 copy of. Ask him for it before crediting.
+
+
+---
+
+# The Switch Game menu, second attempt
+
+Back on the main menu, and this time it lists the launchers.
+
+```
+Switch Game: 17 launchers found
+  0  BLOOD: Cryptic Passage          9  Platoon Leader
+  1  BLOOD: One Unit Whole Blood    10  Redneck Rampage
+  2  Duke Caribbean: Life's a Beach 11  Redneck Rampage Rides Again
+  3  Duke it out in D.C.            12  Redneck Rampage: Route 66
+  4  Duke Nukem 3D: Atomic Edition  13  Shadow Warrior
+  5  Duke Nukem 3D: Atomic (WT)     14  Shadow Warrior: Twin Dragon
+  6  Duke: Nuclear Winter           15  Shadow Warrior: Wanton Destruction
+  7  Exhumed                        16  WWII GI
+  8  NAM
+```
+
+## Why the first one came up empty
+
+Not the ordering problem it was written up as. `BuildVRGameSelectMenu()` was
+never called from anywhere. The include was added to `menudef.cpp` and the call
+was not, so the function that fills the menu did not run once, in any build, on
+any machine - which is exactly consistent with what was seen: a menu with
+nothing in it, and a `vrselectgame` console command that worked perfectly,
+because the CCMD never depended on the menu being built.
+
+That it was recorded as a startup ordering problem is worth noting for its own
+sake. The diagnosis was plausible, fitted the symptom, and was never tested; the
+feature was dropped on the strength of it. Reading the commit was two minutes.
+
+It is now called from `M_SetMenu`, so the menu is filled every time it opens.
+That happens to make the ordering concern moot as well, whether or not it was
+ever real.
+
+## It lists the launchers, not the games
+
+The first version rebuilt the command line from the running process, keeping
+everything except `-gamegrp`. On this install that would have handed Blood
+Duke's `-config` and Duke's voxel pack, because that is what the Duke launcher
+passes. The bug was never seen because the test ran from a build tree where the
+command line was three arguments long.
+
+A launcher carries the whole answer: the game's own config, `vrweapons.pk3` or
+`vrweapons_rr.pk3`, the Duke voxel pack for Duke and its expansions only, Route
+66's `-route66` and base GRP, and the games\ copy preferred over the absolute
+path. So the menu reads the launchers rather than second-guessing them, which
+means switching lands in exactly what double-clicking that game does, and there
+stays one place where how a game starts is decided.
+
+They are found by the marker line `vrwritelaunchers` writes into every one, so
+`PLAY.bat` and `SETUP.bat` are not offered as games, and the name shown is the
+one grpinfo gave, read back out of the launcher's second line. Add-ons come too
+- there was never a reason to exclude Cryptic Passage from a list you are
+choosing from, only from a list you are switching *between* in the old sense.
+
+## The five second wait
+
+The successor is started through `cmd`, after about five seconds of `ping`.
+This process still holds the OpenXR session at the moment the new one is
+created, and the runtime does not hand the headset over until this one is
+actually gone. Without the wait the new process can reach its own session
+creation first and be refused, which presents as a game that launches to a
+black headset for no visible reason - the failure this port has already spent
+an evening on once. Five seconds is far longer than the quit path takes and
+nothing beside the load that follows.
+
+`ping` rather than `timeout`, because `timeout` exits with an error the moment
+it cannot read console input, which is exactly the case here.
+
+## Where it sits
+
+Main menu, under VR Options, on hotkey `g`, in all four menu families. Also
+inside the VR Options menu itself, which is how it is reached in game: the
+in-game lists are longer than the main ones and Duke's already ends at y=181 of
+200, so a ninth entry there is what pushed Quit off the bottom last time.
+
+The main menus needed room for a ninth item and got it from the line spacing
+alone, not from moving the first item up, which would have walked the list into
+the logo above it:
+
+```
+            was              becomes
+Duke        35 + 6*20 = 155  35 + 7*17 = 154
+Blood       45 + 6*20 = 165  45 + 7*17 = 164
+Exhumed     65 + 4*22 = 153  65 + 5*18 = 155
+SW          32 + 6*17 = 134  32 + 7*17 = 151   unchanged
+```
+
+Every list now ends where a list that already worked ended. The version that
+lost Quit ended at 175.
+
+## Verified, and not
+
+Verified here with no headset, by driving the menu open from the command line -
+`+developer 5 +openmenu VRGameSelectMenu +quit` - and reading the count back
+out of the log. All four menu families build the menu with all seventeen
+entries, and the menudef parses with no complaint in any of them. `vrselectgame`
+with no arguments prints the same seventeen, which is the diagnostic to reach
+for if the menu is ever empty again: if that list is right, the scan is fine and
+the fault is in the menu.
+
+**Not verified: what the main menu looks like.** The screenshot command grabs
+the current buffer and there is no `wait`, so a startup batch cannot photograph
+a menu that has not been drawn yet. The arithmetic above says Quit fits in all
+four. His eyes say whether it does, and the flat window shows it without a
+headset.
+
+**Not verified: the switch itself in VR.** The relaunch was tested end to end in
+the first attempt and the code path is the same shape, but the five second wait
+is new and the whole point of it is a case that only appears with a real runtime
+holding a real headset.

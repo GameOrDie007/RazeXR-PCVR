@@ -1,20 +1,19 @@
 /*
 	vr_launchers.h - PC branch.
 
-	Writes one .bat per installed game, for launching from the desktop or a
-	front end.
+	Two halves of one idea.
 
-	This began as an in-game Switch Game menu, modelled on VRaze's. That was
-	dropped: switching needs a process relaunch either way, so a launcher per
-	game does the same job without adding eight entries to menus that then push
-	Quit off the bottom of the screen - and it fits how the games actually get
-	started here, from LaunchBox.
+	vrwritelaunchers writes one .bat per installed game, for launching from the
+	desktop or a front end. Raze already scans for installed games at startup
+	and CRC-matches them against grpinfo.txt, so what is present and what each
+	one is properly called is already known; the launchers are generated from
+	that rather than from guesses at folder names.
 
-	What survives from the menu work is the useful half. Raze already scans for
-	installed games during startup and CRC-matches them against grpinfo.txt, so
-	the list of what is present, and what each one is properly called, is
-	already known. That is what the launchers are generated from, rather than
-	guessing at folder names.
+	The Switch Game menu then reads those launchers back and starts one. A
+	launcher carries more than -gamegrp - the game's own config, the voxel
+	weapon packs, Route 66's switches - so reading them keeps a single place
+	where how a game starts is decided, and makes switching from the menu land
+	in exactly what double-clicking that game does.
 
 	Copyright (C) 2026 RazeXR PCVR port
 
@@ -36,5 +35,10 @@ struct GrpEntry;
 // worth their own launcher even though they were not worth switching to from
 // inside a running game.
 void VRLaunchers_SetScannedGames(const TArray<GrpEntry>& games);
+
+// Fills the VRGameSelectMenu descriptor from the launchers sitting beside
+// raze.exe. Called from M_SetMenu each time the menu is opened, because the
+// menus are created before the startup scan has found anything.
+void BuildVRGameSelectMenu();
 
 #endif

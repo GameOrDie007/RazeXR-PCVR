@@ -42,6 +42,7 @@
 #include "configfile.h"
 #include "gstrings.h"
 #include "menu.h"
+#include "vr_launchers.h"
 #include "vm.h"
 #include "v_video.h"
 #include "i_system.h"
@@ -504,6 +505,16 @@ DEFINE_ACTION_FUNCTION(DMenu, ActivateMenu)
 
 void M_SetMenu(FName menu, int param)
 {
+	/*
+		PC branch: the Switch Game menu is filled here rather than in
+		M_CreateMenus. The menus are created before the startup scan has found
+		any games, so a menu built once is built from nothing - which is how the
+		first version of this came to be empty in the headset while the console
+		command behind it worked.
+	*/
+	static const FName VRGameSelectMenuName("VRGameSelectMenu");
+	if (menu == VRGameSelectMenuName) BuildVRGameSelectMenu();
+
 	if (sysCallbacks.SetSpecialMenu && !sysCallbacks.SetSpecialMenu(menu, param)) return;
 
 	DMenuDescriptor **desc = MenuDescriptors.CheckKey(menu);
