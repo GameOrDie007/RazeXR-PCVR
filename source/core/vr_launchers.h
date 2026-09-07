@@ -41,4 +41,10 @@ void VRLaunchers_SetScannedGames(const TArray<GrpEntry>& games);
 // menus are created before the startup scan has found anything.
 void BuildVRGameSelectMenu();
 
+// Called at the top of the main loop. If the Switch Game menu asked for another
+// game, starts it and returns true, meaning this process should now exit. The
+// menu only books the request: quitting from the menu item itself means
+// throwing CExitEvent out through a ZScript VM frame, which crashes.
+bool VRLaunchers_StartPendingSwitch();
+
 #endif

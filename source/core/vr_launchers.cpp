@@ -340,6 +340,9 @@ struct VRLauncher
 
 static TArray<VRLauncher> Launchers;
 
+// Set by the menu, acted on by the main loop. -1 is "nothing asked for".
+static int PendingSwitch = -1;
+
 // Every launcher vrwritelaunchers writes carries this line, and nothing else
 // does. It is what tells a game launcher from PLAY.bat, SETUP.bat or whatever
 // else the user keeps beside raze.exe.
@@ -551,13 +554,48 @@ CCMD(vrselectgame)
 
 	Printf("Switching to %s\n", Launchers[idx].name.GetChars());
 
+	/*
+		Only booked here. The launcher is started and the game left from the
+		main loop, one frame from now - see VRLaunchers_StartPendingSwitch.
+	*/
+	PendingSwitch = idx;
+}
+
+//==========================================================================
+//
+// Called at the top of the main loop, outside everything.
+//
+// Leaving from inside the menu item's own command is what crashed a switch out
+// of Duke it out in D.C. with an access violation. That command runs as a
+// native call from OptionMenuItemCommand.Activate, which is ZScript, which is
+// JIT compiled - so `quit`, which is a `throw CExitEvent`, was unwinding a C++
+// exception straight out through a VM frame. It survived that most of the time,
+// which is the worst way for it to behave.
+//
+// Nothing else in the engine quits this way. Raze's own Quit is a menu that
+// opens a message box, and the message box's handler clears the menus before it
+// exits. So the switch is booked by the menu and carried out here instead,
+// where the throw happens in ordinary loop code with nothing of the VM's on the
+// stack, exactly as any other exit does.
+//
+//==========================================================================
+
+bool VRLaunchers_StartPendingSwitch()
+{
+	if (PendingSwitch < 0) return false;
+
+	int idx = PendingSwitch;
+	PendingSwitch = -1;
+
+	if (idx >= (int)Launchers.Size()) return false;
+
 	if (!StartLauncher(Launchers[idx].file.GetChars()))
 	{
 		Printf(TEXTCOLOR_RED "Could not start %s - staying in this game.\n", Launchers[idx].file.GetChars());
-		return;
+		return false;
 	}
 
-	// Out through the ordinary quit path, so the config is written and the
-	// OpenXR session is ended rather than abandoned.
-	AddCommandString("quit");
+	// The caller exits through the ordinary path from here, so the config is
+	// written and the OpenXR session is ended rather than abandoned.
+	return true;
 }

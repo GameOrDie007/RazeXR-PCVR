@@ -90,6 +90,8 @@
 #include "wipe.h"
 #include "i_interface.h"
 #include "texinfo.h"
+#include "engineerrors.h"
+#include "vr_launchers.h"
 #include "texturemanager.h"
 #include "gameinput.h"
 #include "menustate.h"
@@ -764,6 +766,14 @@ void MainLoop ()
 
 	for (;;)
 	{
+		/*
+			PC branch: the Switch Game menu books a switch and this carries it
+			out, a frame later and outside everything. See the comment on
+			VRLaunchers_StartPendingSwitch - doing it from the menu item meant
+			throwing out through a ZScript frame, which crashed.
+		*/
+		if (VRLaunchers_StartPendingSwitch()) throw CExitEvent(0);
+
 		try
 		{
 			// frame syncronous IO operations
