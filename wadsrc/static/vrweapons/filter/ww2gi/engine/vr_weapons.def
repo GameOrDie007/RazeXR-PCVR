@@ -1,0 +1,22 @@
+// Voxel weapon definitions from VRaze, by Domyoji, used with permission --
+// Team Beef Discord, September 2026. See THIRD-PARTY-PERMISSIONS.md.
+//
+// The models these name are NOT redistributed. tools/build-vrweapons.ps1
+// assembles them on the user's machine: the ones that are the game's own
+// pickup voxels come out of their own game archives, Duke's come from
+// Cheello's Voxel Duke 3D, and Domyoji's animation frames and edits are
+// overlaid only when a VRaze install is supplied.
+
+dummytile 30703 1 1
+
+voxel "models/weapons/ww2gi/vr_weapon_ww2gi_knife.kvx"            { tile 30000  scale 0.5 }
+voxel "models/weapons/ww2gi/vr_weapon_ww2gi_m1thompson.kvx"       { tile 30010  scale 0.2 }
+voxel "models/weapons/ww2gi/vr_weapon_ww2gi_mp40.kvx"             { tile 30020  scale 0.2 }
+voxel "models/weapons/ww2gi/vr_weapon_ww2gi_bar.kvx"              { tile 30030  scale 0.3 }
+voxel "models/weapons/ww2gi/vr_weapon_ww2gi_bazooka.kvx"          { tile 30040  scale 0.3 }
+voxel "models/weapons/ww2gi/vr_weapon_ww2gi_grenade.kvx"          { tile 30050  scale 0.1 }
+voxel "models/weapons/ww2gi/vr_weapon_ww2gi_garand_launcher.kvx"  { tile 30060  scale 0.2 }
+voxel "models/weapons/ww2gi/vr_weapon_ww2gi_mauser.kvx"           { tile 30061  scale 0.3 }
+voxel "models/weapons/ww2gi/vr_weapon_ww2gi_colt1911.kvx"         { tile 30070  scale 0.3 }
+voxel "models/weapons/ww2gi/vr_weapon_ww2gi_tnt.kvx"              { tile 30080  scale 0.2 }
+voxel "models/weapons/ww2gi/vr_weapon_ww2gi_flamethrower.kvx"     { tile 30090  scale 0.5 }

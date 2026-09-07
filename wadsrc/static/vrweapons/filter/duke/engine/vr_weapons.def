@@ -1,0 +1,25 @@
+// Voxel weapon definitions from VRaze, by Domyoji, used with permission --
+// Team Beef Discord, September 2026. See THIRD-PARTY-PERMISSIONS.md.
+//
+// The models these name are NOT redistributed. tools/build-vrweapons.ps1
+// assembles them on the user's machine: the ones that are the game's own
+// pickup voxels come out of their own game archives, Duke's come from
+// Cheello's Voxel Duke 3D, and Domyoji's animation frames and edits are
+// overlaid only when a VRaze install is supplied.
+
+dummytile 30703 1 1
+
+voxel "models/weapons/duke/vr_weapon_knee.kvx"         { tile 30000  scale 0.2 }
+voxel "models/weapons/duke/vr_weapon_pistol0.kvx"      { tile 30010  scale 0.2 }
+voxel "models/weapons/duke/vr_weapon_pistol1.kvx"      { tile 30011  scale 0.2 }
+voxel "models/weapons/duke/vr_weapon_pistol2.kvx"      { tile 30012  scale 0.2 }
+voxel "models/weapons/duke/vr_weapon_shotgun.kvx"      { tile 30020  scale 0.2 }
+voxel "models/weapons/duke/vr_weapon_chaingun.kvx"     { tile 30030  scale 0.2 }
+voxel "models/weapons/duke/vr_weapon_rpg.kvx"          { tile 30040  scale 0.3 }
+voxel "models/weapons/duke/vr_weapon_handbomb.kvx"     { tile 30050  scale 0.1 }
+voxel "models/weapons/duke/vr_weapon_shrinker.kvx"     { tile 30060  scale 0.2 }
+voxel "models/weapons/duke/vr_weapon_devastator.kvx"   { tile 30070  scale 0.3 }
+voxel "models/weapons/duke/vr_weapon_tripbomb.kvx"     { tile 30080  scale 0.2 }
+voxel "models/weapons/duke/vr_weapon_freeze.kvx"       { tile 30090  scale 0.2 }
+voxel "models/weapons/duke/vr_weapon_grow.kvx"         { tile 30100  scale 0.2 }
+voxel "models/weapons/duke/vr_weapon_flamethrower.kvx" { tile 30110  scale 0.2 }

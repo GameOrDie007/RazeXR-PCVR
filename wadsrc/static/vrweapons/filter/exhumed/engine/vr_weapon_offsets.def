@@ -1,0 +1,130 @@
+// Voxel weapon definitions from VRaze, by Domyoji, used with permission --
+// Team Beef Discord, September 2026. See THIRD-PARTY-PERMISSIONS.md.
+//
+// The models these name are NOT redistributed. tools/build-vrweapons.ps1
+// assembles them on the user's machine: the ones that are the game's own
+// pickup voxels come out of their own game archives, Duke's come from
+// Cheello's Voxel Duke 3D, and Domyoji's animation frames and edits are
+// overlaid only when a VRaze install is supplied.
+
+// Player height: 58
+
+weapon sword
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -58
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon pistol
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -58
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon m60
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -58
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon flamer
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -63
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon grenade
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -58
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon staff
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -58
+    yaw       0
+    pitch     -45
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   -10
+    two_hand_compatible  1
+}
+
+weapon ring
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -58
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+weapon mummified
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -58
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}

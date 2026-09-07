@@ -13,12 +13,16 @@
                      to move this folder to another PC
         -NoDownload  skip the network step entirely
         -Root <path> extra folder to search for game data
+        -VRaze <pk3> a VRaze raze.pk3, if you have one. The voxel weapons work
+                     without it; this adds the weapon animation frames and the
+                     four games whose models are not the games' own.
 #>
 
 param(
     [switch]$InPlace,
     [switch]$NoDownload,
-    [string]$Root
+    [string]$Root,
+    [string]$VRaze
 )
 
 $ErrorActionPreference = "Stop"
@@ -224,13 +228,24 @@ if (-not (Test-Path $voxCheello)) {
     Info "  https://www.moddb.com/mods/voxel-duke-nukem-3d/downloads"
 }
 
-$vrw = Join-Path $dest "vrweapons.pk3"
-if (Test-Path $vrw) {
-    Ok "voxel weapons pack present"
+# The voxel weapons in your hands. Built here rather than shipped: the models
+# belong to the games and to Cheello, so they are taken from the copies you
+# already have. See THIRD-PARTY-PERMISSIONS.md.
+$builder = Join-Path $here "build-vrweapons.ps1"
+if (-not (Test-Path $builder)) { $builder = Join-Path $dest "build-vrweapons.ps1" }
+if (Test-Path $builder) {
+    try {
+        & $builder -Root $dest -VRaze $VRaze
+        if (-not $VRaze) {
+            Info "for the animation frames and the Exhumed / NAM / Redneck / WWII GI"
+            Info "weapons, re-run with -VRaze pointing at a VRaze raze.pk3."
+        }
+    } catch {
+        Warn "could not build the voxel weapons pack - everything else still works"
+        Info $_.Exception.Message
+    }
 } else {
-    Info "voxel weapons need a VRaze copy, whose downloads have been withdrawn."
-    Info "If you have one, run tools\build-vrweapons-pk3.py against its raze.pk3."
-    Info "Without it the games use their ordinary flat weapon sprites."
+    Warn "build-vrweapons.ps1 is missing - no voxel weapons"
 }
 
 # ---------------------------------------------------------------- 4. launchers
