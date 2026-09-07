@@ -51,6 +51,57 @@ struct VRGame
 
 static TArray<VRGame> Games;
 
+//==========================================================================
+//
+// The same game found twice
+//
+// Raze looks for game data in the portable games/ folder and, on its own, in
+// every Steam and GOG install it can find. Somebody who owns Duke on Steam and
+// has also had it copied into games/ gets both, under one name - and since the
+// launcher file is named after the game, the one written last silently wins.
+// That put "Duke it out in D.C" in the run folder pointing at C:\Program
+// Files, which is the exact thing the portable copy exists to avoid.
+//
+// So collapse duplicates by name and keep the copy that lives beside raze.exe.
+// A game found ONLY outside the run folder is still kept - that is how someone
+// who has never run setup gets launchers at all, and how a game they own but
+// have not copied in, like Duke!ZONE II, becomes available.
+//
+//==========================================================================
+
+static void PreferLocalCopies()
+{
+	FString here = progdir;
+	FixPathSeperator(here);
+	here.ToLower();
+	while (here.Len() > 1 && here.Back() == '/') here.Truncate(here.Len() - 1);
+
+	auto isLocal = [&here](const VRGame& g) -> bool
+	{
+		if (here.Len() <= 1) return false;
+		FString p = g.path;
+		FixPathSeperator(p);
+		p.ToLower();
+		return p.IndexOf(here) == 0;
+	};
+
+	for (int i = (int)Games.Size() - 1; i >= 0; i--)
+	{
+		for (int j = 0; j < i; j++)
+		{
+			if (Games[i].name.CompareNoCase(Games[j].name) != 0) continue;
+
+			// Same game twice. The local copy wins; if neither is local, or
+			// both are, the one found first stays.
+			if (isLocal(Games[i]) && !isLocal(Games[j])) Games[j] = Games[i];
+			Games.Delete(i);
+			break;
+		}
+	}
+}
+
+//==========================================================================
+
 void VRLaunchers_SetScannedGames(const TArray<GrpEntry>& games)
 {
 	Games.Clear();
@@ -65,6 +116,8 @@ void VRLaunchers_SetScannedGames(const TArray<GrpEntry>& games)
 		e.isDuke = (g.FileInfo.flags & GAMEFLAG_DUKE) != 0;
 		Games.Push(e);
 	}
+
+	PreferLocalCopies();
 }
 
 //==========================================================================
