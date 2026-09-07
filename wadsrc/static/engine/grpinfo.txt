@@ -373,7 +373,12 @@ grpinfo
 	exclepisodes "L.A. MELTDOWN"
 }
 
-grpinfo
+// PC branch: declared "addon", not "grpinfo". An entry identified by mustcontain
+// with no crc is classified as a content group, and content groups are only ever
+// searched INSIDE archives - so this one could never match, because World Tour
+// ships these four as loose files beside the GRP. Cryptic Passage and Route 66,
+// which are found from loose files and do work, are both declared "addon".
+addon
 {
 	name "Duke: Alien World Order"
 	dependency DUKE15_CRC
