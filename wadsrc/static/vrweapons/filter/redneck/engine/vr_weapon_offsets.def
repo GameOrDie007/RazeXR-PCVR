@@ -207,3 +207,41 @@ weapon bowling
     pivot_z   0
     two_hand_compatible  1
 }
+
+// Added here, not by VRaze. Its offsets file defines no placement for these
+// two, so both had a model and nowhere to put it and stayed flat sprites.
+// Both take the standard placement every other Redneck weapon uses - the same
+// numbers as dynamite and rifle, which is what the whole file is - so this is
+// filling in a gap rather than tuning anything.
+
+// Thrown dynamite: the same object as the dynamite slot, so the same placement.
+weapon throwdyn
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}
+
+// The alien blaster, held like the rifle. No casing offsets: it ejects none.
+weapon blaster
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}

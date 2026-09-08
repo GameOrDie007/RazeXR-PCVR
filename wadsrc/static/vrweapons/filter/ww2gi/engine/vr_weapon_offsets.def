@@ -207,3 +207,21 @@ weapon grow
     two_hand_compatible  1
     gimbal_lock_fix  1
 }
+
+// Added here, not by VRaze, which defines no placement for it - so the mauser
+// had a model and nowhere to put it. It is a named state of the slot above,
+// and takes that slot's placement.
+weapon mauser
+{
+    gimbal_lock_fix  1
+    forward   0
+    right     0
+    up        -40
+    yaw       0
+    pitch     0
+    roll      0
+    pivot_x   0
+    pivot_y   0
+    pivot_z   0
+    two_hand_compatible  1
+}

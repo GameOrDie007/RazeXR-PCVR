@@ -198,9 +198,9 @@ alternate weapon in a shared slot.
 - Some weapons stay as flat sprites because no voxel model exists for them anywhere:
   Shadow Warrior's fists and sword, Exhumed's sword and mummified hands, Duke's mighty
   foot, Redneck's crowbar and bowling ball.
-- Three more have a model but no placement, because VRaze never defined one for them:
-  WWII GI's mauser, and Redneck's blaster and thrown dynamite. They keep their flat
-  sprites. Nothing is missing from your install; the position was never written.
+- WWII GI's mauser and Redneck's blaster and thrown dynamite had models but no
+  placement, because VRaze never wrote one for them. This port adds all three, using
+  the same standard placement every other weapon in those games uses.
 - Shadow Warrior's akimbo uzis, quad shotgun and nuke are only reachable if Alt Weapon
   is bound — it is by default, to the off-hand stick click.
 - Weapon animation frames - Duke's pistol slide, Blood's napalm launcher and Shadow
