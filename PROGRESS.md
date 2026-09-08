@@ -3572,3 +3572,21 @@ Nineteen launchers again.
 than reading what is there - and all three were invisible until a real install
 had a shape that did not match. `classic\` and `addons\` are both perfectly
 ordinary; nothing was malformed.
+
+## Three entries called Duke Nukem 3D: Atomic Edition
+
+All three are wanted - Atomic is four episodes, World Tour is five, Penthouse
+Paradise is its own add-on - but the menu had no way to tell them apart.
+
+World Tour's and Penthouse's launchers are built by copying the base game's and
+changing the script and the config, so they inherited its `rem` line. That line
+is the only thing the Switch Game menu has to label an entry with: it reads the
+folder, not the scan, precisely so a launcher is described by itself. Three
+different games, one name.
+
+They name themselves now. Nineteen entries, nineteen distinct names.
+
+Worth noting what made it invisible from here: the file names were always right
+- `Duke Nukem 3D - World Tour VR.bat` sits in the folder in plain sight - and
+every headless check read the folder. Only the menu reads the second line, and
+only in a headset.

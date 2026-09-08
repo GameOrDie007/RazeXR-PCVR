@@ -535,6 +535,20 @@ CCMD(vrwritelaunchers)
 				FString pbase = "Duke Nukem's Penthouse Paradise VR";
 				FString pbody = body;
 				pbody.Substitute("-nosetup -portable", "-nosetup -portable -con ppakgame.con");
+
+				/*
+					And the name it announces itself by.
+
+					These two are built from the base game's launcher, so they
+					inherited its "rem" line - and that line is the only thing
+					the Switch Game menu has to label an entry with. Three
+					different games all called Duke Nukem 3D: Atomic Edition,
+					with nothing to tell them apart.
+				*/
+				FString oldrem, newrem;
+				oldrem.Format("rem %s\r\n", g.name.GetChars());
+				newrem = "rem Duke Nukem's Penthouse Paradise\r\n";
+				pbody.Substitute(oldrem.GetChars(), newrem.GetChars());
 				FString oldcfg, newcfg;
 				oldcfg.Format("cfg_%s.ini", base.GetChars());
 				newcfg.Format("cfg_%s.ini", pbase.GetChars());
@@ -565,6 +579,20 @@ CCMD(vrwritelaunchers)
 				FString wtbase = "Duke Nukem 3D - World Tour VR";
 				FString wtbody = body;
 				wtbody.Substitute("-nosetup -portable", "-nosetup -portable -con WT_GAME.CON");
+
+				/*
+					And the name it announces itself by.
+
+					These two are built from the base game's launcher, so they
+					inherited its "rem" line - and that line is the only thing
+					the Switch Game menu has to label an entry with. Three
+					different games all called Duke Nukem 3D: Atomic Edition,
+					with nothing to tell them apart.
+				*/
+				FString oldrem, newrem;
+				oldrem.Format("rem %s\r\n", g.name.GetChars());
+				newrem = "rem Duke Nukem 3D: World Tour\r\n";
+				wtbody.Substitute(oldrem.GetChars(), newrem.GetChars());
 				FString oldcfg, newcfg;
 				oldcfg.Format("cfg_%s.ini", base.GetChars());
 				newcfg.Format("cfg_%s.ini", wtbase.GetChars());
