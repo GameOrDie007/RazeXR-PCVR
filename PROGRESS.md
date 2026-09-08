@@ -3680,3 +3680,30 @@ placement - VRaze never wrote one. Checked its offsets files directly rather
 than assuming. Documented in the README; inventing positions needs a headset.
 
 Everything else: zero missing placements across all seven games.
+
+## The three unplaced weapons were a five-minute fix
+
+Written off too quickly as upstream's to fix. They are not hard: a placement in
+these files is position, rotation and scale, and every weapon in Redneck and
+WWII GI uses the same one - `up -40`, no rotation, two-hand compatible. The
+rifle adds casing-ejection offsets and that is the only variation in either
+file.
+
+So each had an obvious donor in its own game. Thrown dynamite is the dynamite
+slot's object thrown, and takes its placement. The alien blaster is held like
+the rifle, without the casing offsets, since it ejects none. The mauser is a
+named state of the slot above it and takes that slot's.
+
+Added, and marked in the files as ours rather than VRaze's.
+
+```
+Redneck     11 models, 15 placements, 0 missing   (was 2 missing)
+WWII GI     10 models, 12 placements, 0 missing   (was 1 missing)
+```
+
+All seven games now have a placement for every weapon that has a model.
+
+Worth noting how the wrong conclusion was reached: the check that VRaze does not
+define them was correct, and the inference that they therefore could not be
+defined was not. Reading one donor block would have shown how little there was
+to it - the owner said as much, and was right.
