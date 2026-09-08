@@ -126,6 +126,18 @@ $RIDESAGAIN_SIZE = 191798609
 #>
 $EXHUMED_MIN = 20000000
 
+<#
+    Duke: prefer Atomic over 1.3D.
+
+    Several things ship a Duke 1.3D DUKE3D.GRP as their own base - Penthouse
+    Paradise does - and the search takes its first hit. A user whose Atomic copy
+    is found second would quietly end up playing 1.3D, losing Duke it out in
+    D.C., Life's a Beach and Nuclear Winter, which all depend on the Atomic GRP.
+    Atomic and World Tour are both 44,356,548 bytes; 1.3D is 26,524,524. So
+    anything below this is kept only as a fallback.
+#>
+$DUKE_ATOMIC_MIN = 40000000
+
 # Modern remasters that answer to a game's name and contain nothing Raze can
 # use. Checked, not guessed - see the note where this is used.
 $remasters = @(
@@ -187,6 +199,7 @@ foreach ($r in $roots) {
 foreach ($g in $games) {
     $hit = $null
     $wtFallback = $null
+    $smallDuke = $null
     foreach ($r in $roots) {
         foreach ($fn in $g.Files) {
             $c = Get-ChildItem -Path $r -Filter $fn -Recurse -File -Depth 4 -ErrorAction SilentlyContinue |
@@ -195,6 +208,10 @@ foreach ($g in $games) {
                 if ($g.Folder -eq "ridesagain" -and $cand.Length -ne $RIDESAGAIN_SIZE) { continue }
                 if ($g.Folder -eq "rampage"    -and $cand.Length -eq $RIDESAGAIN_SIZE) { continue }
                 if ($g.Folder -eq "exhumed"    -and $cand.Length -lt $EXHUMED_MIN) { continue }
+                if ($g.Folder -eq "duke" -and $cand.Length -lt $DUKE_ATOMIC_MIN) {
+                    if (-not $smallDuke) { $smallDuke = $cand }
+                    continue
+                }
                 <#
                     World Tour ships DUKE3D.GRP like every other Duke release,
                     so it answers the search for Duke - but its folder must not
@@ -223,6 +240,9 @@ foreach ($g in $games) {
     # Only World Tour was found, so it has to serve as the base game after all,
     # and episode five comes with it rather than being added separately.
     if (-not $hit -and $wtFallback) { $hit = $wtFallback; $wtDir = "" }
+
+    # No Atomic anywhere, so an older Duke is better than none.
+    if (-not $hit -and $smallDuke) { $hit = $smallDuke }
 
     if (-not $hit) {
         Info ("{0,-24} not found" -f $g.Name)
@@ -282,6 +302,44 @@ foreach ($g in $games) {
         if (-not $seedPath) { $seedPath = $hit.FullName }
         $n = CopyGameFolder $hit.DirectoryName $g.Folder
         Ok ("{0,-24} {1} files from {2}" -f $g.Name, $n, $hit.DirectoryName)
+    }
+}
+
+<#
+    Duke Nukem's Penthouse Paradise.
+
+    Raze's entries for it expect a repacked .grp, and the original release is a
+    folder of loose files, so it is never identified and never gets a launcher.
+    Four files are the whole add-on. Its CONs include only each other, none of
+    the names collide with anything in the Duke GRP, and it depends on the
+    Atomic GRP - so they go in beside Duke and the launcher names the script.
+
+    The DUKE3D.GRP in that folder is a 1.3D copy the add-on shipped with. It is
+    not needed and is deliberately not taken.
+#>
+$ppakDir = ""
+foreach ($r in $roots) {
+    $c = Get-ChildItem -LiteralPath $r -Filter "ppakgame.con" -Recurse -File -Depth 4 -ErrorAction SilentlyContinue |
+         Select-Object -First 1
+    if ($c) { $ppakDir = $c.DirectoryName; break }
+}
+
+if ($ppakDir -and -not $InPlace) {
+    $dukeDir = Join-Path (Join-Path $dest "games") "duke"
+    if (Test-Path -LiteralPath $dukeDir) {
+        $n = 0
+        foreach ($f in @("ppakgame.con", "ppakdefs.con", "ppakuser.con", "ppakpent.map")) {
+            $srcf = Join-Path $ppakDir $f
+            if (Test-Path -LiteralPath $srcf) {
+                Copy-Item -LiteralPath $srcf -Destination (Join-Path $dukeDir $f) -Force
+                $n++
+            }
+        }
+        if ($n -ge 4) {
+            Ok ("{0,-24} {1} files from {2}" -f "Penthouse Paradise", $n, $ppakDir)
+        } else {
+            Warn "Penthouse Paradise found but incomplete - skipped"
+        }
     }
 }
 
@@ -533,12 +591,18 @@ if (-not $seedPath) {
     # brings up a VR session, and with no headset connected it waits minutes for
     # one to become active - setup looks frozen and the desktop stutters behind
     # it. Playing is unaffected; the launchers do not pass it.
-    $razeArgs = ('-nosetup -portable -novr -gamegrp "{0}" -config "{1}" +logfile "{2}" +vrwritelaunchers' `
+    # +quit, or this never ends on its own. Without it the engine writes the
+    # launchers and then sits in the game until the timeout below kills it -
+    # two minutes of looking frozen, and a race the launchers can lose: killed
+    # before the write, setup reports that nothing was written, which is exactly
+    # what happened once the game list got long enough.
+    $razeArgs = ('-nosetup -portable -novr -gamegrp "{0}" -config "{1}" +logfile "{2}" +vrwritelaunchers +quit' `
                  -f $seedPath, $cfg, $log)
 
     $p = Start-Process -FilePath $exe -ArgumentList $razeArgs `
                        -WorkingDirectory $dest -PassThru -WindowStyle Minimized
-    if (-not $p.WaitForExit(120000)) { $p.Kill() }
+    # It exits on its own in about a second now. The wait is only a backstop.
+    if (-not $p.WaitForExit(60000)) { $p.Kill() }
     Start-Sleep -Seconds 1
 
     $wrote = $null

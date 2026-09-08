@@ -472,6 +472,46 @@ CCMD(vrwritelaunchers)
 			Two launchers, because they are two different games to a player:
 			the base one keeps its four episodes, and this one has five.
 		*/
+		/*
+			Duke Nukem's Penthouse Paradise, where setup has put it there.
+
+			Raze's own entries for it expect a repacked .grp - the ZOOM release
+			is one - and the original is a folder of loose files, so the scan
+			never identifies it and no launcher is written for it. But its CONs
+			include only each other, and it depends on the Atomic GRP, so
+			dropping the four ppak files beside Duke and naming the script is
+			the whole of it.
+		*/
+		if (g.isDuke && !g.isAddon && !g.isRoute66)
+		{
+			FString ppak = ExtractFilePath(g.path.GetChars());
+			if (ppak.Len() > 0 && ppak.Back() != '/' && ppak.Back() != '\\') ppak += '/';
+			ppak += "ppakgame.con";
+
+			if (FileExists(ppak.GetChars()))
+			{
+				FString pbase = "Duke Nukem's Penthouse Paradise VR";
+				FString pbody = body;
+				pbody.Substitute("-nosetup -portable", "-nosetup -portable -con ppakgame.con");
+				FString oldcfg, newcfg;
+				oldcfg.Format("cfg_%s.ini", base.GetChars());
+				newcfg.Format("cfg_%s.ini", pbase.GetChars());
+				pbody.Substitute(oldcfg.GetChars(), newcfg.GetChars());
+
+				FString pfile;
+				pfile.Format("%s/%s.bat", dir.GetChars(), pbase.GetChars());
+				FileWriter* pw = FileWriter::Open(pfile.GetChars());
+				if (pw != nullptr)
+				{
+					pw->Write(pbody.GetChars(), pbody.Len());
+					delete pw;
+					Printf("  %s   (add-on)\n", pbase.GetChars());
+					writtenFiles.Push(pbase + ".bat");
+					written++;
+				}
+			}
+		}
+
 		if (g.isDuke && !g.isAddon && !g.isRoute66)
 		{
 			FString wtcon = ExtractFilePath(g.path.GetChars());
