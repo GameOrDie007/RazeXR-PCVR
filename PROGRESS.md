@@ -3625,3 +3625,58 @@ so when `classic\` wins, the file is one folder up and the check finds nothing.
 identical files a directory walk reaches first.
 
 Nineteen launchers, nineteen distinct names.
+
+## Every game has its weapons now
+
+Powerslave had no voxel pistol, which was correct and documented - four games had
+no in-hand weapons at all without a VRaze install, and VRaze's downloads are
+gone. The owner confirmed permission to bundle, so the question became which
+models may actually ship.
+
+Hashing answers it. Of VRaze's hundred weapon models, **34 are byte-identical to
+things the user already has**: Blood's and Shadow Warrior's own pickup voxels,
+and Duke's from Cheello's pack. Those are not ours to ship whatever anyone
+grants - a game's own data does not stop being the game's because a modder
+packaged it - and they are still read off the user's disk at setup. The other
+**66 are nobody's game data**, and those ship, as `vrweapons_models.pk3`, 464 KB.
+
+```
+35 models from your own game data
+66 models from the bundled weapon models
+vrweapons.pk3: 91 models          (was 35)
+vrweapons_rr.pk3: 12 models       (was 0)
+```
+
+The split is computed, not asserted: a model that matches something buildable
+locally is left out of the archive by hash.
+
+## Which immediately found a bug of my own
+
+With those games finally holding models, three came out unplaced:
+
+```
+Powerslave  slot 2  m6        placement NO
+WWII GI     slot 2  mp4       placement NO
+WWII GI     slot 7  colt191   placement NO
+```
+
+`m60`, `mp40` and `colt1911` are whole names that end in digits - the exact case
+the engine's rule is careful about, and the exact care lost this morning by
+moving that decision into the builder, where it counted *surviving* models
+rather than *declared* ones. One survivor looked like a lone animation frame.
+
+It reads the declaration now: more than one model declared for a weapon means a
+trailing digit is a frame number, one means it is part of the name. All three
+back.
+
+**Nobody would have found this by playing.** Those games had no models at all
+until an hour ago, so the damage was invisible from the moment it was written
+until the moment the models arrived.
+
+## Three that stay flat, and are not ours to fix
+
+`mauser` on WWII GI, `blaster` and `throwdyn` on Redneck have models and no
+placement - VRaze never wrote one. Checked its offsets files directly rather
+than assuming. Documented in the README; inventing positions needs a headset.
+
+Everything else: zero missing placements across all seven games.

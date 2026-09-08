@@ -269,7 +269,7 @@ if ($VRaze) {
         $models[$k] = $vr[$k]
         $fromVRaze++
     }
-    Say "$fromVRaze models from the VRaze install"
+    Say "$fromVRaze models from the bundled weapon models"
 }
 
 if ($models.Count -eq 0) {
@@ -294,9 +294,16 @@ function Filter-Weapons($text, [ref]$kept, [ref]$renames) {
 
     # Which tiles survive, so a lone animation frame can be told from a set.
     $live = @{}
+    # And how many the def DECLARED per weapon, which is what says whether a
+    # trailing digit is a frame number at all.
+    $declared = @{}
     foreach ($line in $lines) {
         $m = [regex]::Match($line, '^\s*voxel\s+"([^"]+)"\s*\{\s*tile\s+(\d+)')
-        if ($m.Success -and $models.Contains($m.Groups[1].Value)) { $live[[int]$m.Groups[2].Value] = $true }
+        if (-not $m.Success) { continue }
+        $t = [int]$m.Groups[2].Value
+        $decade = [math]::Floor($t / 10)
+        if ($declared.ContainsKey($decade)) { $declared[$decade]++ } else { $declared[$decade] = 1 }
+        if ($models.Contains($m.Groups[1].Value)) { $live[$t] = $true }
     }
 
     $out = New-Object System.Collections.Generic.List[string]
@@ -327,7 +334,20 @@ function Filter-Weapons($text, [ref]$kept, [ref]$renames) {
                 So when frame zero is all that is left, it is emitted under the
                 base name and the file is stored under it too.
             #>
-            if (($tile % 10) -eq 0 -and $path -match '^(.*?)(\d)\.kvx$') {
+            <#
+                Only a weapon the def itself declares more than one model for
+                can have a frame number on the end.
+
+                Counting surviving models instead was wrong in the one direction
+                that matters: vr_m60, vr_weapon_ww2gi_mp40 and colt1911 are
+                whole names that happen to end in digits, each declared once,
+                and stripping theirs produced m6, mp4 and colt191 - placements
+                that do not exist, so those three weapons went flat. Exactly the
+                case the engine's own rule is careful about, lost by moving the
+                decision somewhere that could not see the declaration.
+            #>
+            if (($tile % 10) -eq 0 -and $path -match '^(.*?)(\d)\.kvx$' -and
+                $declared[[math]::Floor($tile / 10)] -gt 1) {
                 $stem = $Matches[1]
                 $others = @(1..9 | Where-Object { $live.ContainsKey($tile + $_) })
                 if ($others.Count -eq 0) {

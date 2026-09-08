@@ -6,7 +6,7 @@ expansions - eighteen entries in all, including World Tour's Alien World Order.
 
 This is a PC port of [Team Beef](https://www.teambeef.org/)'s **RazeXR**, their Quest VR
 build of [Raze](https://github.com/ZDoom/Raze). RazeXR runs on Android and OpenXR; this
-moves it to Windows, desktop OpenGL and PCVR, and adds voxel weapons held in your hand.
+moves it to Windows, desktop OpenGL and PCVR, and adds voxel weapons held in your hand - ninety-one of them, every game covered.
 
 Tested with a Quest 3 over Virtual Desktop (VDXR).
 
@@ -129,22 +129,24 @@ You need your own copies of the games. Nothing here contains game data.
 None of these ship with this port and none are ours to distribute. Each is picked up
 automatically if the file is beside the executable.
 
-**Voxel weapons in your hands** work out of the box for Duke, Blood and Shadow
-Warrior. Setup builds `vrweapons.pk3` for you, because the models are not ours to
-ship and do not need to be: Blood's and Shadow Warrior's weapons are the pickup
-voxels those games already contain, taken from your own `BLOOD.RFF` and `SW.GRP`,
-and Duke's come from a voxel pack setup downloads. Thirty-five weapons, no extra
-downloads, nothing of anyone else's redistributed.
+**Voxel weapons in your hands** work out of the box for every game, ninety-one
+models in all. Setup assembles `vrweapons.pk3` from two places:
 
-The remaining four games - Exhumed, NAM, Redneck Rampage and WWII GI - use models
-that are neither the games' own nor ours, along with the animation frames that make
-a weapon cycle. Those come only from a VRaze install, whose **public downloads have
-been withdrawn**. If you have a copy, point setup at it:
+- **Thirty-five come off your own disk.** Blood's and Shadow Warrior's weapons are
+  the pickup voxels those games already contain, read out of your own `BLOOD.RFF`
+  and `SW.GRP`; Duke's are Cheello's, out of the voxel pack. None of these ship
+  here and none need to - no permission covers redistributing a game's own data,
+  and there is nothing to redistribute when the file is already on your disk.
+- **Sixty-six are bundled**, as `vrweapons_models.pk3`. These are the ones that are
+  nobody's game data: Exhumed's, NAM's, Redneck's and WWII GI's weapons, and the
+  animation frames that make a weapon cycle. They come from VRaze, whose own
+  downloads have been withdrawn, and every contributor gave permission - see
+  `THIRD-PARTY-PERMISSIONS.md`.
+
+If you have a VRaze install of your own you can still point setup at it, and it
+will be used instead:
 
     SETUP.bat -VRaze "path\to\VRaze\raze.pk3"
-
-Without it those four games use their ordinary flat weapon sprites, and the three
-above stay still rather than animating. Everything else works normally.
 
 **Voxel monsters and props** — two packs, and the launcher takes whichever is present,
 preferring the first:
@@ -195,9 +197,10 @@ alternate weapon in a shared slot.
 
 - Some weapons stay as flat sprites because no voxel model exists for them anywhere:
   Shadow Warrior's fists and sword, Exhumed's sword and mummified hands, Duke's mighty
-  foot, Redneck's crowbar and bowling ball, Blood's pitchfork.
-- Without a VRaze install, Exhumed, NAM, Redneck and WWII GI have no weapon models at
-  all and use flat sprites throughout. See Optional extras.
+  foot, Redneck's crowbar and bowling ball.
+- Three more have a model but no placement, because VRaze never defined one for them:
+  WWII GI's mauser, and Redneck's blaster and thrown dynamite. They keep their flat
+  sprites. Nothing is missing from your install; the position was never written.
 - Shadow Warrior's akimbo uzis, quad shotgun and nuke are only reachable if Alt Weapon
   is bound — it is by default, to the off-hand stick click.
 - Weapon animation frames - Duke's pistol slide, Blood's napalm launcher and Shadow

@@ -143,6 +143,22 @@ attribution was, and this is the answer to it.
 If you recognise your own work among them, please open an issue — it will be
 credited properly and gladly.
 
+### They are bundled now, as `vrweapons_models.pk3`
+
+The owner confirms that every contributor in that Discord gave permission to
+bundle, which is the basis for shipping them. VRaze's own downloads have been
+withdrawn, so without this the four games whose weapons are nobody's game data —
+Exhumed, NAM, Redneck Rampage and WWII GI — have no voxel weapons at all for
+anyone who did not already own a copy.
+
+**66 of the 100 models ship. The other 34 do not, and the split is not
+negotiable:** Blood's and Shadow Warrior's weapons are those games' own pickup
+voxels and Duke's are Cheello's, and no permission from a modder covers
+redistributing a game's own data. Those are still taken from the user's own
+`BLOOD.RFF` and `SW.GRP` and from Cheello's pack at setup time. The split is
+made by hashing, not by trusting a filename — a model that matches something
+buildable locally is left out of the archive.
+
 ## Other Build voxel packs (not bundled)
 
 Not used at present, and recorded because they are the only fallbacks if VRaze's

@@ -601,9 +601,26 @@ foreach ($pk in $packs) {
 $builder = Join-Path $here "build-vrweapons.ps1"
 if (-not (Test-Path $builder)) { $builder = Join-Path $dest "build-vrweapons.ps1" }
 if (Test-Path $builder) {
+    <#
+        The bundled overlay, unless the user pointed at a VRaze install of their
+        own.
+
+        vrweapons_models.pk3 holds the 66 weapon models that cannot be derived
+        from anything the user already has - Exhumed's, NAM's, Redneck's and
+        WWII GI's, plus the animation frames. The other 34 are Blood's and
+        Shadow Warrior's own pickup voxels and Duke's from Cheello's pack, and
+        those are still taken from the user's own copies rather than shipped:
+        no permission from a modder covers redistributing a game's own data.
+    #>
+    $overlay = $VRaze
+    if (-not $overlay) {
+        $bundled = Join-Path $dest "vrweapons_models.pk3"
+        if (Test-Path -LiteralPath $bundled) { $overlay = $bundled }
+    }
+
     try {
-        & $builder -Root $dest -VRaze $VRaze
-        if (-not $VRaze) {
+        & $builder -Root $dest -VRaze $overlay
+        if (-not $overlay) {
             Info "for the animation frames and the Exhumed / NAM / Redneck / WWII GI"
             Info "weapons, re-run with -VRaze pointing at a VRaze raze.pk3."
         }

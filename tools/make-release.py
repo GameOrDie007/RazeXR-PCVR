@@ -50,6 +50,12 @@ FROM_RUN = [
     # in THIRD-PARTY-PERMISSIONS.md. Bundling is what makes voxel monsters work
     # with no download - it is on ModDB, which cannot be fetched by script.
     "voxel_duke3d.zip",
+    # The 66 weapon models that cannot be built from anything the user already
+    # owns - Exhumed, NAM, Redneck and WWII GI, and the animation frames. Every
+    # contributor gave permission in the Team Beef Discord; see
+    # THIRD-PARTY-PERMISSIONS.md. The other 34 are the games' own data and
+    # Cheello's, and are still built on the user's machine, never shipped.
+    "vrweapons_models.pk3",
 ]
 
 FROM_REPO = [
@@ -70,7 +76,8 @@ BANNED_EXT = (".grp", ".rff", ".map", ".con", ".art", ".kvx", ".dat",
 ALLOWED_FILES = {
     "raze_portable.ini",   # our own marker file
     "raze.pk3",            # our own engine resources
-    "voxel_duke3d.zip",    # permission recorded, see THIRD-PARTY-PERMISSIONS.md
+    "voxel_duke3d.zip",      # permission recorded, see THIRD-PARTY-PERMISSIONS.md
+    "vrweapons_models.pk3",  # the same, and nothing in it is a game's own data
 }
 
 REFUSED_FILES = {
