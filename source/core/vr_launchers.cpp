@@ -239,6 +239,38 @@ static FString LauncherName(const char* gameName)
 // from any other .bat sitting in the folder.
 static bool ReadLauncherName(const char* path, FString& nameOut);
 
+//==========================================================================
+//
+// A file setup put beside a game's data, found whichever copy of a duplicated
+// GRP the scan happened to report.
+//
+// Steam ships the Atomic GRP twice - games/duke/duke3d.grp and
+// games/duke/classic/DUKE3D.GRP - and which of two byte-identical files the
+// scan reports is not something a feature should hang on. Setup writes
+// WT_GAME.CON beside the game data, so when the copy that won is the one in
+// classic\, the file is one folder up. Look in both.
+//
+//==========================================================================
+
+static FString FindBesideOrAbove(const FString& grpPath, const char* name)
+{
+	FString dir = ExtractFilePath(grpPath.GetChars());
+	FixPathSeperator(dir);
+	while (dir.Len() > 1 && dir.Back() == '/') dir.Truncate(dir.Len() - 1);
+
+	for (int up = 0; up < 2 && dir.Len() > 1; up++)
+	{
+		FString probe;
+		probe.Format("%s/%s", dir.GetChars(), name);
+		if (FileExists(probe.GetChars())) return probe;
+
+		ptrdiff_t slash = dir.LastIndexOf('/');
+		if (slash <= 0) break;
+		dir.Truncate(slash);
+	}
+	return "";
+}
+
 CCMD(vrwritelaunchers)
 {
 	PreferLocalCopies();
@@ -477,10 +509,7 @@ CCMD(vrwritelaunchers)
 		*/
 		if (g.isWorldTour)
 		{
-			FString wtcon = ExtractFilePath(g.path.GetChars());
-			if (wtcon.Len() > 0 && wtcon.Back() != '/' && wtcon.Back() != '\\') wtcon += '/';
-			wtcon += "WT_GAME.CON";
-			if (FileExists(wtcon.GetChars())) body << " -con WT_GAME.CON";
+			if (FindBesideOrAbove(g.path, "WT_GAME.CON").IsNotEmpty()) body << " -con WT_GAME.CON";
 		}
 
 		body << " -gamegrp \"%GRP%\"";
@@ -526,15 +555,25 @@ CCMD(vrwritelaunchers)
 		*/
 		if (g.isDuke && !g.isAddon && !g.isRoute66)
 		{
-			FString ppak = ExtractFilePath(g.path.GetChars());
-			if (ppak.Len() > 0 && ppak.Back() != '/' && ppak.Back() != '\\') ppak += '/';
-			ppak += "ppakgame.con";
+			FString ppak;
+			ppak.Format("%s/penthouse_paradise.zip", dir.GetChars());
 
 			if (FileExists(ppak.GetChars()))
 			{
 				FString pbase = "Duke Nukem's Penthouse Paradise VR";
 				FString pbody = body;
 				pbody.Substitute("-nosetup -portable", "-nosetup -portable -con ppakgame.con");
+				/*
+					Its own archive, loaded after the game folder so it wins.
+
+					Penthouse Paradise ships a TILES014.art of its own, and the
+					Atomic GRP has a TILES014 too - dropped in beside Duke it
+					would have replaced that art for every other Duke game.
+					Without it the add-on's floors come out as tiled Duke logos,
+					which is what a missing tile looks like. In an archive of its
+					own it reaches only the launcher that names it.
+				*/
+				pbody.Substitute(" %VRW% ", " %VRW% -file \"%~dp0penthouse_paradise.zip\" ");
 
 				/*
 					And the name it announces itself by.
@@ -570,11 +609,7 @@ CCMD(vrwritelaunchers)
 
 		if (g.isDuke && !g.isAddon && !g.isRoute66)
 		{
-			FString wtcon = ExtractFilePath(g.path.GetChars());
-			if (wtcon.Len() > 0 && wtcon.Back() != '/' && wtcon.Back() != '\\') wtcon += '/';
-			wtcon += "WT_GAME.CON";
-
-			if (FileExists(wtcon.GetChars()))
+			if (FindBesideOrAbove(g.path, "WT_GAME.CON").IsNotEmpty())
 			{
 				FString wtbase = "Duke Nukem 3D - World Tour VR";
 				FString wtbody = body;
