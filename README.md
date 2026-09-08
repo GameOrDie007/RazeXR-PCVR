@@ -2,7 +2,7 @@
 
 Seven Build engine games in PC VR: **Duke Nukem 3D**, **Blood**, **Shadow Warrior**,
 **Redneck Rampage**, **NAM**, **WWII GI** and **Exhumed/PowerSlave** — plus their
-expansions, seventeen entries in all.
+expansions - eighteen entries in all, including World Tour's Alien World Order.
 
 This is a PC port of [Team Beef](https://www.teambeef.org/)'s **RazeXR**, their Quest VR
 build of [Raze](https://github.com/ZDoom/Raze). RazeXR runs on Android and OpenXR; this
@@ -29,6 +29,53 @@ This exists because of other people's work.
 - **Voxel Duke 3D** — Daniel Peterson ("Cheello"), included with his permission.
 - **Duke3D Voxel Pack** — ReaperMan and the Duke4.net community.
 - The original developers: 3D Realms, Monolith, Lobotomy Software, Xatrix, TNT Team.
+
+## Which games, and where each one comes from
+
+Setup finds these on your PC. You need to own them; nothing here supplies game data.
+
+Almost every expansion **ships inside its base game** - there is nothing separate to buy,
+and nothing to hunt for on GOG. That trips people up, so it is spelled out.
+
+| Game | Where it comes from |
+|---|---|
+| **Duke Nukem 3D** — 1.3D, Atomic, Plutonium or World Tour | any Duke release |
+| Duke it out in D.C. | in the Duke bundles (`addons\dc`) |
+| Duke Caribbean: Life's a Beach | in the Duke bundles (`addons\vacation`) |
+| Duke: Nuclear Winter | in the Duke bundles (`addons\nw`) |
+| Duke!ZONE II | in Megaton Edition |
+| Duke: Alien World Order | **World Tour** — episode five, built by setup |
+| **Blood** — One Unit Whole Blood | the classic release, *not* Fresh Supply |
+| BLOOD: Cryptic Passage | in One Unit Whole Blood |
+| **Shadow Warrior** | Classic or Classic Redux both work |
+| Shadow Warrior: Wanton Destruction | in Shadow Warrior |
+| Shadow Warrior: Twin Dragon | in Shadow Warrior |
+| **Redneck Rampage** | GOG's Redneck Rampage Collection |
+| Redneck Rampage Rides Again | in the same collection |
+| Redneck Rampage: Suckin' Grits on Route 66 | in the same collection |
+| **NAM** | its own release |
+| **WWII GI** | its own release |
+| Platoon Leader | **in WWII GI** — never sold separately |
+| **Exhumed / PowerSlave** | the original DOS release only — see below |
+
+Raze also recognises **NAPALM** (a NAM variant) and **Duke Nukem's Penthouse Paradise**,
+both obscure enough that most people will never see them, and the shareware and demo
+versions of Duke and Shadow Warrior.
+
+### Exhumed / PowerSlave needs the DOS original
+
+The 2022 **PowerSlave Exhumed** from Nightdive - the one currently sold on Steam and GOG -
+**will not work**. It is a rewrite on the KEX engine with its own repacked assets: no
+`STUFF.DAT`, and its maps are in Nightdive's own format rather than Build's. There is
+nothing inside it Raze can read and nothing that can be converted. Checked, not assumed.
+
+What Raze needs is the original DOS **Powerslave** or **Exhumed**, identified by a
+`STUFF.DAT` of about 27 MB. That release was sold digitally before the remaster replaced
+it, so if you bought it back then it is still in your library - look for a separate
+classic entry, and check the remaster's Extras or bonus downloads, which sometimes carry
+the original. Otherwise a disc.
+
+Setup says so when it finds the remaster, rather than only reporting the game as missing.
 
 ## What this adds over RazeXR
 
@@ -80,7 +127,7 @@ automatically if the file is beside the executable.
 Warrior. Setup builds `vrweapons.pk3` for you, because the models are not ours to
 ship and do not need to be: Blood's and Shadow Warrior's weapons are the pickup
 voxels those games already contain, taken from your own `BLOOD.RFF` and `SW.GRP`,
-and Duke's come from a voxel pack setup downloads. Thirty-four weapons, no extra
+and Duke's come from a voxel pack setup downloads. Thirty-five weapons, no extra
 downloads, nothing of anyone else's redistributed.
 
 The remaining four games - Exhumed, NAM, Redneck Rampage and WWII GI - use models
@@ -105,7 +152,17 @@ preferring the first:
   switches and signs, but not the humanoid enemies. Setup downloads this one
   automatically. Its art is non-commercial and share-alike, so it is not bundled.
 
-Both are Duke only, and the launchers for the other games ignore them.
+Both of those are Duke only. **Blood, Shadow Warrior and Exhumed have packs of their
+own** - props, scenery, decals and some enemies - by fgsfds, Dzierzan and contributors,
+which setup fetches from their authors' own repositories. Same non-commercial
+share-alike licence, so they are downloaded rather than bundled, and each keeps its own
+`license.txt`.
+
+These are props and monsters, which is a different thing from the weapon models above:
+a game can have voxel scenery and still hold a flat weapon, and Exhumed, NAM, Redneck
+and WWII GI do exactly that without a VRaze install.
+
+Redneck Rampage, NAM and WWII GI have no voxel pack that we know of.
 
 ## Controls
 
