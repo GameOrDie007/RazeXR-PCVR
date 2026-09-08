@@ -3529,3 +3529,46 @@ Shadow Warrior slots 12   placement-missing 0
 
 Blood is the reason to sweep. It was reported working - he had played it and
 seen voxel weapons - and it was one weapon short the whole time.
+
+## Two launchers missing, one dying, and both were guessed paths
+
+Seventeen launchers where nineteen were expected - World Tour and Penthouse
+Paradise gone - and Life's a Beach failing with *Unable to find any game data*,
+which names the one thing that was definitely present.
+
+**Steam's Duke ships the same Atomic GRP twice**, as `games/duke/duke3d.grp` and
+`games/duke/classic/DUKE3D.GRP`. The duplicate rule kept whichever the walk
+reached first, which was the one in `classic\`. Everything that keys off the
+base game's own folder then looked in a folder those files are not in -
+`WT_GAME.CON` and `ppakgame.con` both sit next to `duke3d.grp` - and both extra
+launchers stopped being written, silently, because absence is what that check
+returns. Local duplicates now prefer the shallower path.
+
+**The portable path was the last two components of wherever the file was found.**
+That assumed `<root>/<game>/<file>`, and Steam keeps expansions at
+`games/duke/addons/vacation/vacation.grp`, which became
+`gamesacationacation.grp` - a path that does not exist, so every nested
+expansion's launcher fell through to the absolute path it was written with and
+quietly stopped being portable. It is the real relative path under the run
+folder now, and only a guess when the file is somewhere else entirely.
+
+**And the same assumption in the search root** is what killed Life's a Beach.
+`-portable` took the grandparent of the GRP, which for that path is
+`games/duke/addons` - a walk from there never sees `games/duke`, so the Atomic
+GRP the expansion depends on is not found, the entry is dropped for a missing
+dependency, and nothing is left. The root is `<run folder>/games` when the file
+is under it.
+
+Verified on his install, every Duke launcher that exists:
+
+```
+Caribbean  DC  NuclearWinter  WorldTour  Penthouse  DukeZONE
+exit 0, no missing data, level started, all six
+```
+
+Nineteen launchers again.
+
+**All three are the same mistake** - deriving a path by assuming a shape rather
+than reading what is there - and all three were invisible until a real install
+had a shape that did not match. `classic\` and `addons\` are both perfectly
+ordinary; nothing was malformed.

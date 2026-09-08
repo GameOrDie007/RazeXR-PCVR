@@ -107,9 +107,30 @@ static void PreferLocalCopies()
 		{
 			if (Games[i].name.CompareNoCase(Games[j].name) != 0) continue;
 
-			// Same game twice. The local copy wins; if neither is local, or
-			// both are, the one found first stays.
-			if (isLocal(Games[i]) && !isLocal(Games[j])) Games[j] = Games[i];
+			/*
+				Same game twice. The local copy wins; where both are local the
+				shallower path does.
+
+				Steam's Duke ships the same Atomic GRP twice, as
+				games/duke/duke3d.grp and games/duke/classic/DUKE3D.GRP. Taking
+				whichever the walk reached first picked the one in classic\,
+				and everything that keys off the base game's own folder - World
+				Tour's WT_GAME.CON, Penthouse Paradise's ppakgame.con - then
+				looked in a folder those files are not in, and both launchers
+				quietly stopped being written.
+			*/
+			auto depth = [](const FString& p) {
+				int n = 0;
+				for (unsigned k = 0; k < p.Len(); k++) if (p[k] == '/' || p[k] == '\\') n++;
+				return n;
+			};
+
+			bool takeI = false;
+			if (isLocal(Games[i]) && !isLocal(Games[j])) takeI = true;
+			else if (isLocal(Games[i]) == isLocal(Games[j]) &&
+			         depth(Games[i].path) < depth(Games[j].path)) takeI = true;
+
+			if (takeI) Games[j] = Games[i];
 			Games.Delete(i);
 			break;
 		}
@@ -402,22 +423,43 @@ CCMD(vrwritelaunchers)
 			continue;
 		}
 
+		/*
+			The portable path is what the file's path actually is under the run
+			folder, not a guess made from its last two components.
+
+			That guess assumed <root>/<game>/<file> and turned
+			games/duke/addons/vacation/vacation.grp into games\\vacation\\
+			vacation.grp - a path that does not exist, so every launcher for a
+			nested expansion silently fell back to the absolute path it was
+			written with and stopped being portable at all.
+		*/
 		FString rel = g.path;
 		rel.Substitute("\\", "/");
-		FString tail = rel;
+
+		FString here = progdir;
+		FixPathSeperator(here);
+		while (here.Len() > 1 && here.Back() == '/') here.Truncate(here.Len() - 1);
+
+		FString lrel = rel; lrel.ToLower();
+		FString lhere = here; lhere.ToLower();
+
+		FString tail;
+		if (here.Len() > 1 && lrel.IndexOf(lhere + "/") == 0)
+		{
+			tail = rel.Mid(here.Len() + 1);
+		}
+		else
 		{
 			ptrdiff_t slash = rel.LastIndexOf('/');
-			if (slash > 0)
-			{
-				ptrdiff_t prev = rel.LastIndexOf('/', slash - 1);
-				tail = prev >= 0 ? rel.Mid(prev + 1) : rel.Mid(slash + 1);
-			}
+			ptrdiff_t prev = slash > 0 ? rel.LastIndexOf('/', slash - 1) : -1;
+			tail = "games/";
+			tail += prev >= 0 ? rel.Mid(prev + 1) : rel.Mid(slash + 1);
 		}
 		tail.Substitute("/", "\\");
 
 		body << "rem Game data. A copy in games\\ beside this script wins, so this\r\n";
 		body << "rem folder can be moved to another PC; otherwise where it was found.\r\n";
-		body << "set \"GRP=%~dp0games\\" << tail << "\"\r\n";
+		body << "set \"GRP=%~dp0" << tail << "\"\r\n";
 		body << "if not exist \"%GRP%\" set \"GRP=" << g.path << "\"\r\n";
 		body << "\r\n";
 		// -portable: look for game data in this folder only, never in Steam
