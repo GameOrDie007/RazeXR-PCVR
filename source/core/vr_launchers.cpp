@@ -155,9 +155,27 @@ static FString SafeFileName(const char* name)
 
 	for (const char* c = name; *c; c++)
 	{
-		// Anything Windows will not take in a filename, plus a few that are
-		// legal but awkward to type at a prompt.
-		if (strchr("\\/:*?\"<>|", *c) != nullptr) continue;
+		/*
+			A colon is illegal in a filename and it is the only punctuation
+			these names actually use, always to separate a game from its
+			edition: "Duke Nukem 3D: Atomic Edition", "BLOOD: One Unit Whole
+			Blood". Dropping it ran the two halves together. It becomes " - ",
+			and the space that follows it in the source is swallowed so the
+			result is not "3D -  Atomic".
+		*/
+		if (*c == ':')
+		{
+			if (out.Len() > 0)
+			{
+				out << " - ";
+				lastWasSpace = true;
+			}
+			continue;
+		}
+
+		// Anything else Windows will not take in a filename, plus a few that
+		// are legal but awkward to type at a prompt.
+		if (strchr("\\/*?\"<>|", *c) != nullptr) continue;
 
 		if (*c == ' ')
 		{
@@ -169,12 +187,36 @@ static FString SafeFileName(const char* name)
 		out << *c;
 	}
 
-	while (out.Len() > 0 && (out.Back() == ' ' || out.Back() == '.')) out.Truncate(out.Len() - 1);
+	while (out.Len() > 0 && (out.Back() == ' ' || out.Back() == '-')) out.Truncate(out.Len() - 1);
 	if (out.IsEmpty()) out = "Raze";
 	return out;
 }
 
 //==========================================================================
+//
+// What the file is called: "<game> VR.bat".
+//
+// The suffix is there because these sit in a folder the player opens to pick a
+// game, often alongside the flat versions of the same games, and "Duke Nukem 3D
+// - Atomic Edition VR.bat" says which one it is without opening it. Appending
+// after the trailing-dot trim rather than before is what keeps "Duke it out in
+// D.C." its full stop - a trailing dot is illegal, one in the middle is not.
+//
+//==========================================================================
+
+static FString LauncherName(const char* gameName)
+{
+	FString base = SafeFileName(gameName);
+	while (base.Len() > 0 && base.Back() == ' ') base.Truncate(base.Len() - 1);
+	base << " VR";
+	return base;
+}
+
+//==========================================================================
+
+// Defined with the Switch Game menu below; used here to tell a launcher of ours
+// from any other .bat sitting in the folder.
+static bool ReadLauncherName(const char* path, FString& nameOut);
 
 CCMD(vrwritelaunchers)
 {
@@ -194,10 +236,11 @@ CCMD(vrwritelaunchers)
 	if (dir.IsEmpty()) dir = ".";
 
 	int written = 0;
+	TArray<FString> writtenFiles;
 
 	for (auto& g : Games)
 	{
-		FString base = SafeFileName(g.name.GetChars());
+		FString base = LauncherName(g.name.GetChars());
 		FString file;
 		file.Format("%s/%s.bat", dir.GetChars(), base.GetChars());
 
@@ -354,6 +397,7 @@ CCMD(vrwritelaunchers)
 			w66->Write(body.GetChars(), body.Len());
 			delete w66;
 			Printf("  %s%s\n", base.GetChars(), g.isAddon ? "   (add-on)" : "");
+			writtenFiles.Push(base + ".bat");
 			written++;
 			continue;
 		}
@@ -412,6 +456,7 @@ CCMD(vrwritelaunchers)
 		delete w;
 
 		Printf("  %s%s\n", base.GetChars(), g.isAddon ? "   (add-on)" : "");
+		writtenFiles.Push(base + ".bat");
 		written++;
 
 		/*
@@ -435,7 +480,7 @@ CCMD(vrwritelaunchers)
 
 			if (FileExists(wtcon.GetChars()))
 			{
-				FString wtbase = "Duke Nukem 3D World Tour";
+				FString wtbase = "Duke Nukem 3D - World Tour VR";
 				FString wtbody = body;
 				wtbody.Substitute("-nosetup -portable", "-nosetup -portable -con WT_GAME.CON");
 				FString oldcfg, newcfg;
@@ -451,13 +496,64 @@ CCMD(vrwritelaunchers)
 					ww->Write(wtbody.GetChars(), wtbody.Len());
 					delete ww;
 					Printf("  %s   (episode five)\n", wtbase.GetChars());
+					writtenFiles.Push(wtbase + ".bat");
 					written++;
 				}
 			}
 		}
 	}
 
+	/*
+		Take away the launchers this run did not write.
+
+		Only ones carrying our own marker line are touched, so SETUP.bat and
+		anything the player keeps here are safe. Without this a game that is no
+		longer installed, or one whose name has changed, leaves a .bat behind
+		that still looks valid - and the Switch Game menu reads the folder, so
+		a stale file becomes a menu entry that starts nothing.
+	*/
+	int removed = 0;
+	{
+		FString pattern;
+		pattern.Format("%s/*.bat", dir.GetChars());
+		std::wstring wpattern = pattern.WideString().c_str();
+
+		WIN32_FIND_DATAW fd = {};
+		HANDLE h = FindFirstFileW(wpattern.c_str(), &fd);
+		if (h != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
+
+				FString name = FString(fd.cFileName);
+				bool ours = false;
+				for (auto& w : writtenFiles)
+				{
+					if (w.CompareNoCase(name) == 0) { ours = true; break; }
+				}
+				if (ours) continue;
+
+				// Not written this time. Ours to remove only if it carries the
+				// marker; a name we cannot read is left alone.
+				FString full;
+				full.Format("%s/%s", dir.GetChars(), name.GetChars());
+				FString ignored;
+				if (!ReadLauncherName(full.GetChars(), ignored)) continue;
+
+				if (remove(full.GetChars()) == 0)
+				{
+					Printf("  removed %s   (no longer installed)\n", name.GetChars());
+					removed++;
+				}
+			}
+			while (FindNextFileW(h, &fd));
+			FindClose(h);
+		}
+	}
+
 	Printf("Wrote %d launcher%s to %s\n", written, written == 1 ? "" : "s", dir.GetChars());
+	if (removed > 0) Printf("Removed %d stale launcher%s\n", removed, removed == 1 ? "" : "s");
 #else
 	Printf("vrwritelaunchers is only implemented for Windows.\n");
 #endif
