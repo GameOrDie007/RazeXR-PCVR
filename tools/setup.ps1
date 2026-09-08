@@ -376,9 +376,71 @@ if (Test-Path $voxCheello) {
     }
 }
 
-if (-not (Test-Path $voxCheello)) {
+if (-not (Test-Path -LiteralPath $voxCheello)) {
     Info "for voxel MONSTERS as well, get Voxel Duke 3D and drop the zip in this folder:"
     Info "  https://www.moddb.com/mods/voxel-duke-nukem-3d/downloads"
+}
+
+<#
+    The other games' voxel packs.
+
+    Blood, Shadow Warrior and Exhumed have community packs of their own - props,
+    scenery and some monsters - by fgsfds and contributors, under the same
+    non-commercial share-alike Voxel Pack Art License as the Duke3D pack. They
+    are fetched from the authors' own repositories rather than redistributed by
+    us, and each carries its own license.txt inside.
+
+    Taken as the repository archive rather than a release, because only one of
+    the three publishes release assets and all three keep the pack in the tree.
+    GitHub wraps a source zip in a <repo>-<branch>/ folder and Raze reads the
+    defs from the archive root, so the wrapper is stripped and the contents
+    repacked here, on the user's machine.
+
+    Each pack ships <game>-raze.def, so dropping the archive in is the whole
+    installation - the launcher just names it.
+#>
+$packs = @(
+    @{ Name = "Blood voxel pack";          File = "voxels_blood.zip";
+       Url  = "https://github.com/fgsfds/Blood-Voxel-Pack/archive/refs/heads/master.zip" },
+    @{ Name = "Shadow Warrior voxel pack"; File = "voxels_sw.zip";
+       Url  = "https://github.com/fgsfds/Shadow-Warrior-Voxel-Pack/archive/refs/heads/master.zip" },
+    @{ Name = "Exhumed voxel pack";        File = "voxels_exhumed.zip";
+       Url  = "https://github.com/fgsfds/Powerslave-Voxel-Pack/archive/refs/heads/master.zip" }
+)
+
+foreach ($pk in $packs) {
+    $out = Join-Path $dest $pk.File
+    if (Test-Path -LiteralPath $out) {
+        Ok ("{0} already present" -f $pk.Name)
+        continue
+    }
+    if ($NoDownload) {
+        Info ("{0} skipped (-NoDownload)" -f $pk.Name)
+        continue
+    }
+
+    $tmp = Join-Path $env:TEMP ("razexr_" + [guid]::NewGuid().ToString() + ".zip")
+    $ex  = Join-Path $env:TEMP ("razexr_x_" + [guid]::NewGuid().ToString())
+    try {
+        Write-Host ("  ...  downloading the {0}" -f $pk.Name) -ForegroundColor DarkGray
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri $pk.Url -OutFile $tmp -UseBasicParsing
+
+        Expand-Archive -LiteralPath $tmp -DestinationPath $ex -Force
+        $inner = Get-ChildItem -LiteralPath $ex -Directory | Select-Object -First 1
+        if (-not $inner) { throw "archive had no folder in it" }
+        Compress-Archive -Path (Join-Path $inner.FullName '*') -DestinationPath $out -Force
+
+        $size = (Get-Item -LiteralPath $out).Length
+        if ($size -lt 100000) { Remove-Item -LiteralPath $out -Force; throw "result too small" }
+        Ok ("{0}, {1:N0} bytes" -f $pk.Name, $size)
+    } catch {
+        Warn ("could not fetch the {0} - optional, everything else works" -f $pk.Name)
+        Info ("  " + $pk.Url)
+    } finally {
+        if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
+        if (Test-Path -LiteralPath $ex)  { Remove-Item -LiteralPath $ex -Recurse -Force -ErrorAction SilentlyContinue }
+    }
 }
 
 # The voxel weapons in your hands. Built here rather than shipped: the models
