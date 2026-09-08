@@ -307,15 +307,45 @@ TArray<FString> CollectSearchPaths()
 	*/
 	if (userConfig.gamegrp.IsNotEmpty())
 	{
-		FString dir = ExtractFilePath(userConfig.gamegrp.GetChars());
-		FixPathSeperator(dir);
-		if (dir.Len() > 1 && dir.Back() == '/') dir.Truncate(dir.Len() - 1);
-		FString root = ExtractFilePath(dir.GetChars());
-		if (root.Len() > 1)
+		/*
+			The root is <run folder>/games when the file is under it, and only
+			the file's grandparent otherwise.
+
+			Taking the grandparent unconditionally assumed every game sits at
+			<root>/<game>/<file>, and retail installs do not oblige: Steam keeps
+			Duke's expansions at games/duke/addons/vacation/vacation.grp, whose
+			grandparent is games/duke/addons. Searching from there never sees
+			games/duke, so the Atomic GRP the expansion depends on is not found,
+			the entry is dropped for a missing dependency, and the launcher dies
+			with "Unable to find any game data" - naming the one thing that was
+			definitely present.
+		*/
+		FString gg = userConfig.gamegrp;
+		FixPathSeperator(gg);
+
+		FString here = progdir;
+		FixPathSeperator(here);
+		while (here.Len() > 1 && here.Back() == '/') here.Truncate(here.Len() - 1);
+		FString gamesdir = here + "/games";
+
+		FString lgg = gg; lgg.ToLower();
+		FString lgames = gamesdir; lgames.ToLower();
+
+		FString root;
+		if (here.Len() > 1 && lgg.IndexOf(lgames + "/") == 0)
 		{
-			if (root.Back() == '/') root.Truncate(root.Len() - 1);
-			CollectPortableTree(searchpaths, root, 3);
+			root = gamesdir;
 		}
+		else
+		{
+			FString dir = ExtractFilePath(gg.GetChars());
+			FixPathSeperator(dir);
+			if (dir.Len() > 1 && dir.Back() == '/') dir.Truncate(dir.Len() - 1);
+			root = ExtractFilePath(dir.GetChars());
+			if (root.Len() > 1 && root.Back() == '/') root.Truncate(root.Len() - 1);
+		}
+
+		if (root.Len() > 1) CollectPortableTree(searchpaths, root, 3);
 	}
 
 	/*
