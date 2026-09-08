@@ -304,6 +304,7 @@ CCMD(vrwritelaunchers)
 		body << "rem Start Virtual Desktop and connect the headset before running this.\r\n";
 		body << "setlocal\r\n";
 		body << "cd /d \"%~dp0\"\r\n";
+		body << "if not exist \"%~dp0logs\" md \"%~dp0logs\"\r\n";
 		body << "\r\n";
 		body << "rem The voxel weapon pack, if it has been built.\r\n";
 		body << "set \"VRW=\"\r\n";
@@ -439,7 +440,18 @@ CCMD(vrwritelaunchers)
 			body << "if not exist \"%GRP%\" set \"GRP=" << basegrp << "\"\r\n";
 			body << "\r\n";
 			body << "\"%~dp0raze.exe\" -nosetup -portable -route66 -gamegrp \"%GRP%\" %VRW% ";
-			body << "-config \"%~dp0cfg_" << base << ".ini\" +logfile \"%~dp0raze.log\"\r\n";
+			/*
+				A log per game, not one shared raze.log.
+
+				Every launcher wrote to the same file, so whatever ran next
+				destroyed the evidence of what went wrong before it - and the
+				thing that runs next is exactly what a player does after a crash:
+				switch game, relaunch, or press Restart on the error box, which
+				starts Raze again with no arguments at all and overwrites the log
+				with two lines. That has now cost two diagnoses.
+			*/
+			body << "-config \"%~dp0cfg_" << base << ".ini\" ";
+			body << "+logfile \"%~dp0logs\\" << base << ".log\"\r\n";
 
 			FileWriter* w66 = FileWriter::Open(file.GetChars());
 			if (w66 == nullptr)
@@ -515,7 +527,8 @@ CCMD(vrwritelaunchers)
 		body << " -gamegrp \"%GRP%\"";
 		if (g.isDuke || g.voxPack.IsNotEmpty()) body << " %VOX%";
 		body << " %VRW% ";
-		body << "-config \"%~dp0cfg_" << base << ".ini\" +logfile \"%~dp0raze.log\"\r\n";
+		body << "-config \"%~dp0cfg_" << base << ".ini\" ";
+		body << "+logfile \"%~dp0logs\\" << base << ".log\"\r\n";
 
 		FileWriter* w = FileWriter::Open(file.GetChars());
 		if (w == nullptr)
@@ -592,6 +605,10 @@ CCMD(vrwritelaunchers)
 				oldcfg.Format("cfg_%s.ini", base.GetChars());
 				newcfg.Format("cfg_%s.ini", pbase.GetChars());
 				pbody.Substitute(oldcfg.GetChars(), newcfg.GetChars());
+				FString oldlog, newlog;
+				oldlog.Format("logs\\%s.log", base.GetChars());
+				newlog.Format("logs\\%s.log", pbase.GetChars());
+				pbody.Substitute(oldlog.GetChars(), newlog.GetChars());
 
 				FString pfile;
 				pfile.Format("%s/%s.bat", dir.GetChars(), pbase.GetChars());
@@ -632,6 +649,10 @@ CCMD(vrwritelaunchers)
 				oldcfg.Format("cfg_%s.ini", base.GetChars());
 				newcfg.Format("cfg_%s.ini", wtbase.GetChars());
 				wtbody.Substitute(oldcfg.GetChars(), newcfg.GetChars());
+				FString oldlog, newlog;
+				oldlog.Format("logs\\%s.log", base.GetChars());
+				newlog.Format("logs\\%s.log", wtbase.GetChars());
+				wtbody.Substitute(oldlog.GetChars(), newlog.GetChars());
 
 				FString wtfile;
 				wtfile.Format("%s/%s.bat", dir.GetChars(), wtbase.GetChars());

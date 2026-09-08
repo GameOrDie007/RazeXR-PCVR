@@ -3707,3 +3707,39 @@ Worth noting how the wrong conclusion was reached: the check that VRaze does not
 define them was correct, and the inference that they therefore could not be
 defined was not. Reading one donor block would have shown how little there was
 to it - the owner said as much, and was right.
+
+## A crash whose evidence deleted itself
+
+Blood crashed on a switch out of World Tour, and by the time the log was read it
+said this and nothing else:
+
+```
+Log started: 2026-09-07 23:10:22
+OS: Windows 11 (or higher) (NT 10.0) Build 26200
+```
+
+Two lines. Meanwhile `raze_portable.ini` - a 373-byte marker file - had grown to
+10,210 bytes and been written at the same minute, carrying `defaultiwad=` and a
+`[.ConsoleVariables]` section with **no game name in it**. That is a config saved
+by a run that never selected a game and was never given `-config`.
+
+Nothing we generate launches Raze without arguments. The fatal error box does:
+its **Restart** button starts Raze again bare. So Blood crashed, Restart relaunched
+it with no game, that relaunch failed at once with no game data, and on its way
+out it overwrote `raze.log` with its own two lines and saved its config to the
+portable marker.
+
+The switch mechanism itself is fine - reproduced here with the same command line
+`StartLauncher` builds, quoted `.bat` name with spaces and all, and Blood
+started normally.
+
+**So every launcher writes its own log now**, into `logs\<game>.log`. One shared
+`raze.log` meant whatever ran next destroyed the record of what went wrong
+before it - and what runs next after a crash is precisely a relaunch, a switch,
+or that Restart button. It has now cost two diagnoses: this, and World Tour's
+own crash earlier today.
+
+## Before publishing
+
+- The owner has boxart of his own to bundle. **Ask him for it before the release
+  is built.**
