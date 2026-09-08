@@ -385,7 +385,7 @@ CCMD(vrwritelaunchers)
 			body << "set \"GRP=%~dp0games\\" << tail66 << "\"\r\n";
 			body << "if not exist \"%GRP%\" set \"GRP=" << basegrp << "\"\r\n";
 			body << "\r\n";
-			body << "\"%~dp0raze.exe\" -nosetup -route66 -gamegrp \"%GRP%\" %VRW% ";
+			body << "\"%~dp0raze.exe\" -nosetup -portable -route66 -gamegrp \"%GRP%\" %VRW% ";
 			body << "-config \"%~dp0cfg_" << base << ".ini\" +logfile \"%~dp0raze.log\"\r\n";
 
 			FileWriter* w66 = FileWriter::Open(file.GetChars());

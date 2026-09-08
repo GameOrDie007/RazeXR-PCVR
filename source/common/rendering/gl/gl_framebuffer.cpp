@@ -77,6 +77,8 @@ void DrawVersionString ();
 
 void TBXR_prepareEyeBuffer(int eye );
 void RazeXR_PC_PreInit();
+#include "m_argv.h"
+
 void RazeXR_PC_StartVR();
 
 namespace OpenGLRenderer
@@ -151,7 +153,23 @@ void OpenGLFrameBuffer::InitializeState()
 			earliest safe point.
 		*/
 		RazeXR_PC_PreInit();
-		RazeXR_PC_StartVR();
+		/*
+			-novr starts the engine without touching OpenXR.
+
+			Setup runs the engine once to write the launchers, and that run was
+			bringing up a VR session it had no use for: with no headset
+			connected TBXR_WaitForSessionActive sits waiting for a session that
+			never becomes active, which read as setup freezing for minutes and
+			took the desktop down with it while the compositor held the display.
+
+			Nothing else changes - the launchers do not pass it, so playing is
+			untouched. It is also the switch to reach for when driving the game
+			from a script.
+		*/
+		if (!Args->CheckParm("-novr"))
+		{
+			RazeXR_PC_StartVR();
+		}
 	}
 
 	mPipelineNbr = clamp(*gl_pipeline_depth, 1, HW_MAX_PIPELINE_BUFFERS);
