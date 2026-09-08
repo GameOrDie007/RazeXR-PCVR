@@ -3485,3 +3485,47 @@ Verified both directions on the same install: World Tour starts
 **The earlier check that missed this** only looked at `definelevelname 4`. The
 episode that was being added was the one episode whose maps were tested, and the
 four that already worked were the four that broke.
+
+## One weapon in each game kept its flat sprite
+
+Reported precisely enough to find in one pass: Duke's enemies and pickups were
+voxels, the rocket launcher was a voxel, and the pistol alone was flat.
+
+```
+slot  1  pistol0   tile 30010  model yes  placement NO
+slot  2  shotgun   tile 30020  model yes  placement yes
+```
+
+Every weapon is `vr_weapon_<name>.kvx` except the pistol, which VRaze calls
+`vr_weapon_pistol0` with 1 and 2 its slide frames. The engine reads a weapon's
+name from its model filename and strips a trailing digit **only when the weapon
+has more than one frame** - which is right, and deliberate: `vr_m60`,
+`vr_weapon_ww2gi_mp40` and `colt1911` end in digits and are whole names, not
+frames.
+
+But the pistol's frames 1 and 2 are Domyoji's own work, so without a VRaze
+install only frame zero survives, the count drops to one, the digit stays, the
+engine looks for a placement called `pistol0`, finds none, and draws nothing.
+A weapon with a model and no placement is exactly the flat sprite he saw.
+
+Fixed in the builder rather than the engine, because the engine's rule is
+correct and protects three real names. When frame zero is all that survives, the
+def is emitted under the base name.
+
+**Blood had it too, and did not fix itself.** `vr_napalm0` had the same shape,
+and the first attempt missed it: the builder's map already supplies both
+`vr_napalm.kvx` and `vr_napalm0.kvx` from one source voxel, so the guard against
+clobbering an existing file blocked the rename - leaving the base model sitting
+in the pack unreferenced while the def pointed at the frame. The line has to
+move whether or not the file does.
+
+Swept all three games afterwards rather than checking the one that was reported:
+
+```
+Duke           slots 11   placement-missing 0
+Blood          slots 11   placement-missing 0
+Shadow Warrior slots 12   placement-missing 0
+```
+
+Blood is the reason to sweep. It was reported working - he had played it and
+seen voxel weapons - and it was one weapon short the whole time.

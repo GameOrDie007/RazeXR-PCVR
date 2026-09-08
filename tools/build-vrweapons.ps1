@@ -289,13 +289,58 @@ $enc = New-Object System.Text.UTF8Encoding($false)
 # vr_weapons.def binds a model path to a tile. Drop the lines whose model we do
 # not have, so nothing logs an error over a file that was never going to be there,
 # and remember which tiles survived.
-function Filter-Weapons($text, [ref]$kept) {
+function Filter-Weapons($text, [ref]$kept, [ref]$renames) {
+    $lines = @($text -split "`n")
+
+    # Which tiles survive, so a lone animation frame can be told from a set.
+    $live = @{}
+    foreach ($line in $lines) {
+        $m = [regex]::Match($line, '^\s*voxel\s+"([^"]+)"\s*\{\s*tile\s+(\d+)')
+        if ($m.Success -and $models.Contains($m.Groups[1].Value)) { $live[[int]$m.Groups[2].Value] = $true }
+    }
+
     $out = New-Object System.Collections.Generic.List[string]
-    foreach ($line in $text -split "`n") {
+    foreach ($line in $lines) {
         $m = [regex]::Match($line, '^\s*voxel\s+"([^"]+)"\s*\{\s*tile\s+(\d+)')
         if ($m.Success) {
-            if (-not $models.Contains($m.Groups[1].Value)) { continue }
-            $kept.Value[[int]$m.Groups[2].Value] = $true
+            $path = $m.Groups[1].Value
+            if (-not $models.Contains($path)) { continue }
+            $tile = [int]$m.Groups[2].Value
+            $kept.Value[$tile] = $true
+
+            <#
+                A weapon whose only surviving model is frame zero has to lose the
+                digit from its name.
+
+                The engine reads a weapon's name from its model's filename and
+                looks up the placement under that name. It strips a trailing
+                digit only when the weapon has more than one frame, which is
+                right: vr_m60, vr_weapon_ww2gi_mp40 and colt1911 end in digits
+                and are whole names, not frames. But Duke's pistol is
+                vr_weapon_pistol0 with 1 and 2 its slide frames, and those two
+                are Domyoji's own work - so without a VRaze install only frame
+                zero survives, the count drops to one, the digit stays, the
+                engine looks for a placement called "pistol0", finds none, and
+                the pistol alone keeps its flat sprite while every other weapon
+                is a voxel.
+
+                So when frame zero is all that is left, it is emitted under the
+                base name and the file is stored under it too.
+            #>
+            if (($tile % 10) -eq 0 -and $path -match '^(.*?)(\d)\.kvx$') {
+                $stem = $Matches[1]
+                $others = @(1..9 | Where-Object { $live.ContainsKey($tile + $_) })
+                if ($others.Count -eq 0) {
+                    $newpath = $stem + ".kvx"
+                    # The base name is what the def must say either way. Where the
+                    # map already supplies that file - Blood's napalm is both
+                    # vr_napalm.kvx and vr_napalm0.kvx from one source voxel -
+                    # only the line moves, and the frame-zero copy falls away
+                    # unreferenced. Where it does not, the file moves with it.
+                    if (-not $models.Contains($newpath)) { $renames.Value[$path] = $newpath }
+                    $line = $line.Replace('"' + $path + '"', '"' + $newpath + '"')
+                }
+            }
         }
         $out.Add($line.TrimEnd("`r"))
     }
@@ -338,6 +383,7 @@ function Filter-Animations($text, $kept) {
 function Write-Pack($outPath, $modelFilter, $gameFilter) {
     $entries = [ordered]@{}
     $kept = @{}
+    $renames = @{}
 
     foreach ($name in ($defs.Keys | Sort-Object)) {
         $rel = $name.Substring("vrweapons/".Length)          # filter/<game>/engine/<file>
@@ -348,12 +394,22 @@ function Write-Pack($outPath, $modelFilter, $gameFilter) {
         $text = $enc.GetString($defs[$name])
         if ($parts[3] -eq "vr_weapons.def") {
             $k = @{}
-            $body = Filter-Weapons $text ([ref]$k)
+            $body = Filter-Weapons $text ([ref]$k) ([ref]$renames)
             if ($k.Count -eq 0) { continue }                  # this game got no models
             foreach ($t in $k.Keys) { $kept[$t] = $true }
             $entries[$rel] = $body
         } else {
             $entries[$rel] = $text
+        }
+    }
+
+    # Store any renamed model under its new name, so the file in the pk3 matches
+    # the path its def now names.
+    foreach ($from in @($renames.Keys)) {
+        $to = $renames[$from]
+        if ($models.Contains($from) -and -not $models.Contains($to)) {
+            $models[$to] = $models[$from]
+            $models.Remove($from)
         }
     }
 
