@@ -3462,3 +3462,26 @@ which release a given copy came from - and the two D.C. variants, 8,410,183 and
 8,410,187 bytes, both have entries.
 
 Nineteen launchers, nine seconds, from a clean extract.
+
+## World Tour listed five episodes and could start only one
+
+`Unable to open map maps/E1L1.map` on New Game, in the headset.
+
+`USER.CON` names **every** level with the `maps/` prefix, not just episode
+five's - `definelevelname 0 0 maps/E1L1.map` as much as
+`definelevelname 4 0 maps/E5L1.map`. Only `E5*` was being copied, on the
+reasoning that the other 41 collide with lumps in the Atomic GRP. They do, by
+bare name - and that is the point: inside a `maps\` subfolder they collide with
+nothing, because only a CON asking for that path ever looks there. Every other
+Duke launcher asks for a bare `E1L1.MAP` and still gets the GRP's own copy.
+
+So all 49 are copied now, which is also what World Tour actually is: its own
+remastered maps for the first four episodes, not Atomic's under a World Tour
+name.
+
+Verified both directions on the same install: World Tour starts
+`maps/E1L1.MAP`, Atomic starts bare `E1L1.MAP`, neither reports a missing map.
+
+**The earlier check that missed this** only looked at `definelevelname 4`. The
+episode that was being added was the one episode whose maps were tested, and the
+four that already worked were the four that broke.
