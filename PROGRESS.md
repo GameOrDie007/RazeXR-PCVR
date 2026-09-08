@@ -3225,3 +3225,44 @@ lumps with no `Maximum number of voxels` complaint, and the weapon table resolve
 **Still nowhere:** Blood, Shadow Warrior and Exhumed have no voxel props or
 monsters at all. fgsfds' three packs would cover them and are on GitHub, so
 setup could fetch them the same way. Not done.
+
+## Every game that has a voxel pack now gets one
+
+Until now only Duke had voxels. Blood, Shadow Warrior and Exhumed each have a
+community pack by fgsfds and contributors, recorded months ago as "not used at
+present" and never wired in.
+
+Setup fetches all three. Only one of the repositories publishes release assets
+and all three keep the pack in the tree, so it takes the repository archive -
+which GitHub wraps in a `<repo>-<branch>/` folder, and Raze reads the defs from
+the archive root, so the wrapper is stripped and the contents repacked on the
+user's machine. Nothing is redistributed by us and each pack keeps its own
+`license.txt`.
+
+The launcher names a pack per game now rather than Duke only, keyed on the
+engine's own `GAMEFLAG_BLOOD`, `GAMEFLAG_SW` and `GAMEFLAG_PSEXHUMED`, and named
+for the game rather than for whoever packaged it so setup can change the source
+without the launchers caring.
+
+```
+Blood voxel pack          4,674,839 bytes
+Shadow Warrior voxel pack 1,400,377 bytes
+Exhumed voxel pack          645,708 bytes
+```
+
+Verified from a clean extract of the archive, each game launched with its own
+pack:
+
+```
+BLOOD           voxels_blood.zip:blood-raze.def       0 errors
+Shadow Warrior  voxels_sw.zip:sw-raze.def             0 errors
+Exhumed         voxels_exhumed.zip:exhumed-raze.def   0 errors
+```
+
+Each pack ships a `<game>-raze.def`, so dropping the archive in is the whole
+installation - which is why the whole chain, download to repack to launcher to
+engine, needed no per-game special casing beyond the filename.
+
+**Still to do for the flow the owner described:** the repository is not on
+GitHub, and `PLAY.bat` is a leftover from before the per-game launchers with a
+hardcoded path to a Quest folder that exists only on his machine.

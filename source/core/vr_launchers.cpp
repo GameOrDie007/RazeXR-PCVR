@@ -57,6 +57,12 @@ struct VRGame
 		what it was and the game runs its first four.
 	*/
 	bool isWorldTour = false;
+	/*
+		The community voxel pack for this game, if it has one - monsters, props
+		and scenery as voxel models. Duke is the exception and carries its own
+		two-file rule below, because two different packs exist for it.
+	*/
+	FString voxPack;
 };
 
 static TArray<VRGame> Games;
@@ -125,6 +131,13 @@ void VRLaunchers_SetScannedGames(const TArray<GrpEntry>& games)
 		e.isRoute66 = (g.FileInfo.flags & GAMEFLAG_ROUTE66) != 0;
 		e.isDuke = (g.FileInfo.flags & GAMEFLAG_DUKE) != 0;
 		e.isWorldTour = g.FileInfo.gamefilter.CompareNoCase("Duke.WorldTour") == 0;
+
+		// Named for the game rather than for whoever packaged it, so setup can
+		// change where a pack comes from without the launchers caring.
+		if (g.FileInfo.flags & GAMEFLAG_BLOOD)          e.voxPack = "voxels_blood.zip";
+		else if (g.FileInfo.flags & GAMEFLAG_SW)        e.voxPack = "voxels_sw.zip";
+		else if (g.FileInfo.flags & GAMEFLAG_PSEXHUMED) e.voxPack = "voxels_exhumed.zip";
+
 		Games.Push(e);
 	}
 }
@@ -239,6 +252,20 @@ CCMD(vrwritelaunchers)
 			body << "set \"VOX=\"\r\n";
 			body << "if exist \"%~dp0duke3d_voxels.zip\" set \"VOX=-file \"%~dp0duke3d_voxels.zip\"\"\r\n";
 			body << "if exist \"%~dp0voxel_duke3d.zip\" set \"VOX=-file \"%~dp0voxel_duke3d.zip\"\"\r\n";
+			body << "\r\n";
+		}
+		/*
+			Every other game that has one. Blood, Shadow Warrior and Exhumed all
+			have community voxel packs of their own - props, scenery and some
+			monsters - which setup fetches from their authors' own repositories.
+			Each ships a <game>-raze.def, so dropping the archive in is the whole
+			installation; the launcher only has to name it.
+		*/
+		else if (g.voxPack.IsNotEmpty())
+		{
+			body << "rem The voxel pack for this game, if setup was able to fetch it.\r\n";
+			body << "set \"VOX=\"\r\n";
+			body << "if exist \"%~dp0" << g.voxPack << "\" set \"VOX=-file \"%~dp0" << g.voxPack << "\"\"\r\n";
 			body << "\r\n";
 		}
 		/*
@@ -371,7 +398,7 @@ CCMD(vrwritelaunchers)
 		}
 
 		body << " -gamegrp \"%GRP%\"";
-		if (g.isDuke) body << " %VOX%";
+		if (g.isDuke || g.voxPack.IsNotEmpty()) body << " %VOX%";
 		body << " %VRW% ";
 		body << "-config \"%~dp0cfg_" << base << ".ini\" +logfile \"%~dp0raze.log\"\r\n";
 
