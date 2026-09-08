@@ -386,6 +386,48 @@ CCMD(vrwritelaunchers)
 
 		Printf("  %s%s\n", base.GetChars(), g.isAddon ? "   (add-on)" : "");
 		written++;
+
+		/*
+			A second launcher for World Tour, where setup has built it.
+
+			Episode five rides on whichever Duke GRP is present - Alien World
+			Order depends on the Atomic one - so keying this on the World Tour
+			GRP was wrong: a user whose Duke is the Atomic release got the
+			episode installed and no way to reach it. What decides it is
+			WT_GAME.CON sitting beside the data, which is setup's own mark that
+			it built the thing.
+
+			Two launchers, because they are two different games to a player:
+			the base one keeps its four episodes, and this one has five.
+		*/
+		if (g.isDuke && !g.isAddon && !g.isRoute66)
+		{
+			FString wtcon = ExtractFilePath(g.path.GetChars());
+			if (wtcon.Len() > 0 && wtcon.Back() != '/' && wtcon.Back() != '\\') wtcon += '/';
+			wtcon += "WT_GAME.CON";
+
+			if (FileExists(wtcon.GetChars()))
+			{
+				FString wtbase = "Duke Nukem 3D World Tour";
+				FString wtbody = body;
+				wtbody.Substitute("-nosetup -portable", "-nosetup -portable -con WT_GAME.CON");
+				FString oldcfg, newcfg;
+				oldcfg.Format("cfg_%s.ini", base.GetChars());
+				newcfg.Format("cfg_%s.ini", wtbase.GetChars());
+				wtbody.Substitute(oldcfg.GetChars(), newcfg.GetChars());
+
+				FString wtfile;
+				wtfile.Format("%s/%s.bat", dir.GetChars(), wtbase.GetChars());
+				FileWriter* ww = FileWriter::Open(wtfile.GetChars());
+				if (ww != nullptr)
+				{
+					ww->Write(wtbody.GetChars(), wtbody.Len());
+					delete ww;
+					Printf("  %s   (episode five)\n", wtbase.GetChars());
+					written++;
+				}
+			}
+		}
 	}
 
 	Printf("Wrote %d launcher%s to %s\n", written, written == 1 ? "" : "s", dir.GetChars());

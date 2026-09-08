@@ -245,6 +245,48 @@ void CollectSubdirectories(TArray<FString> &searchpath, const char *dirmatch)
 
 //==========================================================================
 //
+// PC branch: walk the portable tree, not just its top level.
+//
+// Retail installs nest their expansions. Steam's Duke keeps Duke it out in
+// D.C., Caribbean and Nuclear Winter under gameroot/addons/<name>/, so once
+// setup has copied that folder in they sit at games/duke/addons/dc/ - two
+// levels below the one directory a flat scan looks at. The first -portable
+// build found thirteen games where seventeen were installed, and the four it
+// lost were exactly the nested ones.
+//
+// Depth 3 from <root> reaches games/<game>/<subdir>/<subdir>, which covers
+// every layout seen so far, and stays cheap because it is confined to this
+// folder rather than the whole machine.
+//
+//==========================================================================
+
+static void CollectPortableTree(TArray<FString>& searchpath, const FString& dir, int depth)
+{
+	AddSearchPath(searchpath, dir.GetChars());
+	if (depth <= 0) return;
+
+	findstate_t findstate;
+	void* handle;
+	if ((handle = I_FindFirst((dir + "/*").GetChars(), &findstate)) != (void*)-1)
+	{
+		do
+		{
+			if (I_FindAttr(&findstate) & FA_DIREC)
+			{
+				auto p = I_FindName(&findstate);
+				if (strcmp(p, ".") && strcmp(p, ".."))
+				{
+					CollectPortableTree(searchpath, dir + "/" + p, depth - 1);
+				}
+			}
+		}
+		while (I_FindNext(handle, &findstate) == 0);
+		I_FindClose(handle);
+	}
+}
+
+//==========================================================================
+//
 // CollectSearchPaths
 //
 // collect all paths in a local array for easier management
@@ -272,8 +314,7 @@ TArray<FString> CollectSearchPaths()
 		if (root.Len() > 1)
 		{
 			if (root.Back() == '/') root.Truncate(root.Len() - 1);
-			AddSearchPath(searchpaths, root.GetChars());
-			CollectSubdirectories(searchpaths, (root + "/*").GetChars());
+			CollectPortableTree(searchpaths, root, 3);
 		}
 	}
 
