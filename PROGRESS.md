@@ -3189,3 +3189,39 @@ Exhumed and Shadow Warrior need none, all exit 0 with zero errors - and
 reading the script.** They appeared the moment the real archive met real
 installs, which is the whole argument for testing the artifact rather than the
 tree it was built from.
+
+## Voxel Duke 3D belongs in the archive, and nearly did not ship
+
+The first release archive left it out, under a blanket "no voxel packs" rule
+written without reading `THIRD-PARTY-PERMISSIONS.md` - which says, in the entry
+for this exact pack, *"Distributed with the release archive rather than
+committed here."* Cheello was asked directly and in public and agreed. Bundling
+it was the plan all along.
+
+Two packs, the same kind of file, opposite answers:
+
+- **Voxel Duke 3D** (Cheello) - **bundled.** Direct permission, recorded with
+  the wording and a public link. On ModDB, which cannot be fetched by script, so
+  bundling is the only way it reaches anyone automatically.
+- **Duke3D Voxel Pack** (ReaperMan, Duke4.net) - **not bundled.** No permission
+  asked; its licence permits redistribution but is non-commercial and
+  share-alike, which does not sit well inside a GPL archive. Setup downloads it
+  from the authors' own release, and skips even that when Cheello's is present.
+
+A rule that judges by file extension cannot tell those apart, and got it wrong
+in both directions - it would have shipped the second and refused the first. So
+`tools/make-release.py` names a decision per file, with the reason beside it,
+and the audit was checked by feeding it a pack that must not ship and watching
+it refuse to build.
+
+Bundling also improved the weapons. Duke's eleven in-hand models are Cheello's,
+and the builder prefers his pack: `Duke: 1024 voxels in Voxel Duke 3D` where it
+used to say `Duke fallback: 466 voxels in the Duke3D Voxel Pack`.
+
+Verified from a clean extract: no download, 17 launchers, the pack loads as 1086
+lumps with no `Maximum number of voxels` complaint, and the weapon table resolves
+11 models and 12 placements.
+
+**Still nowhere:** Blood, Shadow Warrior and Exhumed have no voxel props or
+monsters at all. fgsfds' three packs would cover them and are on GitHub, so
+setup could fetch them the same way. Not done.
