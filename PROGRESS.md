@@ -3341,3 +3341,31 @@ Also fixed: the Route 66 launcher was the one command line still missing
 
 Verified from a clean extract: 17 launchers, Route 66 among them, none removed,
 and `Duke it out in D.C. VR.bat` keeps its full stop.
+
+## "not found" is a poor thing to tell somebody who owns the game
+
+The owner has PowerSlave Exhumed on GOG and setup said not found. It is right -
+`Get-ChildItem "D:\GOG Games\PowerSlave Exhumed" -Recurse -Filter STUFF.DAT`
+returned nothing at all. The 2022 Nightdive release is a rewrite with its own
+repacked assets and carries none of the DOS data Raze reads.
+
+Correct, and useless to read. Setup now says why when the folder is sitting
+right there in the search:
+
+```
+  [--]   Exhumed / PowerSlave     not found
+  [--]     found PowerSlave Exhumed, which is the 2022 Nightdive remaster, a rewrite with its own assets
+  [--]     Raze needs the original DOS PowerSlave / Exhumed (STUFF.DAT, about 27 MB)
+```
+
+Only releases actually checked go in that table. A remaster that does ship the
+original data alongside gets found by the normal search and never reaches this
+branch - Shadow Warrior Classic Redux is one, and it supplied 952 files on his
+machine without complaint.
+
+**Tested as a block, not through setup.** This machine has Exhumed data, so
+setup never takes the not-found branch here; the check was driven directly with
+his folder layout as input, and confirmed silent when no such folder exists.
+That is weaker than an end-to-end run and worth saying so.
+
+His WWII GI was simply not installed, which is the other correct "not found".
