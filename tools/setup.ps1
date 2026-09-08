@@ -126,6 +126,14 @@ $RIDESAGAIN_SIZE = 191798609
 #>
 $EXHUMED_MIN = 20000000
 
+# Modern remasters that answer to a game's name and contain nothing Raze can
+# use. Checked, not guessed - see the note where this is used.
+$remasters = @(
+    @{ Folder = "exhumed"; Dir = "PowerSlave Exhumed";
+       Why    = "the 2022 Nightdive remaster, a rewrite with its own assets";
+       Needs  = "the original DOS PowerSlave / Exhumed (STUFF.DAT, about 27 MB)" }
+)
+
 $skipExt = @(".exe", ".dll", ".msi", ".cab", ".log", ".url", ".ico", ".bat", ".sh")
 
 <#
@@ -216,7 +224,34 @@ foreach ($g in $games) {
     # and episode five comes with it rather than being added separately.
     if (-not $hit -and $wtFallback) { $hit = $wtFallback; $wtDir = "" }
 
-    if (-not $hit) { Info ("{0,-24} not found" -f $g.Name); continue }
+    if (-not $hit) {
+        Info ("{0,-24} not found" -f $g.Name)
+        <#
+            "not found" is a poor thing to tell somebody who owns the game.
+
+            Raze runs the original Build engine releases. The modern remasters
+            are rewrites with their own repacked assets and ship nothing Raze
+            can read - PowerSlave Exhumed (Nightdive, 2022) has no STUFF.DAT in
+            it anywhere, which was confirmed on a machine that owns it. So when
+            the folder is sitting right there in the search, say why rather than
+            leaving the owner to conclude the search is broken.
+
+            Only releases actually checked are listed. A remaster that does ship
+            the original data alongside would be found by the normal search and
+            never reach here.
+        #>
+        foreach ($r in $roots) {
+            foreach ($rm in $remasters) {
+                if ($rm.Folder -ne $g.Folder) { continue }
+                $cand = Join-Path $r $rm.Dir
+                if (Test-Path -LiteralPath $cand) {
+                    Info ("  found {0}, which is {1}" -f $rm.Dir, $rm.Why)
+                    Info ("  Raze needs {0}" -f $rm.Needs)
+                }
+            }
+        }
+        continue
+    }
 
     $found++
     if ($InPlace) {
