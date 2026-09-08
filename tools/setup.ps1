@@ -412,22 +412,25 @@ if ($wtDir -and -not $InPlace) {
         }
 
         <#
-            Episode five's maps, keeping the maps\ folder and the exact names.
+            All of World Tour's maps, keeping the maps\ folder and the names.
 
-            USER.CON names them with the prefix - "definelevelname 4 0
-            maps/E5L1.map" - so the engine asks the file system for
-            "maps/E5L1.map" and nothing else will do. Copied flat, they are
-            found by no lookup at all, the episode appears in the menu and
-            every level in it fails to start.
+            USER.CON names every level with the prefix, not just episode five:
+            "definelevelname 0 0 maps/E1L1.map" as much as
+            "definelevelname 4 0 maps/E5L1.map". So the engine asks the file
+            system for "maps/E1L1.map", and copying only E5* left World Tour
+            able to list all five episodes and unable to start any of the first
+            four - "Unable to open map maps/E1L1.map" on New Game.
 
-            Only E5* is copied. The other 41 maps in that folder carry the same
-            names as lumps in the Atomic GRP.
+            Copying all of them is safe, and is what World Tour is: they go in a
+            maps\ subfolder, so they are looked up only by a CON that asks for
+            that path. Every other Duke launcher asks for a bare "E1L1.MAP" and
+            still gets the Atomic GRP's own copy, untouched.
         #>
         $mapsrc = Join-Path $wtDir "maps"
         if (Test-Path $mapsrc) {
             $mapdst = Join-Path $dukeDir "maps"
             if (-not (Test-Path $mapdst)) { New-Item -ItemType Directory -Force -Path $mapdst | Out-Null }
-            foreach ($m in Get-ChildItem -LiteralPath $mapsrc -Filter "E5L*.map" -File) {
+            foreach ($m in Get-ChildItem -LiteralPath $mapsrc -Filter "*.map" -File) {
                 Copy-Item -LiteralPath $m.FullName -Destination (Join-Path $mapdst $m.Name) -Force; $n++
             }
         }
