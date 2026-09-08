@@ -3425,3 +3425,40 @@ launcher is named after whichever the user owns, so `Powerslave VR.bat` and
 
 **NAM and NAPALM likewise.** `isNam()` tests `GAMEFLAG_NAM | GAMEFLAG_NAPALM`
 and NAM's own entry carries both.
+
+## No single Duke release has all of Duke
+
+Worth writing down plainly, because it is not obvious and it decided how setup
+has to work:
+
+```
+Duke Nukem 3D (plain Steam)   Atomic + D.C. + Life's a Beach + Nuclear Winter
+Megaton Edition               Atomic + those three + Duke!ZONE II
+World Tour                    Atomic GRP, and nothing else at all
+```
+
+World Tour is the poorest of the three - the base game plus the loose episode
+five files. Duke!ZONE II exists only in Megaton. Penthouse Paradise is its own
+separate release again.
+
+Setup copies **one** Duke folder as the base game, so whichever it picked, every
+other release's expansions were left behind. A machine with all three installed
+still got only what one of them happened to carry, and which one that was
+depended on search order - which is why Duke!ZONE II appeared in one run and
+vanished from the next.
+
+Each expansion is fetched by name now, from wherever it turns up, and only when
+it is not already present:
+
+```
++ DUKE!ZON.GRP from ...\Duke Nukem 3D 359850\Duke Nukem 3D
+Duke expansions          1 added from other Duke releases
+Wrote 19 launchers
+```
+
+One added, because the other three were already there in the plain release's
+`addons\` folder. Raze identifies each by its own CRC, so it does not matter
+which release a given copy came from - and the two D.C. variants, 8,410,183 and
+8,410,187 bytes, both have entries.
+
+Nineteen launchers, nine seconds, from a clean extract.

@@ -306,6 +306,43 @@ foreach ($g in $games) {
 }
 
 <#
+    Duke's expansions are scattered across its releases.
+
+    No single Duke release has them all. World Tour is the base game and episode
+    five and nothing else; Megaton Edition is the only one with Duke!ZONE II;
+    the plain Steam release keeps D.C., Life's a Beach and Nuclear Winter under
+    gameroot\addons\. Setup copies one Duke folder as the base game, so
+    whichever it picked, the others' expansions were left behind - a machine
+    with all three installed still only got what one of them happened to carry.
+
+    So each expansion is fetched by name from wherever it turns up, and only if
+    it is not already there. They are small, they sit beside Duke, and Raze
+    identifies each by its own CRC.
+#>
+$dukeDir = Join-Path (Join-Path $dest "games") "duke"
+if ((Test-Path -LiteralPath $dukeDir) -and -not $InPlace) {
+    $dukeAddons = @("DUKEDC.GRP", "VACATION.GRP", "NWINTER.GRP", "DUKE!ZON.GRP")
+    $got = 0
+    foreach ($an in $dukeAddons) {
+        # Already have it, at the root or in an addons\ subfolder? Leave it.
+        $have = Get-ChildItem -LiteralPath $dukeDir -Filter $an -Recurse -File -ErrorAction SilentlyContinue |
+                Select-Object -First 1
+        if ($have) { continue }
+
+        foreach ($r in $roots) {
+            $f = Get-ChildItem -LiteralPath $r -Filter $an -Recurse -File -Depth 4 -ErrorAction SilentlyContinue |
+                 Select-Object -First 1
+            if (-not $f) { continue }
+            Copy-Item -LiteralPath $f.FullName -Destination (Join-Path $dukeDir $f.Name) -Force
+            Info ("  + {0} from {1}" -f $f.Name, $f.DirectoryName)
+            $got++
+            break
+        }
+    }
+    if ($got -gt 0) { Ok ("{0,-24} {1} added from other Duke releases" -f "Duke expansions", $got) }
+}
+
+<#
     Duke Nukem's Penthouse Paradise.
 
     Raze's entries for it expect a repacked .grp, and the original release is a
@@ -325,7 +362,6 @@ foreach ($r in $roots) {
 }
 
 if ($ppakDir -and -not $InPlace) {
-    $dukeDir = Join-Path (Join-Path $dest "games") "duke"
     if (Test-Path -LiteralPath $dukeDir) {
         $n = 0
         foreach ($f in @("ppakgame.con", "ppakdefs.con", "ppakuser.con", "ppakpent.map")) {
