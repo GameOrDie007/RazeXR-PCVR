@@ -306,6 +306,46 @@ foreach ($g in $games) {
 }
 
 <#
+    A game archive that also exists deeper in the same folder is thrown away.
+
+    Steam's Duke ships the Atomic GRP twice, byte for byte: gameroot/duke3d.grp
+    and gameroot/classic/DUKE3D.GRP. Both come across, and then which one the
+    scan reports decides which folder the engine loads - so when it picked the
+    one in classic\ the game ran from a folder holding 43 files instead of the
+    one holding World Tour's scripts, and World Tour died on
+    "WT_GAME.CON: Missing con file(s)".
+
+    Nothing is gained by keeping a second identical copy, and everything that
+    reads the folder beside the game data depends on there being one answer. So
+    the deeper duplicate goes, and only on an exact hash match - a same-sized
+    file that differs is a different release and stays.
+#>
+$gamesRoot = Join-Path $dest "games"
+if ((Test-Path -LiteralPath $gamesRoot) -and -not $InPlace) {
+    $dropped = 0
+    foreach ($gdir in Get-ChildItem -LiteralPath $gamesRoot -Directory -ErrorAction SilentlyContinue) {
+        $top = @{}
+        foreach ($f in Get-ChildItem -LiteralPath $gdir.FullName -File -ErrorAction SilentlyContinue) {
+            if ($f.Extension -notmatch '^\.(grp|rff|dat)$') { continue }
+            $top[(Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash] = $f.FullName
+        }
+        if ($top.Count -eq 0) { continue }
+
+        foreach ($f in Get-ChildItem -LiteralPath $gdir.FullName -File -Recurse -ErrorAction SilentlyContinue) {
+            if ($f.DirectoryName -eq $gdir.FullName) { continue }      # the keepers
+            if ($f.Extension -notmatch '^\.(grp|rff|dat)$') { continue }
+            $h = (Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash
+            if (-not $top.ContainsKey($h)) { continue }
+            Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue
+            $dropped++
+        }
+    }
+    if ($dropped -gt 0) {
+        Ok ("{0,-24} {1} duplicate copies removed" -f "Game data", $dropped)
+    }
+}
+
+<#
     Duke's expansions are scattered across its releases.
 
     No single Duke release has them all. World Tour is the base game and episode
