@@ -70,10 +70,16 @@ The 2022 **PowerSlave Exhumed** from Nightdive - the one currently sold on Steam
 nothing inside it Raze can read and nothing that can be converted. Checked, not assumed.
 
 What Raze needs is the original DOS **Powerslave** or **Exhumed**, identified by a
-`STUFF.DAT` of about 27 MB. That release was sold digitally before the remaster replaced
-it, so if you bought it back then it is still in your library - look for a separate
-classic entry, and check the remaster's Extras or bonus downloads, which sometimes carry
-the original. Otherwise a disc.
+`STUFF.DAT` of about 27 MB.
+
+Steam sells it separately as
+**[PowerSlave (DOS Classic Edition)](https://store.steampowered.com/app/1260020/PowerSlave_DOS_Classic_Edition/)**,
+which is the DOS build rather than the remaster. That is the one to buy. *This has not
+been confirmed working here yet - nobody testing this port owns it. If you have it and
+setup does not find it, please say so and it will be fixed.*
+
+If you bought the classic version years ago, before the remaster replaced it, it is
+still in your library under its own entry. Otherwise a disc.
 
 Setup says so when it finds the remaster, rather than only reporting the game as missing.
 

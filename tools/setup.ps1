@@ -131,7 +131,7 @@ $EXHUMED_MIN = 20000000
 $remasters = @(
     @{ Folder = "exhumed"; Dir = "PowerSlave Exhumed";
        Why    = "the 2022 Nightdive remaster, a rewrite with its own assets";
-       Needs  = "the original DOS PowerSlave / Exhumed (STUFF.DAT, about 27 MB)" }
+       Needs  = "the DOS original - Steam sells it as PowerSlave (DOS Classic Edition)" }
 )
 
 $skipExt = @(".exe", ".dll", ".msi", ".cab", ".log", ".url", ".ico", ".bat", ".sh")
