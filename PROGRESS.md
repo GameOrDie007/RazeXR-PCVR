@@ -3266,3 +3266,39 @@ engine, needed no per-game special casing beyond the filename.
 **Still to do for the flow the owner described:** the repository is not on
 GitHub, and `PLAY.bat` is a leftover from before the per-game launchers with a
 hardcoded path to a Quest folder that exists only on his machine.
+
+## Launcher names, and a delete rule that ate its own work
+
+Launchers are named `<game> VR.bat` now, with the colon in the game's own name
+becoming " - " rather than being dropped:
+
+```
+Duke Nukem 3D - Atomic Edition VR.bat      Shadow Warrior - Twin Dragon VR.bat
+Duke Nukem 3D - World Tour VR.bat          Redneck Rampage - Suckin' Grits on Route 66 VR.bat
+Duke it out in D.C. VR.bat                 Exhumed VR.bat
+```
+
+`PLAY.bat` is gone. It predated the per-game launchers and carried a hardcoded
+fallback to a Quest folder that exists on one machine in the world.
+
+Renaming meant the old files would linger - and the Switch Game menu reads the
+folder, so every stale one becomes a menu entry that starts nothing. So
+`vrwritelaunchers` now removes launchers it did not write this run, recognising
+its own by the marker line so nothing else in the folder is touched.
+
+**That delete rule immediately ate a launcher it had just written.** Route 66 is
+written by its own branch - it needs `-route66` and its base GRP - and only the
+two other branches registered their filename, so the sweep saw a marked .bat it
+had no record of writing and removed it. Seventeen written, seventeen reported,
+sixteen on disk. The count was right; the folder was not.
+
+Caught by listing the folder afterwards rather than trusting "Wrote 17
+launchers", which is the same shape as everything else that went wrong today:
+the report of an action is not the action. A delete rule especially has to be
+checked against what is actually left, per item.
+
+Also fixed: trimming the trailing dot before appending " VR" threw away the full
+stop in "Duke it out in D.C." A dot is only illegal in a filename when it is
+last, and after the suffix it is not.
+
+Verified: 17 launchers, Route 66 among them, and a second run removes nothing.

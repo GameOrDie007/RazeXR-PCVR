@@ -36,7 +36,6 @@ FROM_RUN = [
     "openxr_loader.dll",
     "zmusiclite.dll",
     "raze_portable.ini",
-    "PLAY.bat",
     "README.txt",
     "SETUP.bat",
     # Cheello's Voxel Duke 3D, unmodified, with its own readme.txt inside. He
