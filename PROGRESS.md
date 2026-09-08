@@ -3369,3 +3369,59 @@ his folder layout as input, and confirmed silent when no such folder exists.
 That is weaker than an end-to-end run and worth saying so.
 
 His WWII GI was simply not installed, which is the other correct "not found".
+
+## Setup never told the engine to quit
+
+The launcher step ran `+vrwritelaunchers` and nothing else, so the engine wrote
+the launchers and then sat in the game until `WaitForExit(120000)` killed it.
+Every run paid two minutes for work that takes about a second - and it was a
+race, not just waste: killed before the write, setup reports **LAUNCHERS WERE
+NOT WRITTEN**, which is what happened as soon as the game list grew long enough
+to push the write past the timeout.
+
+Reproduced exactly: seeded with `BLOOD.RFF`, all eighteen launchers written
+correctly, process still alive at 120.1 seconds, killed. With `+quit` the same
+command finishes in about a second.
+
+```
+setup, before   139s total
+setup, after      9s total
+```
+
+So `-novr` was a real fix and the smaller half. This was the rest of the two and
+a half minutes the owner saw, and the reason a run of his reported nothing
+written at all.
+
+## Penthouse Paradise, from the loose original
+
+Raze's two entries for it expect a repacked `.grp` - the ZOOM release is one -
+and the original is a folder of loose files, so it was never identified and
+never got a launcher. Four files are the whole add-on: `ppakgame.con`,
+`ppakdefs.con`, `ppakuser.con`, `ppakpent.map`. Its CONs include only each
+other, none of those names collide with anything in the Duke GRP, and its
+dependency is the Atomic GRP - so they go beside Duke and the launcher names the
+script, the same shape as World Tour's episode five.
+
+Confirmed by running it against Atomic before writing any of it: zero errors,
+`ppakgame.con` compiled, level started. The 1.3D `DUKE3D.GRP` that ships in that
+folder is not needed and is deliberately not taken.
+
+**Which turned up a trap worth having found.** That folder's 1.3D GRP answers
+the search for Duke, and the search took its first hit - so a user whose Atomic
+copy happened to be found second would quietly end up playing 1.3D and lose
+Duke it out in D.C., Life's a Beach and Nuclear Winter, all of which depend on
+the Atomic GRP. Anything under 40 MB is a fallback now; Atomic and World Tour
+are 44,356,548, 1.3D is 26,524,524.
+
+## Two questions answered out of the source
+
+**Exhumed and Powerslave are the same game.** `GAMEFLAG_PSEXHUMED` is defined as
+both flags with the comment *"the two games really are the same, except for the
+name and the publisher"*, and every check uses `isExhumed()`, which tests the
+pair. The two `STUFF.DAT` files differ only in size - 27,020,745 for the US
+Powerslave, 27,108,170 for the European Exhumed - and Raze accepts both. The
+launcher is named after whichever the user owns, so `Powerslave VR.bat` and
+`Exhumed VR.bat` are both correct and neither is a fault.
+
+**NAM and NAPALM likewise.** `isNam()` tests `GAMEFLAG_NAM | GAMEFLAG_NAPALM`
+and NAM's own entry carries both.
