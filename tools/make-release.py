@@ -28,9 +28,16 @@ import sys
 import zipfile
 
 # Taken from the run folder: the built engine and what it loads at runtime.
+FROM_BUILD = [
+    # Straight from the build tree, never from the run folder. Taking these
+    # from a working install once shipped a raze.exe two commits behind the one
+    # that had just been tested - the fix was verified in a different folder
+    # from the one the archive was built out of, and nothing said so.
+    ("build/Release/raze.exe", "raze.exe"),
+    ("build/raze.pk3", "raze.pk3"),
+]
+
 FROM_RUN = [
-    "raze.exe",
-    "raze.pk3",
     "libsndfile-1.dll",     # ZMusic needs it for Ogg; without it SW and Redneck are silent
     "openal32.dll",
     "openxr_loader.dll",
@@ -87,6 +94,13 @@ def main():
     os.makedirs(root)
 
     missing = []
+    for rel, dst in FROM_BUILD:
+        src = os.path.join(repo, rel)
+        if os.path.isfile(src):
+            shutil.copy2(src, os.path.join(root, dst))
+        else:
+            missing.append(rel)
+
     for name in FROM_RUN:
         src = os.path.join(args.run, name)
         if os.path.isfile(src):

@@ -3302,3 +3302,42 @@ stop in "Duke it out in D.C." A dot is only illegal in a filename when it is
 last, and after the suffix it is not.
 
 Verified: 17 launchers, Route 66 among them, and a second run removes nothing.
+
+## Setup was starting a VR session it had no use for
+
+On the owner's machine "Writing launchers" appeared to freeze for two and a half
+minutes and dragged the desktop down with it - his browser stuttered while it
+ran.
+
+Setup runs the engine once to write the launchers. That run was going all the
+way into `RazeXR_PC_StartVR`, and `TBXR_WaitForSessionActive` then waits for a
+session to become active. With Virtual Desktop present but no headset on, it
+waits, holding the compositor and the display.
+
+**It does not reproduce here**, and that is worth writing down: this machine has
+no OpenXR runtime running, so `TBXR_EnterVR` fails immediately and the same run
+takes one second. The stall needs a runtime that succeeds and a headset that
+never arrives. So the mechanism is read from the code and the fix is by
+construction, not from having seen the symptom.
+
+`-novr` skips VR entirely, and setup's launcher run passes it. Verified by the
+log: zero VR lines with it, an attempted session without. The game launchers do
+not pass it, so playing is untouched.
+
+## The stale binary, and the rule that stops it
+
+The Route 66 launcher was still being deleted on his machine after that was
+fixed and verified here - because the archive was built from a working install
+whose `raze.exe` was two commits old, while the fix was tested in a different
+folder. Shipped `bf7634be`, tested `1a115064`, and nothing said they differed.
+
+`make-release.py` now takes `raze.exe` and `raze.pk3` **from the build tree**,
+and the archive's exe is hashed against the one just built. It is the same
+mistake as testing the build tree instead of the artifact, inverted: the
+artifact was tested, but it was not built from what had been fixed.
+
+Also fixed: the Route 66 launcher was the one command line still missing
+`-portable`.
+
+Verified from a clean extract: 17 launchers, Route 66 among them, none removed,
+and `Duke it out in D.C. VR.bat` keeps its full stop.

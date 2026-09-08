@@ -494,7 +494,11 @@ if (-not $seedPath) {
     # run scans every Steam and GOG install and can write launchers naming data
     # outside this folder, which is exactly what the portable copy exists to
     # avoid. It also takes minutes off the scan.
-    $razeArgs = ('-nosetup -portable -gamegrp "{0}" -config "{1}" +logfile "{2}" +vrwritelaunchers' `
+    # -novr: this run only writes the launcher files. Without it the engine
+    # brings up a VR session, and with no headset connected it waits minutes for
+    # one to become active - setup looks frozen and the desktop stutters behind
+    # it. Playing is unaffected; the launchers do not pass it.
+    $razeArgs = ('-nosetup -portable -novr -gamegrp "{0}" -config "{1}" +logfile "{2}" +vrwritelaunchers' `
                  -f $seedPath, $cfg, $log)
 
     $p = Start-Process -FilePath $exe -ArgumentList $razeArgs `
