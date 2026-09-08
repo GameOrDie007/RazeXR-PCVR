@@ -117,19 +117,42 @@ $games = @(
 # Rides Again ships its data as REDNECK.GRP too, so it is told apart by size.
 $RIDESAGAIN_SIZE = 191798609
 
+<#
+    Exhumed is identified by STUFF.DAT, and Duke Nukem 3D ships a stuff.dat of
+    its own - 840 KB of Duke data against Exhumed's 27 MB. Without this, anyone
+    who owns Duke on Steam got Duke's gameroot copied into games\exhumed, 1527
+    files of the wrong game, and Exhumed would not run. The size in grpinfo.txt
+    is exact, so the test only has to separate two files that are nothing alike.
+#>
+$EXHUMED_MIN = 20000000
+
 $skipExt = @(".exe", ".dll", ".msi", ".cab", ".log", ".url", ".ico", ".bat", ".sh")
 
+<#
+    Every path here goes through -LiteralPath, and the directories are made with
+    .NET rather than New-Item.
+
+    Game folders contain names PowerShell reads as wildcards. A Duke install
+    here ships "hudstatfont_[.png", and a bare Copy-Item treats the '[' as the
+    start of a character class, fails with "The specified wildcard character
+    pattern is not valid", and takes the whole setup down with it - after the
+    "Copying game data" banner, so it looks like the copy itself broke. Square
+    brackets are legal in filenames and mods use them freely.
+#>
 function CopyGameFolder($src, $targetName) {
     $target = Join-Path (Join-Path $dest "games") $targetName
-    New-Item -ItemType Directory -Force -Path $target | Out-Null
+    [void][System.IO.Directory]::CreateDirectory($target)
     $n = 0
-    foreach ($f in Get-ChildItem -Path $src -Recurse -File -ErrorAction SilentlyContinue) {
+    foreach ($f in Get-ChildItem -LiteralPath $src -Recurse -File -ErrorAction SilentlyContinue) {
         if ($skipExt -contains $f.Extension.ToLower()) { continue }
         $rel = $f.FullName.Substring($src.Length).TrimStart('\')
         $out = Join-Path $target $rel
         $dir = Split-Path -Parent $out
-        if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
-        if (-not (Test-Path $out)) { Copy-Item $f.FullName $out -ErrorAction SilentlyContinue; $n++ }
+        if (-not (Test-Path -LiteralPath $dir)) { [void][System.IO.Directory]::CreateDirectory($dir) }
+        if (-not (Test-Path -LiteralPath $out)) {
+            Copy-Item -LiteralPath $f.FullName -Destination $out -ErrorAction SilentlyContinue
+            $n++
+        }
     }
     return $n
 }
@@ -137,7 +160,22 @@ function CopyGameFolder($src, $targetName) {
 Line "Copying game data"
 $found = 0
 $seedPath = ""      # a real data file, to hand the engine as -gamegrp later
-$wtDir = ""         # a World Tour install, if one turns up while looking for Duke
+
+<#
+    World Tour is searched for in its own right, before anything else.
+
+    Doing it as a side effect of the Duke search did not work: that loop stops
+    at its first hit, so on a machine where another Duke install is found first
+    the World Tour folder is never looked at and episode five silently does not
+    appear. It is identified by FIREFLYTROOPER.CON, which no other release has.
+#>
+$wtDir = ""
+foreach ($r in $roots) {
+    $c = Get-ChildItem -LiteralPath $r -Filter "FIREFLYTROOPER.CON" -Recurse -File -Depth 4 -ErrorAction SilentlyContinue |
+         Select-Object -First 1
+    if ($c) { $wtDir = $c.DirectoryName; break }
+}
+
 foreach ($g in $games) {
     $hit = $null
     $wtFallback = $null
@@ -148,6 +186,7 @@ foreach ($g in $games) {
             foreach ($cand in $c) {
                 if ($g.Folder -eq "ridesagain" -and $cand.Length -ne $RIDESAGAIN_SIZE) { continue }
                 if ($g.Folder -eq "rampage"    -and $cand.Length -eq $RIDESAGAIN_SIZE) { continue }
+                if ($g.Folder -eq "exhumed"    -and $cand.Length -lt $EXHUMED_MIN) { continue }
                 <#
                     World Tour ships DUKE3D.GRP like every other Duke release,
                     so it answers the search for Duke - but its folder must not
@@ -162,8 +201,7 @@ foreach ($g in $games) {
                     afterwards, by name, without the four that collide.
                 #>
                 if ($g.Folder -eq "duke" -and
-                    (Test-Path (Join-Path $cand.DirectoryName "FIREFLYTROOPER.CON"))) {
-                    if (-not $wtDir) { $wtDir = $cand.DirectoryName }
+                    (Test-Path -LiteralPath (Join-Path $cand.DirectoryName "FIREFLYTROOPER.CON"))) {
                     if (-not $wtFallback) { $wtFallback = $cand }
                     continue
                 }
@@ -174,7 +212,8 @@ foreach ($g in $games) {
         if ($hit) { break }
     }
 
-    # Only World Tour was found, so it has to serve as the base game after all.
+    # Only World Tour was found, so it has to serve as the base game after all,
+    # and episode five comes with it rather than being added separately.
     if (-not $hit -and $wtFallback) { $hit = $wtFallback; $wtDir = "" }
 
     if (-not $hit) { Info ("{0,-24} not found" -f $g.Name); continue }
@@ -238,7 +277,9 @@ if ($wtDir -and -not $InPlace) {
         foreach ($f in @("FIREFLYTROOPER.CON", "FLAMETHROWER.CON", "EPISODE5BOSS.CON",
                          "TILES020.ART", "TILES021.ART", "TILES022.ART")) {
             $srcf = Join-Path $wtDir $f
-            if (Test-Path $srcf) { Copy-Item $srcf (Join-Path $dukeDir $f) -Force; $n++ }
+            if (Test-Path -LiteralPath $srcf) {
+                Copy-Item -LiteralPath $srcf -Destination (Join-Path $dukeDir $f) -Force; $n++
+            }
         }
 
         <#
@@ -257,8 +298,8 @@ if ($wtDir -and -not $InPlace) {
         if (Test-Path $mapsrc) {
             $mapdst = Join-Path $dukeDir "maps"
             if (-not (Test-Path $mapdst)) { New-Item -ItemType Directory -Force -Path $mapdst | Out-Null }
-            foreach ($m in Get-ChildItem -Path $mapsrc -Filter "E5L*.map" -File) {
-                Copy-Item $m.FullName (Join-Path $mapdst $m.Name) -Force; $n++
+            foreach ($m in Get-ChildItem -LiteralPath $mapsrc -Filter "E5L*.map" -File) {
+                Copy-Item -LiteralPath $m.FullName -Destination (Join-Path $mapdst $m.Name) -Force; $n++
             }
         }
 
@@ -267,9 +308,11 @@ if ($wtDir -and -not $InPlace) {
         if (Test-Path $sndsrc) {
             $snddst = Join-Path $dukeDir "sound"
             if (-not (Test-Path $snddst)) { New-Item -ItemType Directory -Force -Path $snddst | Out-Null }
-            foreach ($f in Get-ChildItem -Path $sndsrc -File) {
+            foreach ($f in Get-ChildItem -LiteralPath $sndsrc -File) {
                 $o = Join-Path $snddst $f.Name
-                if (-not (Test-Path $o)) { Copy-Item $f.FullName $o -Force; $n++ }
+                if (-not (Test-Path -LiteralPath $o)) {
+                    Copy-Item -LiteralPath $f.FullName -Destination $o -Force; $n++
+                }
             }
         }
 
@@ -385,7 +428,11 @@ if (-not $seedPath) {
     # with spaces and quotes nothing, so every path containing a space arrives
     # split in two. This folder is called "RazeXR Setup Test (Miles's)" for
     # exactly that reason - a path with no spaces proves nothing here.
-    $razeArgs = ('-nosetup -gamegrp "{0}" -config "{1}" +logfile "{2}" +vrwritelaunchers' `
+    # -portable, for the same reason the launchers carry it: without it this
+    # run scans every Steam and GOG install and can write launchers naming data
+    # outside this folder, which is exactly what the portable copy exists to
+    # avoid. It also takes minutes off the scan.
+    $razeArgs = ('-nosetup -portable -gamegrp "{0}" -config "{1}" +logfile "{2}" +vrwritelaunchers' `
                  -f $seedPath, $cfg, $log)
 
     $p = Start-Process -FilePath $exe -ArgumentList $razeArgs `

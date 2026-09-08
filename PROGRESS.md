@@ -3131,3 +3131,61 @@ lines.
 inference in this file above that section was drawn from downstream symptoms -
 which game loaded, how many launchers were written, how long it took - and
 almost all of them were wrong.
+
+---
+
+# Running setup from the archive, four times
+
+The release archive was built - engine, scripts, docs, licence, no game data of
+any kind, audited by extension - extracted somewhere clean, and `setup.ps1` run
+against the real Steam and GOG installs on this machine. Five bugs, none of
+which any amount of reading the script had found.
+
+**1. A filename killed the copy.** `Copy-Item $f.FullName $out` on
+`hudstatfont_[.png`: PowerShell reads `[` as a wildcard, the copy fails with
+"The specified wildcard character pattern is not valid", and setup dies. Square
+brackets are legal in filenames and mods use them. Everything that walks game
+data now goes through `-LiteralPath`, and directories are made with .NET rather
+than `New-Item`.
+
+**2. Exhumed got Duke's data.** Exhumed is identified by `STUFF.DAT` and Duke
+ships a `stuff.dat` of its own - 840 KB against Exhumed's 27 MB. Anyone owning
+Duke on Steam got 1527 files of Duke copied into `games/exhumed`. A size floor
+sorts it, the same way Rides Again is told from Redneck Rampage.
+
+**3. World Tour was never looked at.** The Duke search stops at its first hit,
+so where another Duke release is found first the World Tour folder is never
+examined and episode five silently does not appear. It now gets its own search,
+by `FIREFLYTROOPER.CON`, before the main sweep.
+
+**4. Nested expansions were invisible.** Steam keeps D.C., Caribbean and Nuclear
+Winter under `gameroot/addons/<name>/`, which lands at
+`games/duke/addons/dc/` - two levels below the single level `-portable` looked
+at. Seventeen games installed, thirteen launchers written, and the four missing
+were exactly the nested ones. The portable walk goes three deep now.
+
+**5. Episode five was installed and unreachable.** The `-con WT_GAME.CON` was
+keyed on the World Tour GRP, but Alien World Order depends on the *Atomic* one -
+so a user whose Duke is the plain release got 409 files copied and no way to
+reach them. What decides it now is `WT_GAME.CON` beside the data, setup's own
+mark, and it writes a second launcher: the base game keeps four episodes, "Duke
+Nukem 3D World Tour" has five.
+
+## The fourth run
+
+```
+17 launchers, including Duke Nukem 3D World Tour   (episode five)
+Exhumed / PowerSlave   20 files from its own folder
+episode five           409 files from the World Tour install
+35 weapon models from the user's own BLOOD.RFF, Sw.grp and the voxel pack
+```
+
+Then five of the generated launchers were run out of the extracted archive:
+World Tour compiles `WT_GAME.CON`, Atomic and D.C. compile their own `game.con`,
+Exhumed and Shadow Warrior need none, all exit 0 with zero errors - and
+`-map maps/E5L1.map` loads under the World Tour launcher's own command line.
+
+**Every one of these five was invisible to `Parser::ParseFile`, and invisible to
+reading the script.** They appeared the moment the real archive met real
+installs, which is the whole argument for testing the artifact rather than the
+tree it was built from.
