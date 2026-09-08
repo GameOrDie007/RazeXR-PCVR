@@ -3590,3 +3590,38 @@ Worth noting what made it invisible from here: the file names were always right
 - `Duke Nukem 3D - World Tour VR.bat` sits in the folder in plain sight - and
 every headless check read the folder. Only the menu reads the second line, and
 only in a headset.
+
+## Penthouse Paradise's floors were tiled Duke logos
+
+Which is what a missing tile looks like. The add-on ships a `TILES014.art` of its
+own and only four files were being taken - the CONs and the map. It also ships
+its own sounds and music, none of which came either.
+
+It cannot simply be copied beside Duke: the Atomic GRP has a `TILES014` too, so
+a loose one would have replaced that art for **every** Duke game. The same trap
+as World Tour's `TILES009`, and the reason Raze's own entries for this add-on
+expect a repacked `.grp`.
+
+So setup packs it into `penthouse_paradise.zip` and only its launcher names that
+archive - eighteen files, the art and sounds included, and the base game's own
+`GAME/USER/DEFS.CON` deliberately left behind, since those three names are the
+collision rather than the add-on's `p*` and `ppak*` sets. Loaded after the game
+folder, so its art wins where it is asked for and nowhere else.
+
+## And the trigger it broke
+
+Moving Penthouse into an archive took the loose `ppakgame.con` out of
+`games/duke`, and the World Tour launcher vanished with it - not because they
+are related, but because both triggers looked for a file *beside the base game's
+GRP*, and the scan had started reporting a different copy.
+
+**Steam ships the Atomic GRP twice**, byte-identical, as `games/duke/duke3d.grp`
+and `games/duke/classic/DUKE3D.GRP`. Which one the scan reports is not stable -
+it reported the shallow one earlier and the one in `classic\` after four files
+were deleted from the folder. Setup writes `WT_GAME.CON` beside the game data,
+so when `classic\` wins, the file is one folder up and the check finds nothing.
+
+`FindBesideOrAbove` looks in both. A feature should not hang on which of two
+identical files a directory walk reaches first.
+
+Nineteen launchers, nineteen distinct names.

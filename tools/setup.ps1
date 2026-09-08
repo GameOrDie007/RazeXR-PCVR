@@ -362,20 +362,40 @@ foreach ($r in $roots) {
 }
 
 if ($ppakDir -and -not $InPlace) {
-    if (Test-Path -LiteralPath $dukeDir) {
+    <#
+        Packed into an archive of its own rather than dropped beside Duke.
+
+        It ships a TILES014.art, and the Atomic GRP has a TILES014 as well, so
+        loose files would have replaced that art for every other Duke game. Only
+        the Penthouse launcher names this archive, so nothing else ever sees it.
+
+        Its sounds and music come along for the same reason they belong to it,
+        and the base game's own GAME/USER/DEFS.CON are left behind - those three
+        names are the collision, not the add-on's own p* and ppak* sets.
+    #>
+    $ppakZip = Join-Path $dest "penthouse_paradise.zip"
+    $stage = Join-Path $env:TEMP ("razexr_ppak_" + [guid]::NewGuid().ToString())
+    try {
+        [void][System.IO.Directory]::CreateDirectory($stage)
+        $skip = @("GAME.CON", "USER.CON", "DEFS.CON")
         $n = 0
-        foreach ($f in @("ppakgame.con", "ppakdefs.con", "ppakuser.con", "ppakpent.map")) {
-            $srcf = Join-Path $ppakDir $f
-            if (Test-Path -LiteralPath $srcf) {
-                Copy-Item -LiteralPath $srcf -Destination (Join-Path $dukeDir $f) -Force
-                $n++
-            }
+        foreach ($f in Get-ChildItem -LiteralPath $ppakDir -File) {
+            if ($f.Extension -notmatch '^\.(con|map|art|voc|wav|mid)$') { continue }
+            if ($skip -contains $f.Name.ToUpper()) { continue }
+            Copy-Item -LiteralPath $f.FullName -Destination (Join-Path $stage $f.Name) -Force
+            $n++
         }
         if ($n -ge 4) {
+            if (Test-Path -LiteralPath $ppakZip) { Remove-Item -LiteralPath $ppakZip -Force }
+            Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $ppakZip
             Ok ("{0,-24} {1} files from {2}" -f "Penthouse Paradise", $n, $ppakDir)
         } else {
             Warn "Penthouse Paradise found but incomplete - skipped"
         }
+    } catch {
+        Warn "could not pack Penthouse Paradise - everything else still works"
+    } finally {
+        if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue }
     }
 }
 
