@@ -3743,3 +3743,42 @@ own crash earlier today.
 
 - The owner has boxart of his own to bundle. **Ask him for it before the release
   is built.**
+
+## The duplicate GRP was the whole problem
+
+The per-game log survived its own crash and said it plainly:
+
+```
+adding .../games/duke/classic/DUKE3D.GRP, 456 lumps
+adding .../games/duke/classic/, 43 lumps
+WT_GAME.CON: Missing con file(s).
+```
+
+The engine loads the folder the chosen GRP sits in. Chosen from `classic\`, that
+folder holds 43 files and none of World Tour's, so the script named on the
+command line does not exist.
+
+**Steam ships the Atomic GRP twice, byte for byte** - `gameroot/duke3d.grp` and
+`gameroot/classic/DUKE3D.GRP` - and the scan does not consistently report the
+same one. The launchers said `duke3d.grp` after one regeneration and
+`classic/DUKE3D.GRP` after another, with nothing changed but the order a
+directory walk happened to take. That instability is behind everything today
+that came and went: the vanishing World Tour launcher, the missing Penthouse
+launcher, and this.
+
+Two attempts had already worked around it - preferring the shallower duplicate
+when both reach the launcher list, then looking a folder above for
+`WT_GAME.CON`. Both were treating a symptom. **Setup now throws the deeper copy
+away**, on an exact hash match, so there is one answer to which folder a game
+loads from. A same-sized file that differs is a different release and stays.
+
+It removed six on this install: Duke's `classic\DUKE3D.GRP`, and five Redneck
+`.DAT` files duplicated under `rampage\AGAIN\`.
+
+Verified after pruning: Atomic, World Tour and Penthouse all load
+`games/duke/duke3d.grp` with no fatal error, and Redneck, Rides Again, Route 66,
+Blood, Shadow Warrior and Powerslave all still start.
+
+**The log change paid for itself immediately.** The same crash an hour earlier
+left two lines and a wrongly-written config to reason from; this one named the
+file, the folder and the reason.
