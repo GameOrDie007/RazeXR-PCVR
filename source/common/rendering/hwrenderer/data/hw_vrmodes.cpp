@@ -132,7 +132,7 @@ CVAR(Bool, vr_hud_fixed_roll, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 */
 CVAR(Bool, vr_menu_world, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, vr_menu_lock, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)      // stays where opened, or follows the head
-CVAR(Float, vr_menu_scale, 0.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)     // half-width in metres, like vr_hud_scale
+CVAR(Float, vr_menu_scale, 0.75f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)    // half-width in metres, like vr_hud_scale
 CVAR(Float, vr_menu_distance, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)  // metres ahead
 
 bool VR_MenuInWorld()
@@ -151,6 +151,7 @@ static bool  menuAnchored = false;
 static bool  menuHidden = false;
 static float menuAnchorYaw = 0.f;
 static float menuAnchorPitch = 0.f;
+static vec3_t menuAnchorPos = { 0.f, 0.f, 0.f };
 
 void VR_MenuAnchorUpdate()
 {
@@ -164,6 +165,7 @@ void VR_MenuAnchorUpdate()
 	{
 		menuAnchorYaw = hmdorientation[YAW];
 		menuAnchorPitch = hmdorientation[PITCH];
+		VectorCopy(hmdPosition, menuAnchorPos);
 		menuAnchored = true;
 	}
 }
@@ -437,8 +439,30 @@ VSMatrix VREyeInfo::GetMenuProjection(int width, int height) const
 
 	if (vr_menu_lock && menuAnchored)
 	{
+		/*
+			The panel hangs in the world, so the head's whole pose is undone
+			and the panel's own is applied - rotation and position both.
+
+			Rotation alone was not enough. Every line below the rotations
+			places the panel a fixed distance ahead in HEAD space, so it went
+			wherever the head went; turning was anchored and leaning was not,
+			which reads as swaying. The step that fixes it is the translation
+			by (anchor - head), applied once the head's rotation is undone so
+			that it is a displacement in the world rather than in view.
+
+			The axis signs follow the scale above: it negates x and z, so a
+			world delta arrives here as (-dx, dy, -dz). Metres throughout -
+			the conversion to map units is that same scale.
+		*/
 		m.rotate(-hmdorientation[PITCH], 1, 0, 0);
-		m.rotate(menuAnchorYaw - hmdorientation[YAW], 0, 1, 0);
+		m.rotate(-hmdorientation[YAW], 0, 1, 0);
+
+		m.translate(
+				-(menuAnchorPos[0] - hmdPosition[0]),
+				  menuAnchorPos[1] - hmdPosition[1],
+				-(menuAnchorPos[2] - hmdPosition[2]));
+
+		m.rotate(menuAnchorYaw, 0, 1, 0);
 		m.rotate(menuAnchorPitch, 1, 0, 0);
 	}
 

@@ -35,7 +35,7 @@ if (-not (Test-Path (Join-Path $Root "raze.pk3"))) {
     $up = Split-Path -Parent $Root
     if (Test-Path (Join-Path $up "raze.pk3")) { $Root = $up }
 }
-if (-not $Out) { $Out = Join-Path $Root "vrweapons.pk3" }
+if (-not $Out) { $Out = Join-Path $Root "assets\vrweapons.pk3" }
 
 function Say($t)  { if (-not $Quiet) { Write-Host "  $t" } }
 function Note($t) { if (-not $Quiet) { Write-Host "  $t" -ForegroundColor DarkGray } }
@@ -219,13 +219,13 @@ if ($grp) {
     Say ("Shadow Warrior: {0} voxels in {1}" -f ($sources["SW"].Keys | Where-Object { $_ -like "*.KVX" }).Count, (Split-Path -Leaf $grp))
 } else { Note "Shadow Warrior data not found - its weapons will be skipped" }
 
-$duke = First-Existing @((Join-Path $Root "voxel_duke3d.zip"))
+$duke = First-Existing @((Join-Path $Root "assets\voxel_duke3d.zip"))
 if ($duke) {
     $sources["DUKE"] = Read-ZipEntries $duke "*.kvx"
     Say ("Duke: {0} voxels in Voxel Duke 3D" -f $sources["DUKE"].Count)
 } else { Note "Voxel Duke 3D not present - falling back to the Duke3D Voxel Pack" }
 
-$duke2 = First-Existing @((Join-Path $Root "duke3d_voxels.zip"))
+$duke2 = First-Existing @((Join-Path $Root "assets\duke3d_voxels.zip"))
 if ($duke2) {
     $sources["DUKE2"] = Read-ZipEntries $duke2 "*.kvx"
     Say ("Duke fallback: {0} voxels in the Duke3D Voxel Pack" -f $sources["DUKE2"].Count)

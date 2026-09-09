@@ -201,11 +201,20 @@ void VR_SetHMDOrientation(float pitch, float yaw, float roll)
 	}
 }
 
+bool VR_MenuInWorld();	// hw_vrmodes.cpp
+
 void VR_SetHMDPosition(float x, float y, float z )
 {
  	VectorSet(hmdPosition, x, y, z);
 
-	if (VR_UseScreenLayer() || hmdOrigin[0] == 0.0f)
+	/*
+		Theirs resets the origin every frame a menu is up, so positionDelta
+		is zero and the world does not answer to leaning. That is right for
+		a menu drawn on a virtual screen - there is no world to lean into.
+		It is wrong for one hanging in the world: the level would hold still
+		while the panel moved, or the reverse, and either reads as swimming.
+	*/
+	if ((VR_UseScreenLayer() && !VR_MenuInWorld()) || hmdOrigin[0] == 0.0f)
 	{
 		VectorSet(hmdOrigin, x, y, z);
 	}

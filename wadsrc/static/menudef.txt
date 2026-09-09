@@ -620,7 +620,7 @@ OptionMenu "VROptionsMenu" protected
     StaticText ""
     Option "Menu In The World",		"vr_menu_world", "OnOff"
     Option "Menu Stays Where Opened",	"vr_menu_lock", "OnOff"
-    Slider "Menu Size",				"vr_menu_scale", 0.2, 1.0, 0.05, 2
+    Slider "Menu Size",				"vr_menu_scale", 0.2, 1.5, 0.05, 2
     Slider "Menu Distance",			"vr_menu_distance", 0.5, 3.0, 0.1, 2
     StaticText ""
     SafeCommand "$OPTMNU_DEFAULTS", "resetcvar vr_hud_scale hud_scale vr_hud_stereo vr_hud_rotate vr_hud_fixed_pitch vr_hud_fixed_roll vr_menu_world vr_menu_lock vr_menu_scale vr_menu_distance"

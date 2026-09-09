@@ -121,9 +121,9 @@ between all of them without taking the headset off. To start one game directly,
 the individual scripts are in `launchers\`.
 
     Play RazeXR PCVR.bat   the one you want
-    boxart.pk3             the covers the Switch Game menu shows
     launchers\             a script per game, for a direct shortcut
     games\                 your game data, copied here by setup
+    assets\                the voxel packs, weapon models and cover art
     config\                one settings file per game
     logs\                  one log per game - this is what to send if something breaks
 
