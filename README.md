@@ -2,7 +2,7 @@
 
 Seven Build engine games in PC VR: **Duke Nukem 3D**, **Blood**, **Shadow Warrior**,
 **Redneck Rampage**, **NAM**, **WWII GI** and **Exhumed/PowerSlave** — plus their
-expansions - eighteen entries in all, including World Tour's Alien World Order.
+expansions - nineteen entries in all, including World Tour's Alien World Order.
 
 This is a PC port of [Team Beef](https://www.teambeef.org/)'s **RazeXR**, their Quest VR
 build of [Raze](https://github.com/ZDoom/Raze). RazeXR runs on Android and OpenXR; this
@@ -24,8 +24,10 @@ This exists because of other people's work.
   against. See "Voxel weapons" below.
 - **The Build voxel modders** — **Ermac**, **fgsfds** and others whose names are
   not recorded anywhere we could find. Around forty of the weapon models VRaze
-  collected are theirs; this port ships none of them, and builds them on your
-  machine only if you already have VRaze. If one is yours, please open an issue.
+  collected are theirs, and this port **does ship them**, in `vrweapons_models.pk3`,
+  with permission given in the Team Beef Discord — see `THIRD-PARTY-PERMISSIONS.md`.
+  If one is yours and you would rather it were not included, please open an issue
+  and it will be removed.
 - **Voxel Duke 3D** — Daniel Peterson ("Cheello"), included with his permission.
 - **Duke3D Voxel Pack** — ReaperMan and the Duke4.net community.
 - The original developers: 3D Realms, Monolith, Lobotomy Software, Xatrix, TNT Team.
@@ -56,7 +58,7 @@ and nothing to hunt for on GOG. That trips people up, so it is spelled out.
 | **NAM** | its own release |
 | **WWII GI** | its own release |
 | Platoon Leader | **in WWII GI** — never sold separately |
-| **Exhumed / PowerSlave** | the original DOS release only — see below |
+| **Exhumed / PowerSlave** | the original DOS release, plus its free soundtrack DLC — see below |
 
 Raze also recognises **NAPALM** (a NAM variant) and **Duke Nukem's Penthouse Paradise**,
 both obscure enough that most people will never see them, and the shareware and demo
@@ -74,9 +76,16 @@ What Raze needs is the original DOS **Powerslave** or **Exhumed**, identified by
 
 Steam sells it separately as
 **[PowerSlave (DOS Classic Edition)](https://store.steampowered.com/app/1260020/PowerSlave_DOS_Classic_Edition/)**,
-which is the DOS build rather than the remaster. That is the one to buy. *This has not
-been confirmed working here yet - nobody testing this port owns it. If you have it and
-setup does not find it, please say so and it will be fixed.*
+which is the DOS build rather than the remaster. **That is the one to buy, and it is
+confirmed working** - its `STUFF.DAT` is byte for byte the same 27,020,745 bytes as the
+GOG DOS release.
+
+Take the free
+**[soundtrack DLC](https://store.steampowered.com/app/1722540/PowerSlave_DOS_Classic_Edition_Soundtrack/)**
+with it. PowerSlave's music was on the disc as CD audio and is in none of the game's own
+files, so without the DLC the game runs silent - and the GOG DOS release has no way to
+get it at all. The DLC installs the tracks beside the game data, setup brings them
+across, and the game scores itself.
 
 If you bought the classic version years ago, before the remaster replaced it, it is
 still in your library under its own entry. Otherwise a disc.
@@ -89,7 +98,8 @@ Setup says so when it finds the remaster, rather than only reporting the game as
 - A desktop mirror, so the monitor shows what the headset sees
 - Voxel weapons held at the controller, across all seven games
 - Smooth turn by default, and Alt Weapon bound to the off-hand stick click
-- Per-game launcher scripts and a self-contained portable layout
+- One launcher that opens the game you played last, and Switch Game in the menu
+- A self-contained portable layout - copy the folder to another PC and it runs
 - A `vrweapons` console command that prints the resolved weapon table
 - `MAXVOXELS` raised from 1024 to 2048, so the community voxel packs fit
 
@@ -101,13 +111,27 @@ It finds the Build games you already own on Steam and GOG, copies their data int
 this folder, downloads the optional voxel pack, and writes a launcher for each
 game it ends up with. No prompts and no arguments.
 
+Then start Virtual Desktop, connect the headset, and run:
+
+    Play RazeXR PCVR.bat
+
+It opens whichever game you played last, and **Switch Game** in the menu moves
+between all of them without taking the headset off. To start one game directly,
+the individual scripts are in `launchers\`.
+
+    Play RazeXR PCVR.bat   the one you want
+    launchers\             a script per game, for a direct shortcut
+    games\                 your game data, copied here by setup
+    config\                one settings file per game
+    logs\                  one log per game - this is what to send if something breaks
+
 Afterwards the folder is self-contained: copy it to another PC and it runs there
-with nothing installed and no setup to repeat.
+with nothing installed and no setup to repeat. The exception is `-InPlace`, which
+points at your existing installs rather than copying them in: that saves the disk
+space and gives up the portability.
 
     SETUP                 the normal way
-    SETUP -InPlace        link to the games where they are instead of copying,
-                          if disk space matters more than being able to move this
-                          folder elsewhere
+    SETUP -InPlace        link to the games where they are instead of copying
     SETUP -NoDownload     skip the network step
     SETUP -Root D:\Games   also search this folder
 
@@ -193,20 +217,44 @@ Alt Weapon matters in Shadow Warrior — it re-selects the weapon already in you
 which is how you reach the quad shotgun and the nuke. In Duke and Blood it picks the
 alternate weapon in a shared slot.
 
+## Music
+
+Most of these games keep their music inside their own data and it just plays. Three
+of them used CD audio instead, so the music is a set of files rather than something
+in the GRP - and whether you get it depends on what your copy shipped with:
+
+- **Blood** and **Shadow Warrior** - GOG ships the tracks with the game and setup
+  copies them across. Nothing to do.
+- **Redneck Rampage** and **Rides Again** - GOG ships the soundtrack as MP3s under
+  `Extras`, which is not where the engine looks. Setup now copies them into the
+  game's `music` folder under the names the engine asks for, so both games and
+  Route 66 have their music.
+- **PowerSlave / Exhumed** - the music was CD audio and is in none of the game's own
+  files: its data holds 648 entries and every one is a sound effect. Steam's free
+  **soundtrack DLC** for the DOS Classic Edition installs the eighteen tracks, already
+  named the way the engine asks for them, and setup copies them across. Without it the
+  game is silent, and the GOG DOS release has no way to get them. If you have the tracks
+  from somewhere else, a `music` folder holding `track02.ogg` upward is what to make.
+
+The launchers pass `+set mus_extendedlookup 1`, which lets a request for a `.ogg`
+track be answered by the `.mp3` or `.flac` you actually have. If you rip your own
+CD, any of those formats will do.
+
 ## Known issues
 
 - Some weapons stay as flat sprites because no voxel model exists for them anywhere:
   Shadow Warrior's fists and sword, Exhumed's sword and mummified hands, Duke's mighty
   foot, Redneck's crowbar and bowling ball.
-- WWII GI's mauser and Redneck's blaster and thrown dynamite had models but no
-  placement, because VRaze never wrote one for them. This port adds all three, using
-  the same standard placement every other weapon in those games uses.
+- WWII GI's mauser and Redneck's blaster and thrown dynamite carry model names that
+  differ from the ones VRaze's placements are written against (`alienblaster` and
+  `throwingdynamite`). This port defines both spellings, using the same standard
+  placement every other weapon in those games uses.
 - Shadow Warrior's akimbo uzis, quad shotgun and nuke are only reachable if Alt Weapon
   is bound — it is by default, to the off-hand stick click.
-- Weapon animation frames - Duke's pistol slide, Blood's napalm launcher and Shadow
-  Warrior's railgun - are Domyoji's own models and come only with a VRaze install.
-  Without one those weapons appear, but hold a single pose. Exhumed and Redneck have
-  no animation frames in VRaze's data either way.
+- Exhumed and Redneck weapons hold a single pose rather than cycling, because
+  VRaze's data has no animation frames for them. The frames that do exist - Duke's
+  pistol slide, Blood's napalm launcher, Shadow Warrior's railgun - are bundled and
+  work out of the box.
 - Alien World Order - World Tour's fifth episode - needs a **Duke Nukem 3D: 20th
   Anniversary World Tour** install for setup to build it from; its scripts, maps and
   voice-overs are loose files, not part of `DUKE3D.GRP`. With one, setup adds them and
