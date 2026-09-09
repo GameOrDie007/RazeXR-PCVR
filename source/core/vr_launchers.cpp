@@ -42,6 +42,14 @@ struct VRGame
 	*/
 	bool isRoute66 = false;
 	/*
+		Cryptic Passage in the release that ships it as loose files beside
+		BLOOD.RFF rather than as cryptic.zip. Same situation as Route 66 and
+		the same remedy - the engine has -cryptic - but unlike Route 66 it is
+		not true of every copy: the repackaged GOG build does have an archive
+		of its own, and that one is left alone because it already works.
+	*/
+	bool isCryptic = false;
+	/*
 		Duke Nukem 3D and its three expansions, and nothing else. The community
 		voxel pack replaces Duke's own tiles, so it must not be loaded into NAM,
 		WW2GI or Redneck, which run on Duke's module but have their own art.
@@ -150,6 +158,7 @@ void VRLaunchers_SetScannedGames(const TArray<GrpEntry>& games)
 		e.path = g.FileName;
 		e.isAddon = g.FileInfo.isAddon || (g.FileInfo.flags & GAMEFLAG_ADDON) != 0;
 		e.isRoute66 = (g.FileInfo.flags & GAMEFLAG_ROUTE66) != 0;
+		e.isCryptic = (g.FileInfo.flags & GAMEFLAG_BLOODCP) != 0 && e.path.IsEmpty();
 		e.isDuke = (g.FileInfo.flags & GAMEFLAG_DUKE) != 0;
 		e.isWorldTour = g.FileInfo.gamefilter.CompareNoCase("Duke.WorldTour") == 0;
 
@@ -271,6 +280,40 @@ static FString FindBesideOrAbove(const FString& grpPath, const char* name)
 	return "";
 }
 
+/*
+	Where things live.
+
+	The root holds raze.exe, the packs and the game data; launchers, configs and
+	logs each get a folder of their own, because nineteen games meant nineteen
+	scripts and nineteen ini files sitting on top of everything else.
+
+	The writer, the stale-file sweep and the Switch Game scan all have to agree
+	on these, so they are derived once here rather than three times.
+*/
+static FString RootDir()
+{
+	FString dir = progdir;
+	FixPathSeperator(dir);
+	while (dir.Len() > 1 && dir.Back() == '/') dir.Truncate(dir.Len() - 1);
+	if (dir.IsEmpty()) dir = ".";
+	return dir;
+}
+
+static FString LauncherDir()
+{
+	FString d = RootDir();
+	d << "/launchers";
+	return d;
+}
+
+#ifdef _WIN32
+static void MakeDir(const FString& path)
+{
+	std::wstring w = path.WideString().c_str();
+	CreateDirectoryW(w.c_str(), nullptr);
+}
+#endif
+
 CCMD(vrwritelaunchers)
 {
 	PreferLocalCopies();
@@ -282,11 +325,13 @@ CCMD(vrwritelaunchers)
 	}
 
 #ifdef _WIN32
-	// progdir is where raze.exe lives, which is where the launchers belong.
-	FString dir = progdir;
-	FixPathSeperator(dir);
-	while (dir.Len() > 1 && dir.Back() == '/') dir.Truncate(dir.Len() - 1);
-	if (dir.IsEmpty()) dir = ".";
+	FString root = RootDir();
+	FString dir = LauncherDir();
+	MakeDir(dir);
+	{
+		FString cfg = root; cfg << "/config";
+		MakeDir(cfg);
+	}
 
 	int written = 0;
 	TArray<FString> writtenFiles;
@@ -303,8 +348,19 @@ CCMD(vrwritelaunchers)
 		body << "rem Written by the vrwritelaunchers console command.\r\n";
 		body << "rem Start Virtual Desktop and connect the headset before running this.\r\n";
 		body << "setlocal\r\n";
-		body << "cd /d \"%~dp0\"\r\n";
-		body << "if not exist \"%~dp0logs\" md \"%~dp0logs\"\r\n";
+		/*
+			The scripts live in launchers\\, everything they name lives above
+			it. %CD% after the cd is the same path with the ".." resolved, so
+			the arguments below read as ordinary absolute paths rather than
+			carrying a "\\.." through every one of them.
+		*/
+		body << "set \"ROOT=%~dp0..\"\r\n";
+		body << "cd /d \"%ROOT%\"\r\n";
+		body << "set \"ROOT=%CD%\"\r\n";
+		body << "if not exist \"%ROOT%\\logs\" md \"%ROOT%\\logs\"\r\n";
+		body << "if not exist \"%ROOT%\\config\" md \"%ROOT%\\config\"\r\n";
+		// What the single launcher in the root starts next time.
+		body << ">\"%ROOT%\\config\\lastgame.txt\" echo " << base << "\r\n";
 		body << "\r\n";
 		body << "rem The voxel weapon pack, if it has been built.\r\n";
 		body << "set \"VRW=\"\r\n";
@@ -318,7 +374,7 @@ CCMD(vrwritelaunchers)
 			assembled into "RazeXR (PC)" the voxel pack stopped loading, silently,
 			in every game.
 		*/
-		body << "if exist \"%~dp0vrweapons.pk3\" set \"VRW=-file \"%~dp0vrweapons.pk3\"\"\r\n";
+		body << "if exist \"%ROOT%\\vrweapons.pk3\" set \"VRW=-file \"%ROOT%\\vrweapons.pk3\"\"\r\n";
 		body << "\r\n";
 
 		/*
@@ -347,8 +403,8 @@ CCMD(vrwritelaunchers)
 			body << "rem A Duke voxel pack, if one has been installed beside this script.\r\n";
 			body << "rem Voxel Duke 3D wins where both are present - it covers monsters too.\r\n";
 			body << "set \"VOX=\"\r\n";
-			body << "if exist \"%~dp0duke3d_voxels.zip\" set \"VOX=-file \"%~dp0duke3d_voxels.zip\"\"\r\n";
-			body << "if exist \"%~dp0voxel_duke3d.zip\" set \"VOX=-file \"%~dp0voxel_duke3d.zip\"\"\r\n";
+			body << "if exist \"%ROOT%\\duke3d_voxels.zip\" set \"VOX=-file \"%ROOT%\\duke3d_voxels.zip\"\"\r\n";
+			body << "if exist \"%ROOT%\\voxel_duke3d.zip\" set \"VOX=-file \"%ROOT%\\voxel_duke3d.zip\"\"\r\n";
 			body << "\r\n";
 		}
 		/*
@@ -362,7 +418,7 @@ CCMD(vrwritelaunchers)
 		{
 			body << "rem The voxel pack for this game, if setup was able to fetch it.\r\n";
 			body << "set \"VOX=\"\r\n";
-			body << "if exist \"%~dp0" << g.voxPack << "\" set \"VOX=-file \"%~dp0" << g.voxPack << "\"\"\r\n";
+			body << "if exist \"%ROOT%\\" << g.voxPack << "\" set \"VOX=-file \"%ROOT%\\" << g.voxPack << "\"\"\r\n";
 			body << "\r\n";
 		}
 		/*
@@ -375,6 +431,85 @@ CCMD(vrwritelaunchers)
 			<game folder>/<file> - which is the shape every Build game's data
 			takes here, and the same shape the search path addition walks.
 		*/
+		/*
+			Cryptic Passage, where the release keeps it as loose files.
+
+			grpinfo matches it on CRYPTIC.INI and the maps sitting beside
+			BLOOD.RFF, so the scan reports a game with no file of its own and
+			there is nothing to hand to -gamegrp. -cryptic is the engine's own
+			answer: it selects the entry by its scriptname and adds the two
+			replacement art files.
+
+			This one was found the hard way. With no file, the portable path
+			collapsed to the games folder itself and the launcher ran
+
+			    -gamegrp "...\games\"
+
+			where the backslash escapes the closing quote, so every argument
+			after it - -nosetup, -portable, -config, +logfile - was swallowed
+			into one token and lost. The engine then started with effectively no
+			arguments, found no game data, and said so in a dialog that pointed
+			nowhere near the cause. See the empty-path guard below, which is what
+			stops the next one of these being a mystery.
+		*/
+		if (g.isCryptic)
+		{
+			FString basegrp;
+			for (auto& other : Games)
+			{
+				FString lower = other.path;
+				lower.ToLower();
+				FixPathSeperator(lower);
+				if (lower.Right(9).Compare("blood.rff") == 0)
+				{
+					basegrp = other.path;
+					break;
+				}
+			}
+
+			if (basegrp.IsEmpty())
+			{
+				Printf(TEXTCOLOR_YELLOW "  %s: skipped, its base game was not found\n", base.GetChars());
+				continue;
+			}
+
+			FString relcp = basegrp;
+			relcp.Substitute("\\", "/");
+			FString tailcp = relcp;
+			{
+				ptrdiff_t slash = relcp.LastIndexOf('/');
+				if (slash > 0)
+				{
+					ptrdiff_t prev = relcp.LastIndexOf('/', slash - 1);
+					tailcp = prev >= 0 ? relcp.Mid(prev + 1) : relcp.Mid(slash + 1);
+				}
+			}
+			tailcp.Substitute("/", "\\");
+
+			body << "rem Cryptic Passage is loose files beside BLOOD.RFF in this release,\r\n";
+			body << "rem so -cryptic selects it and the base game is named in full.\r\n";
+			body << "set \"GRP=%ROOT%\\games\\" << tailcp << "\"\r\n";
+			body << "if not exist \"%GRP%\" set \"GRP=" << basegrp << "\"\r\n";
+			body << "\r\n";
+			body << "\"%ROOT%\\raze.exe\" -nosetup -portable -cryptic -gamegrp \"%GRP%\" %VOX% %VRW% ";
+			body << "+set mus_extendedlookup 1 ";
+			body << "-config \"%ROOT%\\config\\" << base << ".ini\" ";
+			body << "+logfile \"%ROOT%\\logs\\" << base << ".log\"\r\n";
+
+			FileWriter* wcp = FileWriter::Open(file.GetChars());
+			if (wcp == nullptr)
+			{
+				Printf(TEXTCOLOR_RED "Could not write %s\n", file.GetChars());
+				continue;
+			}
+			wcp->Write(body.GetChars(), body.Len());
+			delete wcp;
+			Printf("  %s%s\n", base.GetChars(), g.isAddon ? "   (add-on)" : "");
+			writtenFiles.Push(base + ".bat");
+			written++;
+			continue;
+		}
+
 		if (g.isRoute66)
 		{
 			/*
@@ -418,7 +553,7 @@ CCMD(vrwritelaunchers)
 			body << "rem Route 66 trips a fault in the full pack, so it takes the\r\n";
 			body << "rem Redneck-only one, which gives it the same weapons.\r\n";
 			body << "set \"VRW=\"\r\n";
-			body << "if exist \"%~dp0vrweapons_rr.pk3\" set \"VRW=-file \"%~dp0vrweapons_rr.pk3\"\"\r\n";
+			body << "if exist \"%ROOT%\\vrweapons_rr.pk3\" set \"VRW=-file \"%ROOT%\\vrweapons_rr.pk3\"\"\r\n";
 			body << "\r\n";
 
 			FString rel66 = basegrp;
@@ -436,10 +571,10 @@ CCMD(vrwritelaunchers)
 
 			body << "rem Route 66 has no archive of its own. -route66 sets the CON, the\r\n";
 			body << "rem art and the renames; the base game still has to be named in full.\r\n";
-			body << "set \"GRP=%~dp0games\\" << tail66 << "\"\r\n";
+			body << "set \"GRP=%ROOT%\\games\\" << tail66 << "\"\r\n";
 			body << "if not exist \"%GRP%\" set \"GRP=" << basegrp << "\"\r\n";
 			body << "\r\n";
-			body << "\"%~dp0raze.exe\" -nosetup -portable -route66 -gamegrp \"%GRP%\" %VRW% ";
+			body << "\"%ROOT%\\raze.exe\" -nosetup -portable -route66 -gamegrp \"%GRP%\" %VRW% ";
 			/*
 				A log per game, not one shared raze.log.
 
@@ -450,8 +585,9 @@ CCMD(vrwritelaunchers)
 				starts Raze again with no arguments at all and overwrites the log
 				with two lines. That has now cost two diagnoses.
 			*/
-			body << "-config \"%~dp0cfg_" << base << ".ini\" ";
-			body << "+logfile \"%~dp0logs\\" << base << ".log\"\r\n";
+			body << "+set mus_extendedlookup 1 ";
+			body << "-config \"%ROOT%\\config\\" << base << ".ini\" ";
+			body << "+logfile \"%ROOT%\\logs\\" << base << ".log\"\r\n";
 
 			FileWriter* w66 = FileWriter::Open(file.GetChars());
 			if (w66 == nullptr)
@@ -477,6 +613,22 @@ CCMD(vrwritelaunchers)
 			nested expansion silently fell back to the absolute path it was
 			written with and stopped being portable at all.
 		*/
+		/*
+			No file, no launcher.
+
+			Everything below builds a path out of g.path, and an empty one does
+			not produce an empty argument - it produces the games folder with a
+			trailing separator, which escapes its own closing quote and takes
+			the rest of the command line with it. A launcher that cannot name
+			its game is worse than an absent one: it starts the engine with no
+			arguments and the failure names nothing that led to it.
+		*/
+		if (g.path.IsEmpty())
+		{
+			Printf(TEXTCOLOR_YELLOW "  %s: skipped, the scan found no file for it\n", base.GetChars());
+			continue;
+		}
+
 		FString rel = g.path;
 		rel.Substitute("\\", "/");
 
@@ -501,15 +653,15 @@ CCMD(vrwritelaunchers)
 		}
 		tail.Substitute("/", "\\");
 
-		body << "rem Game data. A copy in games\\ beside this script wins, so this\r\n";
+		body << "rem Game data. A copy in the games folder above wins, so the whole\r\n";
 		body << "rem folder can be moved to another PC; otherwise where it was found.\r\n";
-		body << "set \"GRP=%~dp0" << tail << "\"\r\n";
+		body << "set \"GRP=%ROOT%\\" << tail << "\"\r\n";
 		body << "if not exist \"%GRP%\" set \"GRP=" << g.path << "\"\r\n";
 		body << "\r\n";
 		// -portable: look for game data in this folder only, never in Steam
 		// or GOG. See CollectSearchPaths - it is what makes -gamegrp below
 		// resolve to the copy sitting beside this script, every time.
-		body << "\"%~dp0raze.exe\" -nosetup -portable";
+		body << "\"%ROOT%\\raze.exe\" -nosetup -portable";
 
 		/*
 			Episode five. WT_GAME.CON is World Tour's own GAME.CON with its
@@ -527,8 +679,9 @@ CCMD(vrwritelaunchers)
 		body << " -gamegrp \"%GRP%\"";
 		if (g.isDuke || g.voxPack.IsNotEmpty()) body << " %VOX%";
 		body << " %VRW% ";
-		body << "-config \"%~dp0cfg_" << base << ".ini\" ";
-		body << "+logfile \"%~dp0logs\\" << base << ".log\"\r\n";
+		body << "+set mus_extendedlookup 1 ";
+		body << "-config \"%ROOT%\\config\\" << base << ".ini\" ";
+		body << "+logfile \"%ROOT%\\logs\\" << base << ".log\"\r\n";
 
 		FileWriter* w = FileWriter::Open(file.GetChars());
 		if (w == nullptr)
@@ -569,7 +722,8 @@ CCMD(vrwritelaunchers)
 		if (g.isDuke && !g.isAddon && !g.isRoute66)
 		{
 			FString ppak;
-			ppak.Format("%s/penthouse_paradise.zip", dir.GetChars());
+			// The zip sits in the root beside raze.exe, not in launchers\.
+			ppak.Format("%s/penthouse_paradise.zip", root.GetChars());
 
 			if (FileExists(ppak.GetChars()))
 			{
@@ -586,7 +740,7 @@ CCMD(vrwritelaunchers)
 					which is what a missing tile looks like. In an archive of its
 					own it reaches only the launcher that names it.
 				*/
-				pbody.Substitute(" %VRW% ", " %VRW% -file \"%~dp0penthouse_paradise.zip\" ");
+				pbody.Substitute(" %VRW% ", " %VRW% -file \"%ROOT%\\penthouse_paradise.zip\" ");
 
 				/*
 					And the name it announces itself by.
@@ -602,13 +756,17 @@ CCMD(vrwritelaunchers)
 				newrem = "rem Duke Nukem's Penthouse Paradise\r\n";
 				pbody.Substitute(oldrem.GetChars(), newrem.GetChars());
 				FString oldcfg, newcfg;
-				oldcfg.Format("cfg_%s.ini", base.GetChars());
-				newcfg.Format("cfg_%s.ini", pbase.GetChars());
+				oldcfg.Format("config\\%s.ini", base.GetChars());
+				newcfg.Format("config\\%s.ini", pbase.GetChars());
 				pbody.Substitute(oldcfg.GetChars(), newcfg.GetChars());
 				FString oldlog, newlog;
 				oldlog.Format("logs\\%s.log", base.GetChars());
 				newlog.Format("logs\\%s.log", pbase.GetChars());
 				pbody.Substitute(oldlog.GetChars(), newlog.GetChars());
+				FString oldpick, newpick;
+				oldpick.Format("lastgame.txt\" echo %s\r\n", base.GetChars());
+				newpick.Format("lastgame.txt\" echo %s\r\n", pbase.GetChars());
+				pbody.Substitute(oldpick.GetChars(), newpick.GetChars());
 
 				FString pfile;
 				pfile.Format("%s/%s.bat", dir.GetChars(), pbase.GetChars());
@@ -646,13 +804,17 @@ CCMD(vrwritelaunchers)
 				newrem = "rem Duke Nukem 3D: World Tour\r\n";
 				wtbody.Substitute(oldrem.GetChars(), newrem.GetChars());
 				FString oldcfg, newcfg;
-				oldcfg.Format("cfg_%s.ini", base.GetChars());
-				newcfg.Format("cfg_%s.ini", wtbase.GetChars());
+				oldcfg.Format("config\\%s.ini", base.GetChars());
+				newcfg.Format("config\\%s.ini", wtbase.GetChars());
 				wtbody.Substitute(oldcfg.GetChars(), newcfg.GetChars());
 				FString oldlog, newlog;
 				oldlog.Format("logs\\%s.log", base.GetChars());
 				newlog.Format("logs\\%s.log", wtbase.GetChars());
 				wtbody.Substitute(oldlog.GetChars(), newlog.GetChars());
+				FString oldpick, newpick;
+				oldpick.Format("lastgame.txt\" echo %s\r\n", base.GetChars());
+				newpick.Format("lastgame.txt\" echo %s\r\n", wtbase.GetChars());
+				wtbody.Substitute(oldpick.GetChars(), newpick.GetChars());
 
 				FString wtfile;
 				wtfile.Format("%s/%s.bat", dir.GetChars(), wtbase.GetChars());
@@ -667,6 +829,155 @@ CCMD(vrwritelaunchers)
 				}
 			}
 		}
+	}
+
+	/*
+		One launcher in the root, which starts whatever was played last.
+
+		There cannot be a game picker before startup: the engine has to identify
+		a game before it can draw anything at all, so the choice cannot be a menu
+		of its own. Each launcher writes its own name into config\lastgame.txt
+		instead and this reads it back, which makes the first run the only one
+		that needs a default - everything after it is Switch Game in the headset,
+		which is where you would rather be choosing from anyway.
+	*/
+	if (written > 0)
+	{
+		// Alphabetical would open on Blood. Duke is the one people came for.
+		FString first = writtenFiles[0];
+		for (auto& w : writtenFiles)
+		{
+			if (w.IndexOf("Duke Nukem 3D - Atomic") == 0) first = w;
+		}
+		for (auto& w : writtenFiles)
+		{
+			if (w.IndexOf("Duke Nukem 3D - World Tour") == 0) first = w;
+		}
+		if (first.Len() > 4) first.Truncate(first.Len() - 4);	// drop ".bat"
+
+		FString rbody;
+		rbody << "@echo off\r\n";
+		rbody << "rem RazeXR PCVR. Starts the game you played last; Switch Game in\r\n";
+		rbody << "rem the menu changes which one that is.\r\n";
+		/*
+			Deliberately no parenthesised if-blocks below.
+
+			cmd parses a block in one pass, so a path holding brackets - and
+			Program Files (x86) is the one everybody has - closes the block early
+			and kills the script before it launches anything. goto cannot do that.
+
+			This file also carries no marker line, which is what keeps the sweeps
+			above and below from treating it as a game launcher and removing it.
+		*/
+		rbody << "setlocal\r\n";
+		rbody << "cd /d \"%~dp0\"\r\n";
+		rbody << "\r\n";
+		rbody << "set \"PICK=\"\r\n";
+		rbody << "if exist \"config\\lastgame.txt\" set /p PICK=<\"config\\lastgame.txt\"\r\n";
+		rbody << "if not defined PICK goto first\r\n";
+		rbody << "if not exist \"launchers\\%PICK%.bat\" goto first\r\n";
+		rbody << "call \"launchers\\%PICK%.bat\"\r\n";
+		rbody << "goto :eof\r\n";
+		rbody << "\r\n";
+		rbody << ":first\r\n";
+		rbody << "call \"launchers\\" << first << ".bat\"\r\n";
+
+		FString rfile;
+		rfile.Format("%s/Play RazeXR PCVR.bat", root.GetChars());
+		FileWriter* rw = FileWriter::Open(rfile.GetChars());
+		if (rw != nullptr)
+		{
+			rw->Write(rbody.GetChars(), rbody.Len());
+			delete rw;
+			Printf("  Play RazeXR PCVR   (opens %s)\n", first.GetChars());
+		}
+	}
+
+	/*
+		Launchers written before they had a folder of their own.
+
+		An install updated in place still has all of them sitting in the root,
+		and the Switch Game scan no longer looks there - so they would remain as
+		scripts that still appear to work while writing their config and log to
+		the old paths. Only files carrying our marker are touched, which is
+		neither SETUP.bat nor the root launcher just written.
+	*/
+	int migrated = 0;
+	{
+		FString pattern;
+		pattern.Format("%s/*.bat", root.GetChars());
+		std::wstring wpattern = pattern.WideString().c_str();
+
+		WIN32_FIND_DATAW fd = {};
+		HANDLE h = FindFirstFileW(wpattern.c_str(), &fd);
+		if (h != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
+
+				FString full;
+				full.Format("%s/%s", root.GetChars(), FString(fd.cFileName).GetChars());
+				FString ignored;
+				if (!ReadLauncherName(full.GetChars(), ignored)) continue;
+
+				if (remove(full.GetChars()) == 0) migrated++;
+			}
+			while (FindNextFileW(h, &fd));
+			FindClose(h);
+		}
+	}
+	if (migrated > 0)
+	{
+		Printf("Moved %d launcher%s out of the root folder\n",
+			migrated, migrated == 1 ? "" : "s");
+	}
+
+	/*
+		And the settings those launchers wrote.
+
+		Moved rather than left or deleted. Left, the root keeps the clutter this
+		change was made to remove; deleted, everyone updating loses their
+		bindings and comfort settings for nineteen games at once. The name loses
+		its cfg_ prefix on the way, which is redundant once the folder says it.
+	*/
+	int movedcfg = 0;
+	{
+		FString pattern;
+		pattern.Format("%s/cfg_*.ini", root.GetChars());
+		std::wstring wpattern = pattern.WideString().c_str();
+
+		WIN32_FIND_DATAW fd = {};
+		HANDLE h = FindFirstFileW(wpattern.c_str(), &fd);
+		if (h != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
+
+				FString name = FString(fd.cFileName);
+				if (name.IndexOf("cfg_") != 0) continue;
+				// setup's own scratch file, which setup removes itself.
+				if (name.CompareNoCase("cfg_setup.ini") == 0) continue;
+
+				FString from, to;
+				from.Format("%s/%s", root.GetChars(), name.GetChars());
+				to.Format("%s/config/%s", root.GetChars(), name.Mid(4).GetChars());
+
+				// Never over an existing one - that is the newer file.
+				FileReader probe;
+				if (probe.OpenFile(to.GetChars())) continue;
+
+				if (rename(from.GetChars(), to.GetChars()) == 0) movedcfg++;
+			}
+			while (FindNextFileW(h, &fd));
+			FindClose(h);
+		}
+	}
+	if (movedcfg > 0)
+	{
+		Printf("Moved %d config file%s into config\\\n",
+			movedcfg, movedcfg == 1 ? "" : "s");
 	}
 
 	/*
@@ -802,10 +1113,7 @@ static void ScanLaunchers()
 	Launchers.Clear();
 
 #ifdef _WIN32
-	FString dir = progdir;
-	FixPathSeperator(dir);
-	while (dir.Len() > 1 && dir.Back() == '/') dir.Truncate(dir.Len() - 1);
-	if (dir.IsEmpty()) dir = ".";
+	FString dir = LauncherDir();
 
 	FString pattern;
 	pattern.Format("%s/*.bat", dir.GetChars());
@@ -892,6 +1200,8 @@ void BuildVRGameSelectMenu()
 //
 //==========================================================================
 
+void VR_Trace(const char* stage);
+
 static bool StartLauncher(const char* bat)
 {
 #ifdef _WIN32
@@ -919,15 +1229,53 @@ static bool StartLauncher(const char* bat)
 
 	PROCESS_INFORMATION pi = {};
 
+	/*
+		Name ourselves to the successor so it can wait for us properly.
+
+		The ping above is a guess at how long this process takes to put the
+		headset down. This is the fact: the child inherits our environment,
+		reads the pid out of it and waits on the handle before it touches
+		OpenXR. The ping stays as a floor in case the variable does not
+		survive the trip through cmd.
+	*/
+	{
+		wchar_t pidbuf[32];
+		swprintf(pidbuf, 32, L"%lu", (unsigned long)GetCurrentProcessId());
+		SetEnvironmentVariableW(L"RAZEXR_WAIT_PID", pidbuf);
+	}
+
 	std::wstring buf = cmd.WideString().c_str();
+
+	/*
+		Both halves of the handover are recorded, because the failure this
+		was written for left no trace on either side: the game vanished and
+		the successor's log did not exist. Without a line from here there is
+		no way to tell a successor that died during startup from one that
+		was never created.
+	*/
+	{
+		FString t;
+		t.Format("switching to: %s", bat);
+		VR_Trace(t.GetChars());
+	}
 
 	BOOL ok = CreateProcessW(nullptr, buf.data(), nullptr, nullptr, FALSE,
 		CREATE_NEW_CONSOLE, nullptr, nullptr, &si, &pi);
 
 	if (ok)
 	{
+		FString t;
+		t.Format("successor created, pid %lu", (unsigned long)pi.dwProcessId);
+		VR_Trace(t.GetChars());
+
 		CloseHandle(pi.hProcess);
 		CloseHandle(pi.hThread);
+	}
+	else
+	{
+		FString t;
+		t.Format("CreateProcess FAILED, error %lu", (unsigned long)GetLastError());
+		VR_Trace(t.GetChars());
 	}
 	return ok != 0;
 #else
