@@ -78,7 +78,7 @@ LISTMENU "MainMenu"
 		ExhumedTextItem "$MNU_NEWGAME", "n", "EpisodeMenu"
 		ExhumedTextItem "$MNU_LOADGAME", "l", "LoadGameMenu"
 		//ExhumedTextItem "$TXT_EX_MAP00", "m", "StartGameNoSkill", 1
-		ExhumedTextItem "$MNU_OPTIONS", "v", "OptionsMenu"
+		ExhumedTextItem "$MNU_OPTIONS", "o", "OptionsMenu"
 		ExhumedTextItem "VR Options", "v", "VROptionsMenu"
 		ExhumedTextItem "Switch Game", "g", "VRGameSelectMenu"
 		ExhumedTextItem "$MNU_QUITGAME", "q", "QuitMenu"
@@ -96,27 +96,29 @@ LISTMENU "IngameMenu"
 	Size 320, 200
 	ifgame(Duke, Nam, WW2GI, Redneck, RedneckRides)
 	{
-		position 160, 55
-		linespacing 18
+		position 160, 40
+		linespacing 17
 		animatedtransition
 		DukeLogo
 		DukeTextItem "$MNU_NEWGAME", "n", "EpisodeMenu"
 		DukeTextItem "$MNU_SAVEGAME", "s", "SaveGameMenu"
 		DukeTextItem "$MNU_LOADGAME", "l", "LoadGameMenu"
 		DukeTextItem "$MNU_OPTIONS", "o", "OptionsMenu"
-		DukeTextItem "VR Options", "o", "VROptionsMenu"
+		DukeTextItem "VR Options", "v", "VROptionsMenu"
+		DukeTextItem "Switch Game", "g", "VRGameSelectMenu"
 		DukeTextItem "$MNU_HELP", "h", "HelpMenu"
 		DukeTextItem "$MNU_ENDGAME", "e", "EndgameMenu"
 		DukeTextItem "$MNU_QUITGAME", "q", "QuitMenu"
 	}
 	ifgame(Blood)
 	{
-		position 160, 45
+		position 160, 35
 		CaptionItem "Blood"
-		Linespacing 17
+		Linespacing 16
 		BloodTextItem "$MNU_NEWGAME", "n", "EpisodeMenu"
 		BloodTextItem "$MNU_OPTIONS", "o", "OptionsMenu"
 		BloodTextItem "VR Options", "v", "VROptionsMenu"
+		BloodTextItem "Switch Game", "g", "VRGameSelectMenu"
 		BloodTextItem "$MNU_SAVEGAME", "s", "SaveGameMenu"
 		BloodTextItem "$MNU_LOADGAME", "l", "LoadGameMenu"
 		BloodTextItem "$MNU_HELP", "h", "HelpMenu"
@@ -129,7 +131,7 @@ LISTMENU "IngameMenu"
 	ifgame(ShadowWarrior)
 	{
 		Position 55, 32
-		Linespacing 17
+		Linespacing 14
 		class SWMainMenu
 		SWLogo
 		SWTextItem "$MNU_NEWGAME", "n", "EpisodeMenu"
@@ -137,6 +139,7 @@ LISTMENU "IngameMenu"
 		SWTextItem "$MNU_SAVEGAME", "s", "SaveGameMenu"
 		SWTextItem "$MNU_OPTIONS", "o", "OptionsMenu"
 		SWTextItem "VR Options", "v", "VROptionsMenu"
+		SWTextItem "Switch Game", "g", "VRGameSelectMenu"
 		ifnotgame (shareware)
 		{
 			SWTextItem "$MNU_CREDITS", "c", "CreditsMenu"
@@ -150,16 +153,17 @@ LISTMENU "IngameMenu"
 	ifgame(Exhumed)
 	{
 		class ExhumedMainMenu
-		Position 160, 65
-		linespacing 22
+		Position 160, 60
+		linespacing 18
 		Animated
 		ExhumedLogo
 		ExhumedTextItem "$MNU_NEWGAME", "n", "EpisodeMenu", 0
 		ExhumedTextItem "$MNU_LOADGAME", "l", "LoadGameMenu"
 		ExhumedTextItem "$MNU_SAVEGAME", "s", "SaveGameMenu"
 		//ExhumedTextItem "$TXT_EX_MAP00", "m", "StartGameNoSkill", 1
-		ExhumedTextItem "$MNU_OPTIONS", "v", "OptionsMenu"
+		ExhumedTextItem "$MNU_OPTIONS", "o", "OptionsMenu"
 		ExhumedTextItem "VR Options", "v", "VROptionsMenu"
+		ExhumedTextItem "Switch Game", "g", "VRGameSelectMenu"
 		ExhumedTextItem "$MNU_QUITGAME", "q", "QuitMenu"
 	}
 }
