@@ -49,6 +49,8 @@
 #include "raze_music.h"
 #include "vm.h"
 #include "mapinfo.h"
+#include "i_interface.h"
+#include "c_cvars.h"
 
 static PType* maprecordtype;
 static PType* summaryinfotype;
@@ -134,6 +136,50 @@ bool CreateCutscene(CutsceneDef* cs, DObject* runner, MapRecord* map, bool trans
 //
 //=============================================================================
 
+CVAR(Bool, vr_splash, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+
+//---------------------------------------------------------------------------
+//
+// The PCVR splash and the game's own intro share one runner, and the splash is
+// appended first so it plays first.
+//
+// It cannot be a cutscene of its own chained from the other's completion
+// handler: EndScreenJob clears cutscene.completion *after* calling it, so a
+// cutscene started from inside one loses its completion and the game never
+// receives its gameaction. Sharing the runner sidesteps that entirely.
+//
+//---------------------------------------------------------------------------
+
+static bool StartIntroWithSplash(int flags, const CompletionFunc& completion_)
+{
+	CutsceneDef& cs = globalCutscenes.Intro;
+	const bool haveIntro = cs.isdefined() && cs.function.CompareNoCase("none") != 0;
+	if (!haveIntro && !vr_splash) return false;
+
+	cutscene.completion = completion_;
+	cutscene.runner = CreateRunner();
+	GC::WriteBarrier(cutscene.runner);
+	try
+	{
+		if (vr_splash) CallCreateFunction("VRSplash.Create", cutscene.runner);
+		if (haveIntro) cs.Create(cutscene.runner);
+		// Validate covers the case where the splash appended nothing and the
+		// game has no intro either: an empty runner is not a cutscene.
+		if (!ScreenJobValidate())
+		{
+			DeleteScreenJob();
+			return false;
+		}
+		if (sysCallbacks.StartCutscene) sysCallbacks.StartCutscene(flags & SJ_BLOCKUI);
+	}
+	catch (...)
+	{
+		DeleteScreenJob();
+		throw;
+	}
+	return true;
+}
+
 void PlayLogos(gameaction_t complete_ga, gameaction_t def_ga, bool stopmusic)
 {
 	Mus_Stop();
@@ -144,8 +190,8 @@ void PlayLogos(gameaction_t complete_ga, gameaction_t def_ga, bool stopmusic)
 	}
 	else
 	{
-		if (!StartCutscene(globalCutscenes.Intro, SJ_BLOCKUI, [=](bool) { 
-			gameaction = complete_ga; 
+		if (!StartIntroWithSplash(SJ_BLOCKUI, [=](bool) {
+			gameaction = complete_ga;
 			})) gameaction = def_ga;
 	}
 }

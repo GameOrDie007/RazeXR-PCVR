@@ -137,3 +137,4 @@ version "4.10"
 #include "zscript/games/exhumed/ui/screens.zs"
 
 #include "zscript/vrgameselect.zs"
+#include "zscript/vrsplash.zs"
