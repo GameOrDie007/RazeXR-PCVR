@@ -42,6 +42,8 @@
 #include "version.h"
 #include "i_interface.h"
 #include "RazeXR/mathlib.h"
+#include "menustate.h"
+#include "gamestate.h"
 
 extern vec3_t hmdPosition;
 extern vec3_t hmdOrigin;
@@ -109,6 +111,60 @@ CVAR(Float, vr_hud_stereo, 2.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, vr_hud_rotate, 0.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, vr_hud_fixed_pitch, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, vr_hud_fixed_roll, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+
+/*
+	PCVR port: the pause menu as a panel in the world.
+
+	When a menu opens inside a level, theirs switches the compositor to a quad
+	layer: the whole eye buffer - paused level and menu together - becomes a
+	virtual screen four metres ahead, and the projection layers stop. The menu
+	was never in the world; it was a television showing a picture of it. And
+	that screen was placed with its centre at a fixed 1.0 m while eyes sit
+	around 1.6, so its bottom rows fell below comfortable view - which is
+	where Quit went.
+
+	Head tracking is applied at render time, through VR_GetMove, not by the
+	game tick - so the paused world can be drawn in stereo and looked around.
+	That is what makes this possible: the projection layers stay up, the level
+	keeps rendering around you, and the 2D layer is projected onto a panel the
+	same way the HUD already is, anchored where you were looking when the
+	menu opened. vr_menu_world 0 restores the virtual screen exactly as before.
+*/
+CVAR(Bool, vr_menu_world, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Bool, vr_menu_lock, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)      // stays where opened, or follows the head
+CVAR(Float, vr_menu_scale, 0.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)     // half-width in metres, like vr_hud_scale
+CVAR(Float, vr_menu_distance, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)  // metres ahead
+
+bool VR_MenuInWorld()
+{
+	// The eye-count check is what keeps -novr and a PC with no headset on
+	// the old path: GetVRMode answers mono for both.
+	return vr_menu_world
+		&& gamestate == GS_LEVEL
+		&& menuactive != MENU_Off
+		&& VRMode::GetVRMode(true)->mEyeCount == 2;
+}
+
+// Where the head was looking on the first frame the menu was up. Forgotten
+// when it closes, so the next one opens wherever you are looking then.
+static bool  menuAnchored = false;
+static float menuAnchorYaw = 0.f;
+static float menuAnchorPitch = 0.f;
+
+void VR_MenuAnchorUpdate()
+{
+	if (!VR_MenuInWorld())
+	{
+		menuAnchored = false;
+		return;
+	}
+	if (!menuAnchored)
+	{
+		menuAnchorYaw = hmdorientation[YAW];
+		menuAnchorPitch = hmdorientation[PITCH];
+		menuAnchored = true;
+	}
+}
 
 float playerHeight = 0;
 float heightScaler = 1.0f;
@@ -328,6 +384,59 @@ VSMatrix VREyeInfo::GetHUDProjection(int width, int height) const
 	new_projection = proj;
 
 	return new_projection;
+}
+
+/*
+	The HUD projection with the panel put somewhere and left there.
+
+	Same chain as GetHUDProjection, so it lands at the same kind of place the
+	HUD does. The anchor is expressed the way the weapon already expresses its
+	placement - rotate by (where it is) minus (where the head is) - and the
+	inverse-head part follows the HUD's order (pitch, then roll, applied to
+	points), which is the correct inverse of a yaw-pitch-roll orientation.
+	Roll is always levelled: a menu that tilts with your head is nothing but
+	harder to read.
+*/
+VSMatrix VREyeInfo::GetMenuProjection(int width, int height) const
+{
+	float fovratio;
+	float ratio = ActiveRatio(width, height);
+	fovratio = ratio >= 1.33f ? 1.33f : ratio;
+
+	VSMatrix m;
+	m.loadIdentity();
+
+	m.translate(getStereoSeparation(vr_hud_stereo), 0, 0);
+
+	// doom_units from meters
+	m.scale(
+			-vr_hunits_per_meter(),
+			vr_hunits_per_meter(),
+			-vr_hunits_per_meter());
+
+	m.rotate(-hmdorientation[ROLL], 0, 0, 1);
+
+	if (vr_menu_lock && menuAnchored)
+	{
+		m.rotate(-hmdorientation[PITCH], 1, 0, 0);
+		m.rotate(menuAnchorYaw - hmdorientation[YAW], 0, 1, 0);
+		m.rotate(menuAnchorPitch, 1, 0, 0);
+	}
+
+	// hmd coordinates (meters) from ndc coordinates
+	m.translate(0.0, 0.0, vr_menu_distance);
+	m.scale(
+			-vr_menu_scale,
+			vr_menu_scale,
+			-vr_menu_scale);
+
+	// ndc coordinates from pixel coordinates
+	m.translate(-1.0, 1.0, 0);
+	m.scale(2.0 / width, -2.0 / height, -1.0);
+
+	VSMatrix proj = GetCenterProjection(RazeXR_GetFOV(), ratio, fovratio);
+	proj.multMatrix(m);
+	return proj;
 }
 
 float VREyeInfo::getStereoSeparation(double stereoLevel) const

@@ -55,6 +55,8 @@
 
 #include <math.h>
 
+bool VR_MenuInWorld();	// hw_vrmodes.cpp
+
 #ifndef GL_FRAMEBUFFER_SRGB
 #define GL_FRAMEBUFFER_SRGB 0x8DB9
 #endif
@@ -1411,7 +1413,15 @@ void TBXR_submitFrame(void)
 	gAppState.LayerCount = 0;
 	memset(gAppState.Layers, 0, sizeof(xrCompositorLayer_Union) * ovrMaxLayerCount);
 
-	if (!VR_UseScreenLayer())
+	/*
+		PCVR port: a menu opened inside a level keeps the projection layers.
+		The virtual screen is only used where there is no world to stand in -
+		the title menus, intermissions, the remote camera. The flag itself is
+		left as theirs set it, because it also freezes playerYaw and resets the
+		positional origin while a menu is up, and both of those still want to
+		happen; only the choice of layer changes.
+	*/
+	if (!VR_UseScreenLayer() || VR_MenuInWorld())
 	{
 		XrCompositionLayerProjection projection_layer = {};
 
@@ -1452,12 +1462,21 @@ void TBXR_submitFrame(void)
 		int width = gAppState.Renderer.FrameBuffer[0].ColorSwapChain.Width;
 		int height = gAppState.Renderer.FrameBuffer[0].ColorSwapChain.Height;
 		const XrVector3f axis = {0.0f, 1.0f, 0.0f};
+		/*
+			Centred at eye height, and shaped like the buffer it shows.
+
+			Theirs fixed the centre at 1.0 m - eyes sit around 1.6 - and the
+			size at 5.0 x 4.5 whatever the swapchain's shape. On this 3072x3264
+			buffer that stretched the picture 18% wide and hung its bottom rows
+			well below comfortable view.
+		*/
 		XrVector3f pos = {
 				gAppState.xfStageFromHead.position.x - sin(DEG2RAD(playerYaw)) * VR_GetScreenLayerDistance(),
-				1.0f,
+				gAppState.xfStageFromHead.position.y,
 				gAppState.xfStageFromHead.position.z - cos(DEG2RAD(playerYaw)) * VR_GetScreenLayerDistance()
 		};
-		XrExtent2Df size = {5.0f, 4.5f};
+		const float screenHeight = 4.5f;
+		XrExtent2Df size = {screenHeight * (float)width / (float)height, screenHeight};
 
 		quad_layer.type = XR_TYPE_COMPOSITION_LAYER_QUAD;
 		quad_layer.next = NULL;

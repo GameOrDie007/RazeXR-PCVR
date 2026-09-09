@@ -86,7 +86,13 @@ int HWViewpointBuffer::Bind(FRenderState &di, unsigned int index)
 void HWViewpointBuffer::Set2D(F2DDrawer *drawer, FRenderState &di, int width, int height, int pll)
 {
 	const bool isIn2D = drawer == nullptr || drawer->isIn2D;
-	const bool isDrawingFullscreen = (gamestate != GS_LEVEL) || menuactive != MENU_Off || drawer->forceFullscreen;
+	const bool forceFull = drawer != nullptr && drawer->forceFullscreen;
+
+	// PCVR port: a menu open inside a level goes onto a panel in the world
+	// rather than a flat ortho over the whole eye buffer. See hw_vrmodes.cpp.
+	VR_MenuAnchorUpdate();
+	const bool menuInWorld = VR_MenuInWorld() && !forceFull;
+	const bool isDrawingFullscreen = ((gamestate != GS_LEVEL) || menuactive != MENU_Off || forceFull) && !menuInWorld;
 	{
 		HWViewpointUniforms matrices;
 
@@ -102,6 +108,12 @@ void HWViewpointBuffer::Set2D(F2DDrawer *drawer, FRenderState &di, int width, in
 		{
 			matrices.mProjectionMatrix[0].ortho(0, (float) width, (float) height, 0, -1.0f, 1.0f);
 			matrices.mProjectionMatrix[1].ortho(0, (float) width, (float) height, 0, -1.0f, 1.0f);
+		}
+		else if (menuInWorld) // pause menu, on a panel in the world
+		{
+			auto vrmode = VRMode::GetVRMode(true);
+			matrices.mProjectionMatrix[0] = vrmode->mEyes[0].GetMenuProjection(width, height);
+			matrices.mProjectionMatrix[1] = vrmode->mEyes[1].GetMenuProjection(width, height);
 		}
 		else if (isIn2D) // HUD
 		{

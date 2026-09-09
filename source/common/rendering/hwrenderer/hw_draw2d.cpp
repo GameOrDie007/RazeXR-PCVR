@@ -37,6 +37,7 @@
 #include "hwrenderer/data/buffers.h"
 #include "flatvertices.h"
 #include "hwrenderer/data/hw_viewpointbuffer.h"
+#include "hwrenderer/data/hw_vrmodes.h"
 #include "hw_clock.h"
 #include "hw_cvars.h"
 #include "hw_renderstate.h"
@@ -121,7 +122,18 @@ void Draw2D(F2DDrawer* drawer, FRenderState& state, int x, int y, int width, int
 		state.SetTextureMode(cmd.mDrawMode);
 
 		int sciX, sciY, sciW, sciH;
-		if (cmd.mFlags & F2DDrawer::DTF_Scissor)
+		/*
+			PCVR port: no scissor while the menu is a panel in the world.
+
+			The rectangle below is computed in window coordinates, and the
+			panel is not where the window thinks its pixels are - it is a
+			projected quad, smaller than the viewport and off to one side per
+			eye. A clip rect that does not straddle the centre then lands
+			beside the content it was meant to bound, and the Load and Save
+			menus clip every row of their list. Drawing unclipped costs a long
+			save name running past its box; clipping wrong costs the row.
+		*/
+		if ((cmd.mFlags & F2DDrawer::DTF_Scissor) && !VR_MenuInWorld())
 		{
 			// scissor test doesn't use the current viewport for the coordinates, so use real screen coordinates
 			// Note that the origin here is the lower left corner!

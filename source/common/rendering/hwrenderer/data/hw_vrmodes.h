@@ -32,6 +32,7 @@ struct VREyeInfo
 	VSMatrix GetStereoProjection(float fov, float aspectRatio, float fovRatio) const;
 	DVector3 GetViewShift(FRotator angles) const;
 	VSMatrix GetHUDProjection(int width, int height) const;
+	VSMatrix GetMenuProjection(int width, int height) const;
 	VSMatrix GetPlayerSpriteProjection(int width, int height) const;
 
 private:
@@ -52,3 +53,9 @@ struct VRMode
 	static const VRMode *GetVRMode(bool toscreen = true);
 	void AdjustViewport(DFrameBuffer *fb) const;
 };
+
+// PCVR port: a menu opened inside a level is drawn as a panel in the world.
+// True only while that is happening - the compositor, the 2D projection and
+// the scissor test all key off it, so they agree by construction.
+bool VR_MenuInWorld();
+void VR_MenuAnchorUpdate();
