@@ -57,6 +57,22 @@ void animatesprites_d(tspriteArray& tsprites, const DVector2& viewVec, DAngle vi
 		t = tsprites.get(j);
 		h = static_cast<DDukeActor*>(t->ownerActor);
 
+		/*
+			PC branch: wt_commentary hides the commentary sprites too.
+
+			Upstream declares the cvar in this file but only reads it where
+			the commentary is played, so with it off - which is the default -
+			the audio is silent and the microphones are still standing in
+			every World Tour level. To anyone who has not read about the
+			feature they are simply strange objects the level did not have.
+		*/
+		if (!wt_commentary &&
+			(t->picnum == DTILE_DEVELOPERCOMMENTARY || t->picnum == DTILE_DEVELOPERCOMMENTARYON))
+		{
+			t->scale = DVector2(0, 0);
+			continue;
+		}
+
 		if (!actorflag(h, SFLAG2_FORCESECTORSHADE) && ((t->cstat & CSTAT_SPRITE_ALIGNMENT_WALL)) || (badguypic(t->picnum) && t->extra > 0) || t->statnum == STAT_PLAYER)
 		{
 			if (h->sector()->shadedsector == 1 && h->spr.statnum != 1)
