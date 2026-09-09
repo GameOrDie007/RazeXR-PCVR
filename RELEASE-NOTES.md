@@ -39,6 +39,16 @@ the community packs. Setup fetches the ones that can't be bundled.
 **Switch Game** on the main menu and in the pause menu of every game, so you can move
 between all nineteen without leaving VR.
 
+**A pause menu that hangs in the world.** Press the menu button in a level and the menu
+is a panel floating in front of you while the game holds still around it — you can look
+around it, and your hands and weapon keep tracking. Team Beef's build put the whole
+paused frame on a virtual screen instead, which meant the world stopped being a world
+the moment you opened a menu. Off-hand stick click hides the panel for a clean
+screenshot; any button brings it back. Its distance, size and behaviour are all under
+*VR Options*.
+
+**A splash screen** before each game's own intro. `vr_splash 0` turns it off.
+
 **A log per game** in `logs\`, plus `logs\startup.log` recording each startup stage — if
 something goes wrong, that pair says where.
 

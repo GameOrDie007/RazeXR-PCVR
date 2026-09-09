@@ -261,6 +261,11 @@ CD, any of those formats will do.
   VRaze's data has no animation frames for them. The frames that do exist - Duke's
   pistol slide, Blood's napalm launcher, Shadow Warrior's railgun - are bundled and
   work out of the box.
+- The pause-menu panel covers about 73 degrees of view at the default size. A flat
+  surface pinned in the world genuinely changes shape as you turn to look along it, the
+  way a cinema screen does from a side seat, so at that width a little of that is
+  visible. **Menu Depth** and **Menu Size** under *VR Options* both reduce it; the menu
+  keeps its apparent size as you change the depth.
 - Alien World Order - World Tour's fifth episode - needs a **Duke Nukem 3D: 20th
   Anniversary World Tour** install for setup to build it from; its scripts, maps and
   voice-overs are loose files, not part of `DUKE3D.GRP`. With one, setup adds them and

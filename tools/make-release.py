@@ -43,7 +43,6 @@ FROM_RUN = [
     "openxr_loader.dll",
     "zmusiclite.dll",
     "raze_portable.ini",
-    "README.txt",
     "SETUP.bat",
     # Cheello's Voxel Duke 3D, unmodified, with its own readme.txt inside. He
     # was asked directly and in public and agreed; the wording and the link are
@@ -62,6 +61,10 @@ FROM_REPO = [
     ("tools/setup.ps1", "setup.ps1"),
     ("tools/build-vrweapons.ps1", "build-vrweapons.ps1"),
     ("README.md", "README.md"),
+    # From the repository, not the run folder. It shipped from beside the exe
+    # until 9 Sept 2026, which meant the first file a player opens was
+    # untracked, unreviewable, and three folder layouts out of date.
+    ("README.txt", "README.txt"),
     ("THIRD-PARTY-PERMISSIONS.md", "THIRD-PARTY-PERMISSIONS.md"),
     ("AUTHORS.md", "AUTHORS.md"),
     ("package/common/gpl-2.0.txt", "gpl-2.0.txt"),
@@ -111,8 +114,17 @@ def main():
 
     for name in FROM_RUN:
         # A name may carry a folder now - assets/ - so make it first.
-        src = os.path.join(args.run, os.path.basename(name))
-        dst = os.path.join(root, name.replace("/", os.sep))
+        #
+        # Look for it at that same path in the run folder, and only then at the
+        # root. The fallback is what an install predating the assets/ move looks
+        # like; without the first path this refused to build against every
+        # install made since, saying the files were missing while they sat in
+        # assets/ where the entry itself says they go.
+        rel = name.replace("/", os.sep)
+        src = os.path.join(args.run, rel)
+        if not os.path.isfile(src):
+            src = os.path.join(args.run, os.path.basename(name))
+        dst = os.path.join(root, rel)
         if os.path.isfile(src):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             shutil.copy2(src, dst)
