@@ -98,6 +98,7 @@ Setup says so when it finds the remaster, rather than only reporting the game as
 - A desktop mirror, so the monitor shows what the headset sees
 - Voxel weapons held at the controller, across all seven games
 - Smooth turn by default, and Alt Weapon bound to the off-hand stick click
+- Cover art for every game in the Switch Game menu, made for this port
 - One launcher that opens the game you played last, and Switch Game in the menu
 - A self-contained portable layout - copy the folder to another PC and it runs
 - A `vrweapons` console command that prints the resolved weapon table
@@ -120,6 +121,7 @@ between all of them without taking the headset off. To start one game directly,
 the individual scripts are in `launchers\`.
 
     Play RazeXR PCVR.bat   the one you want
+    boxart.pk3             the covers the Switch Game menu shows
     launchers\             a script per game, for a direct shortcut
     games\                 your game data, copied here by setup
     config\                one settings file per game

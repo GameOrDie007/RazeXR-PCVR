@@ -76,6 +76,7 @@ BANNED_EXT = (".grp", ".rff", ".map", ".con", ".art", ".kvx", ".dat",
 ALLOWED_FILES = {
     "raze_portable.ini",   # our own marker file
     "raze.pk3",            # our own engine resources
+    "boxart.pk3",          # the port's own cover art, made for it
     "voxel_duke3d.zip",      # permission recorded, see THIRD-PARTY-PERMISSIONS.md
     "vrweapons_models.pk3",  # the same, and nothing in it is a game's own data
 }
@@ -130,6 +131,24 @@ def main():
             shutil.copy2(src, out)
         else:
             missing.append(rel)
+
+    """
+    The cover art, packed rather than copied.
+
+    Nineteen loose images in the run folder would be nineteen things a player
+    can rename or lose; as one pk3 the engine either has the set or does not.
+    The name inside the archive is what the menu asks for, so it is the
+    launcher's filename - see VRGameSelectMenu.
+    """
+    art = os.path.join(repo, "boxart")
+    covers = sorted(f for f in os.listdir(art)) if os.path.isdir(art) else []
+    if not covers:
+        missing.append("boxart/")
+    else:
+        with zipfile.ZipFile(os.path.join(root, "boxart.pk3"), "w",
+                             zipfile.ZIP_STORED) as z:
+            for f in covers:
+                z.write(os.path.join(art, f), "boxart/" + f)
 
     if missing:
         print("missing, refusing to build:")

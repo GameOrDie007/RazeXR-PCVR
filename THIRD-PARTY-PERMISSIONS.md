@@ -183,6 +183,24 @@ Unlike ModDB, all three are on GitHub, so fetching them can be scripted.
 All three would also give their games the prop and monster voxels that Duke
 already gets, independently of the weapons question.
 
+## Cover art (boxart.pk3)
+
+The nineteen covers the Switch Game menu shows were made for this port by its
+author. Each one takes the game's own cover art and puts a headset on whoever is
+on the front, with "VR" worked into the logo.
+
+The underlying cover art belongs to the publisher of each game - 3D Realms,
+Monolith, Lobotomy Software, Xatrix, TNT Team and their successors - and no
+permission has been asked for or granted. They are included the way a launcher
+or a library front end shows a cover: to identify the game a row starts, for
+people who already own that game, in a project that is not sold. If a rights
+holder would rather their cover were not used, open an issue and it will be
+removed - the menu already draws nothing for a game whose cover is missing, so
+removing one is deleting a file.
+
+Nothing in `boxart.pk3` is game data. The images are new files, not extracted
+from any game, and no game ships its cover inside its own data.
+
 ## RazeXR
 
 - **Author:** Team Beef (DrBeef and contributors)

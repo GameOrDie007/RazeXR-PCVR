@@ -19,6 +19,7 @@
 #include "m_argv.h"
 #include "filesystem.h"
 #include "menu.h"
+#include "texturemanager.h"
 
 #include <algorithm>
 
@@ -362,6 +363,10 @@ CCMD(vrwritelaunchers)
 		// What the single launcher in the root starts next time.
 		body << ">\"%ROOT%\\config\\lastgame.txt\" echo " << base << "\r\n";
 		body << "\r\n";
+		body << "rem The cover art the Switch Game menu shows, if it is here.\r\n";
+		body << "set \"ART=\"\r\n";
+		body << "if exist \"%ROOT%\\boxart.pk3\" set \"ART=-file \"%ROOT%\\boxart.pk3\"\"\r\n";
+		body << "\r\n";
 		body << "rem The voxel weapon pack, if it has been built.\r\n";
 		body << "set \"VRW=\"\r\n";
 		/*
@@ -491,7 +496,7 @@ CCMD(vrwritelaunchers)
 			body << "set \"GRP=%ROOT%\\games\\" << tailcp << "\"\r\n";
 			body << "if not exist \"%GRP%\" set \"GRP=" << basegrp << "\"\r\n";
 			body << "\r\n";
-			body << "\"%ROOT%\\raze.exe\" -nosetup -portable -cryptic -gamegrp \"%GRP%\" %VOX% %VRW% ";
+			body << "\"%ROOT%\\raze.exe\" -nosetup -portable -cryptic -gamegrp \"%GRP%\" %VOX% %VRW% %ART% ";
 			body << "+set mus_extendedlookup 1 ";
 			body << "-config \"%ROOT%\\config\\" << base << ".ini\" ";
 			body << "+logfile \"%ROOT%\\logs\\" << base << ".log\"\r\n";
@@ -574,7 +579,7 @@ CCMD(vrwritelaunchers)
 			body << "set \"GRP=%ROOT%\\games\\" << tail66 << "\"\r\n";
 			body << "if not exist \"%GRP%\" set \"GRP=" << basegrp << "\"\r\n";
 			body << "\r\n";
-			body << "\"%ROOT%\\raze.exe\" -nosetup -portable -route66 -gamegrp \"%GRP%\" %VRW% ";
+			body << "\"%ROOT%\\raze.exe\" -nosetup -portable -route66 -gamegrp \"%GRP%\" %VRW% %ART% ";
 			/*
 				A log per game, not one shared raze.log.
 
@@ -678,7 +683,7 @@ CCMD(vrwritelaunchers)
 
 		body << " -gamegrp \"%GRP%\"";
 		if (g.isDuke || g.voxPack.IsNotEmpty()) body << " %VOX%";
-		body << " %VRW% ";
+		body << " %VRW% %ART% ";
 		body << "+set mus_extendedlookup 1 ";
 		body << "-config \"%ROOT%\\config\\" << base << ".ini\" ";
 		body << "+logfile \"%ROOT%\\logs\\" << base << ".log\"\r\n";
@@ -1063,6 +1068,13 @@ struct VRLauncher
 {
 	FString name;	// what the player sees, taken from the launcher itself
 	FString file;	// the .bat to start
+	/*
+		The launcher's filename without .bat, which is also the name of its
+		cover in boxart.pk3. It cannot be derived from the display name: the
+		menu shows what grpinfo calls the game ("BLOOD: Cryptic Passage") and
+		the file is what a filename may contain ("BLOOD - Cryptic Passage VR").
+	*/
+	FString base;
 };
 
 static TArray<VRLauncher> Launchers;
@@ -1130,6 +1142,7 @@ static void ScanLaunchers()
 		VRLauncher e;
 		e.file.Format("%s/%s", dir.GetChars(), FString(fd.cFileName).GetChars());
 		if (!ReadLauncherName(e.file.GetChars(), e.name)) continue;
+		e.base = ExtractFileBase(e.file.GetChars(), false);
 		Launchers.Push(e);
 	}
 	while (FindNextFileW(h, &fd));
@@ -1149,6 +1162,93 @@ static void ScanLaunchers()
 //
 //==========================================================================
 
+/*
+	The cover for a menu row.
+
+	The menu is built from the launcher list with some static text ahead of
+	it, so a row index is not a launcher index. The offset is known only
+	here, so the menu asks rather than computes, and gets an empty string
+	for any row that is not a game.
+*/
+static int MenuItemsBefore = 0;
+
+/*
+	The cover for a launcher, allowing for the name the release decides.
+
+	A launcher is named after the game as grpinfo identified it, and grpinfo
+	tells editions apart that a cover does not care about: the same Duke is
+	"Atomic Edition" or "Atomic Edition (WT)" depending on which release the
+	scan matched, the same game is "Powerslave" here and "Exhumed" in Europe.
+	Naming the art after one of those spellings and stopping would leave a
+	blank panel for anyone who owns the other, and nothing on screen would say
+	why.
+
+	So the exact name is tried first, then the name without its parenthesised
+	edition - which covers (WT), (1.3), (1.3D), (Europe), (UK), (Censored) and
+	the rest of that family in one rule - and finally a short list of names
+	that are genuinely different words for the same game.
+
+	Resolved here rather than in the menu so that the menu and vrboxart cannot
+	disagree about what exists.
+*/
+static FString BoxartPath(const FString& base)
+{
+	TArray<FString> tries;
+	tries.Push(base);
+
+	// "Duke Nukem 3D - Atomic Edition (WT) VR" -> "... Atomic Edition VR"
+	ptrdiff_t open = base.IndexOf(" (");
+	if (open > 0)
+	{
+		ptrdiff_t close = base.IndexOf(")", open);
+		if (close > open)
+		{
+			FString trimmed = base.Left(open);
+			trimmed += base.Mid(close + 1);
+			tries.Push(trimmed);
+		}
+	}
+
+	static const char* const synonyms[][2] = {
+		{ "Exhumed",  "Powerslave" },	// the same game, renamed outside North America
+		{ "NAPALM",   "NAM"        },	// the same game, renamed for its second release
+	};
+
+	unsigned direct = tries.Size();
+	for (unsigned i = 0; i < direct; i++)
+	{
+		for (auto& syn : synonyms)
+		{
+			for (int dir = 0; dir < 2; dir++)
+			{
+				const char* from = syn[dir];
+				const char* to = syn[1 - dir];
+				ptrdiff_t at = tries[i].IndexOf(from);
+				if (at != 0) continue;	// only where it begins the name
+				FString alt = to;
+				alt += tries[i].Mid(strlen(from));
+				tries.Push(alt);
+			}
+		}
+	}
+
+	for (auto& t : tries)
+	{
+		FString path;
+		path.Format("boxart/%s.jpg", t.GetChars());
+		if (TexMan.CheckForTexture(path.GetChars(), ETextureType::Any).isValid())
+			return path;
+	}
+	return FString();
+}
+
+FString VRLaunchers_BoxartForItem(int item)
+{
+	int idx = item - MenuItemsBefore;
+	if (idx < 0 || idx >= (int)Launchers.Size()) return FString();
+	return BoxartPath(Launchers[idx].base);
+}
+
 void BuildVRGameSelectMenu()
 {
 	DMenuDescriptor** menu = MenuDescriptors.CheckKey("VRGameSelectMenu");
@@ -1162,6 +1262,7 @@ void BuildVRGameSelectMenu()
 	// text used to report an empty list.
 	static int declaredItems = -1;
 	if (declaredItems < 0) declaredItems = (int)desc->mItems.Size();
+	MenuItemsBefore = declaredItems;
 	while ((int)desc->mItems.Size() > declaredItems) desc->mItems.Delete(desc->mItems.Size() - 1);
 
 	ScanLaunchers();
@@ -1187,6 +1288,47 @@ void BuildVRGameSelectMenu()
 
 	desc->mScrollPos = 0;
 	desc->mSelectedItem = -1;
+}
+
+//==========================================================================
+//
+// vrboxart - does every game in the Switch Game menu have a cover?
+//
+// The menu draws nothing for a cover it cannot find, which is the right
+// behaviour and an invisible one: a pack that failed to load and a single
+// misnamed file look identical from inside the headset. This says which.
+// Needs no headset - the lookup is the same one the menu performs.
+//
+//==========================================================================
+
+CCMD(vrboxart)
+{
+	ScanLaunchers();
+
+	if (Launchers.Size() == 0)
+	{
+		Printf("No launchers found, so no covers to look for.\n");
+		return;
+	}
+
+	int found = 0;
+	for (unsigned i = 0; i < Launchers.Size(); i++)
+	{
+		FString path = BoxartPath(Launchers[i].base);
+		bool ok = path.IsNotEmpty();
+		if (ok) found++;
+
+		// Name the file when it is not the obvious one, so a cover answering
+		// through an alias is visible rather than merely working.
+		FString expect;
+		expect.Format("boxart/%s.jpg", Launchers[i].base.GetChars());
+		FString via;
+		if (ok && path.Compare(expect.GetChars()) != 0) via.Format("  (as %s)", path.GetChars());
+
+		Printf("  %s%-46s %s%s\n", ok ? "" : TEXTCOLOR_RED,
+			Launchers[i].base.GetChars(), ok ? "cover found" : "NO COVER", via.GetChars());
+	}
+	Printf("%d of %u games have a cover.\n", found, Launchers.Size());
 }
 
 //==========================================================================
