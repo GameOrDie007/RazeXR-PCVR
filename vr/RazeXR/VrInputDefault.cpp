@@ -17,6 +17,11 @@ Authors		:	Simon Brown
 #include "keydef.h"
 #include "menustate.h"
 
+// hw_vrmodes.cpp - the pause menu as a panel in the world, and hiding it.
+bool VR_MenuInWorld();
+bool VR_MenuHidden();
+void VR_MenuSetHidden(bool hidden);
+
 extern ovrInputStateTrackedRemote leftTrackedRemoteState_old;
 extern ovrInputStateTrackedRemote leftTrackedRemoteState_new;
 extern ovrTrackedController leftRemoteTracking_new;
@@ -56,8 +61,13 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
 
 {
     //Menu button - invoke menu
-    handleTrackedControllerButton(&leftTrackedRemoteState_new, &leftTrackedRemoteState_old, xrButton_Enter, KEY_ESCAPE);
-    handleTrackedControllerButton(&rightTrackedRemoteState_new, &rightTrackedRemoteState_old, xrButton_Enter, KEY_ESCAPE); // For users who have switched the buttons
+    // PCVR port: not while the menu is hidden for a screenshot - there the
+    // press brings the menu back (below) rather than closing it into the game.
+    if (!VR_MenuHidden())
+    {
+        handleTrackedControllerButton(&leftTrackedRemoteState_new, &leftTrackedRemoteState_old, xrButton_Enter, KEY_ESCAPE);
+        handleTrackedControllerButton(&rightTrackedRemoteState_new, &rightTrackedRemoteState_old, xrButton_Enter, KEY_ESCAPE); // For users who have switched the buttons
+    }
 
     //Dominant Grip works like a shift key
     bool dominantGripPushedOld = vr_secondary_button_mappings ?
@@ -285,6 +295,43 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
     if (menuactive == MENU_On ||
             menuactive == MENU_OnNoPause)
     {
+        /*
+            PCVR port: hide the menu for a screenshot.
+
+            Off-hand stick click hides it; any button on either hand brings
+            it back. Both presses are kept from the menu, so hiding does not
+            also activate something and coming back does not blindly pick
+            whatever the cursor was on. Stick click was free to take - inside
+            a menu nothing is mapped to it, and in play the off-hand click is
+            Alt Weapon, which does not run here.
+
+            Wrapped rather than returned from: the old/new controller states
+            are copied after this function's blocks, and returning early
+            would freeze the edge detection.
+        */
+        bool passToMenu = true;
+        if (VR_MenuInWorld())
+        {
+            const bool clickOld = (pOffTrackedRemoteOld->Buttons & xrButton_Joystick) != 0;
+            const bool clickNew = (pOffTrackedRemoteNew->Buttons & xrButton_Joystick) != 0;
+            if (VR_MenuHidden())
+            {
+                const uint32_t pressed =
+                    (pOffTrackedRemoteNew->Buttons | pDominantTrackedRemoteNew->Buttons) &
+                    ~(pOffTrackedRemoteOld->Buttons | pDominantTrackedRemoteOld->Buttons);
+                if (pressed != 0)
+                    VR_MenuSetHidden(false);
+                passToMenu = false;
+            }
+            else if (clickNew && !clickOld)
+            {
+                VR_MenuSetHidden(true);
+                passToMenu = false;
+            }
+        }
+
+        if (passToMenu)
+        {
         ovrInputStateTrackedRemote* t[2][2] = { {pOffTrackedRemoteOld, pOffTrackedRemoteNew},
                                                 {pDominantTrackedRemoteOld, pDominantTrackedRemoteNew} };
         for (auto &remote: t)
@@ -349,6 +396,7 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
                 ((leftTrackedRemoteState_old.Buttons & xrButton_Y) != 0) && !dominantGripPushedOld ? 1 : 0,
                 ((leftTrackedRemoteState_new.Buttons & xrButton_Y) != 0) && !dominantGripPushedNew ? 1 : 0,
                 1, KEY_PAD_B);
+        }   // passToMenu
     }
     else
     {

@@ -59,3 +59,6 @@ struct VRMode
 // the scissor test all key off it, so they agree by construction.
 bool VR_MenuInWorld();
 void VR_MenuAnchorUpdate();
+// Hidden for a screenshot: the 2D layer is not drawn while a menu is up.
+bool VR_MenuHidden();
+void VR_MenuSetHidden(bool hidden);
