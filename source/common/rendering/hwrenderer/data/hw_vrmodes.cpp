@@ -148,6 +148,7 @@ bool VR_MenuInWorld()
 // Where the head was looking on the first frame the menu was up. Forgotten
 // when it closes, so the next one opens wherever you are looking then.
 static bool  menuAnchored = false;
+static bool  menuHidden = false;
 static float menuAnchorYaw = 0.f;
 static float menuAnchorPitch = 0.f;
 
@@ -156,6 +157,7 @@ void VR_MenuAnchorUpdate()
 	if (!VR_MenuInWorld())
 	{
 		menuAnchored = false;
+		menuHidden = false;	// the next pause always opens visible
 		return;
 	}
 	if (!menuAnchored)
@@ -384,6 +386,23 @@ VSMatrix VREyeInfo::GetHUDProjection(int width, int height) const
 	new_projection = proj;
 
 	return new_projection;
+}
+
+/*
+	Hidden for a screenshot. Set from the off-hand stick click in the menu
+	input path, cleared by any button there or by the menu closing, read by
+	Draw2D, which draws nothing while it is set. Meaningful only while the
+	menu is a panel in the world - on the virtual screen there is nothing
+	behind the panel to photograph.
+*/
+bool VR_MenuHidden()
+{
+	return menuHidden && VR_MenuInWorld();
+}
+
+void VR_MenuSetHidden(bool hidden)
+{
+	menuHidden = hidden;
 }
 
 /*

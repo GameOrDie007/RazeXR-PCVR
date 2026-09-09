@@ -60,6 +60,12 @@ void Draw2D(F2DDrawer* drawer, FRenderState& state)
 
 void Draw2D(F2DDrawer* drawer, FRenderState& state, int x, int y, int width, int height)
 {
+	// PCVR port: hidden for a screenshot - panel, HUD and dim alike. The
+	// drawer is cleared by the main loop each frame, so skipping the draw
+	// leaves nothing behind.
+	if (VR_MenuHidden())
+		return;
+
 	twoD.Clock();
 
 	state.SetViewport(x, y, width, height);
