@@ -97,6 +97,7 @@
 #include "menustate.h"
 
 void RazeXR_setUseScreenLayer(bool use);
+bool VR_MenuInWorld();	// hw_vrmodes.cpp
 
 CVAR(Bool, vid_activeinbackground, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, r_ticstability, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
@@ -580,7 +581,18 @@ void TryRunTics (void)
 
 	// If paused, do not eat more CPU time than we need, because it
 	// will all be wasted anyway.
-	bool doWait = (cl_capfps || pauseext || (r_NoInterpolate && !M_IsAnimated() && gamestate != GS_CUTSCENE && gamestate != GS_INTRO));
+	//
+	// PCVR port: not while the pause menu hangs in the world. On a monitor a
+	// paused, uninterpolated frame cannot change between ticks, so sleeping to
+	// the next one costs nothing. In a headset the head moves between ticks.
+	// This wait held the whole loop at the 30 Hz tick rate for as long as the
+	// menu was up - measured: 10.85 ms a frame in play, 32.78 ms paused - so
+	// the world reached the compositor three frames stale and was reprojected
+	// with rotation only, while the panel beside it was drawn fresh every
+	// refresh. The two drifting against each other was the "sway". The
+	// runtime paces the loop through xrWaitFrame; nothing here needs to.
+	bool doWait = (cl_capfps || pauseext || (r_NoInterpolate && !M_IsAnimated() && gamestate != GS_CUTSCENE && gamestate != GS_INTRO))
+		&& !VR_MenuInWorld();
 
 	// get real tics
 	if (doWait)
