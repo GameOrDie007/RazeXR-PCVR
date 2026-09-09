@@ -198,7 +198,18 @@ void Draw2D(F2DDrawer* drawer, FRenderState& state, int x, int y, int width, int
 			auto flags = cmd.mTexture->GetUseType() >= ETextureType::Special? UF_None : cmd.mTexture->GetUseType() == ETextureType::FontChar? UF_Font : UF_Texture;
 
 			auto scaleflags = cmd.mFlags & F2DDrawer::DTF_Indexed ? CTF_Indexed : 0;
-			state.SetMaterial(cmd.mTexture, flags, scaleflags, cmd.mFlags & F2DDrawer::DTF_Wrap ? CLAMP_NONE : CLAMP_XY_NOMIP, cmd.mTranslationId, -1);
+			/*
+				PCVR port: mip levels while the menu is a panel in the world.
+
+				Everywhere else the 2D layer is drawn at or near the size it was
+				authored, so no-mip is right and sharper. On the panel the whole
+				eye-resolution canvas is minified onto a quad, and a minification
+				filter with no mip levels to choose from is what makes the text
+				shimmer as the head moves.
+			*/
+			int clamp = cmd.mFlags & F2DDrawer::DTF_Wrap ? CLAMP_NONE
+					: (VR_MenuInWorld() ? CLAMP_XY : CLAMP_XY_NOMIP);
+			state.SetMaterial(cmd.mTexture, flags, scaleflags, clamp, cmd.mTranslationId, -1);
 			state.EnableTexture(true);
 
 			// Canvas textures are stored upside down

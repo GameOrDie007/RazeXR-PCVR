@@ -135,6 +135,25 @@ CVAR(Bool, vr_menu_lock, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)      // stays w
 CVAR(Float, vr_menu_scale, 0.75f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)    // half-width in metres, like vr_hud_scale
 CVAR(Float, vr_menu_distance, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)  // metres ahead
 
+/*
+	Which way the panel answers head movement, one axis at a time.
+
+	The panel is pinned by translating it by the head's displacement since
+	the menu opened, and that displacement has to be expressed in the frame
+	the matrix below is working in. Two attempts at deriving those signs
+	from the code left a residual sway, and a sway is not something the
+	person writing the matrix can see. So each axis is a dial: -1, 0 or 1.
+	0 makes that axis ignore head movement, which is what it did before any
+	of this. Turn whichever axis still drifts until it stops.
+
+	Temporary. Once the three are known they become constants and the dials
+	go - they exist to spend one session in a headset instead of one build
+	per guess.
+*/
+CVAR(Int, vr_menu_lockx, -1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Int, vr_menu_locky,  1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Int, vr_menu_lockz, -1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+
 bool VR_MenuInWorld()
 {
 	// The eye-count check is what keeps -novr and a PC with no headset on
@@ -458,9 +477,9 @@ VSMatrix VREyeInfo::GetMenuProjection(int width, int height) const
 		m.rotate(-hmdorientation[YAW], 0, 1, 0);
 
 		m.translate(
-				-(menuAnchorPos[0] - hmdPosition[0]),
-				  menuAnchorPos[1] - hmdPosition[1],
-				-(menuAnchorPos[2] - hmdPosition[2]));
+				clamp((int)vr_menu_lockx, -1, 1) * (menuAnchorPos[0] - hmdPosition[0]),
+				clamp((int)vr_menu_locky, -1, 1) * (menuAnchorPos[1] - hmdPosition[1]),
+				clamp((int)vr_menu_lockz, -1, 1) * (menuAnchorPos[2] - hmdPosition[2]));
 
 		m.rotate(menuAnchorYaw, 0, 1, 0);
 		m.rotate(menuAnchorPitch, 1, 0, 0);

@@ -190,6 +190,63 @@ static FString LookupMusicCB(const char* musicname, int& order)
 }
 
 
+//==========================================================================
+//
+// vrmusic - can the engine find the music a game will ask for?
+//
+// Silence has too many causes to guess between: the tracks absent, the tracks
+// present under a name nothing asks for, the lookup not reaching a folder, or
+// the game never asking. This answers the middle two, which are the ones that
+// look identical from a chair, and it does it at startup - the music path
+// itself is only exercised on a level load, which is exactly what cannot be
+// driven from a command line.
+//
+// With no argument it tries what the CD-audio games ask for, tracks 2 to 9.
+//
+//==========================================================================
+
+CCMD(vrmusic)
+{
+	TArray<FString> names;
+
+	if (argv.argc() > 1)
+	{
+		for (int i = 1; i < argv.argc(); i++) names.Push(argv[i]);
+	}
+	else
+	{
+		// The three shapes S_PlayRRMusic, playCDtrack and SW's sound code build.
+		static const char* const patterns[] = { "redneck%02d.ogg", "redneckrides%02d.ogg",
+												"exhumed%02d.ogg", "blood%02d.ogg",
+												"track%02d.ogg" };
+		for (auto& pat : patterns)
+			for (int t = 2; t <= 9; t++)
+			{
+				FString n;
+				n.Format(pat, t);
+				names.Push(n);
+			}
+	}
+
+	int found = 0;
+	for (auto& n : names)
+	{
+		// Not just "can it be found" - a track the engine locates but cannot
+		// decode is silent in exactly the way a missing one is, and libsndfile
+		// only gained MP3 in 1.1.0. So play it and ask whether a stream started.
+		Mus_Stop();
+		Mus_Play(n.GetChars(), false);
+		bool ok = Mus_IsPlaying();
+		Mus_Stop();
+		if (ok) found++;
+		// Only report the misses in bulk mode; a wall of red is not a report.
+		if (ok || argv.argc() > 1)
+			Printf("  %s%-26s %s\n", ok ? "" : TEXTCOLOR_RED, n.GetChars(),
+				ok ? "found" : "not found");
+	}
+	Printf("%d of %u names resolve.\n", found, names.Size());
+}
+
 int Mus_Play(const char *fn, bool loop)
 {
 	if (mus_blocked) return 1;	// Caller should believe it succeeded.
