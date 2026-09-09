@@ -96,6 +96,7 @@
 // EXTERNAL FUNCTION PROTOTYPES --------------------------------------------
 
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
+void VR_Trace(const char* stage);	// startup breadcrumbs, defined in gamecontrol.cpp
 void CreateCrashLog (const char *custominfo, DWORD customsize);
 void DisplayCrashLog ();
 void DestroyCustomCursor();
@@ -158,6 +159,12 @@ int DoMain (HINSTANCE hInstance)
 	for (int i = 0; i < argc; i++)
 	{
 		Args->AppendArg(FString(wargv[i]));
+	}
+
+	{
+		FString line;
+		for (int i = 1; i < argc; i++) { line += " "; line += FString(wargv[i]); }
+		VR_Trace(FStringf("args:%s", line.GetChars()).GetChars());
 	}
 
 	if (Args->CheckParm("-stdout"))
@@ -472,6 +479,10 @@ CUSTOM_CVAR(Bool, disablecrashlog, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE nothing, LPWSTR cmdline, int nCmdShow)
 {
+	// The first thing this process does, so that "nothing at all happened"
+	// and "it started and died" stop looking the same from the outside.
+	VR_Trace("---- wWinMain");
+
 	g_hInst = hInstance;
 
 	InitCommonControls ();			// Load some needed controls and be pretty under XP
@@ -554,6 +565,8 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE nothing, LPWSTR cmdline, int
 #endif
 
 	int ret = DoMain (hInstance);
+
+	VR_Trace("DoMain returned");
 
 	CloseHandle (MainThread);
 	MainThread = INVALID_HANDLE_VALUE;
