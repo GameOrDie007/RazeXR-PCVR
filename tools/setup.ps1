@@ -715,46 +715,96 @@ $soundtracks = @(
     zip GOG leaves next to the folder it unpacks - because a download that was
     never unpacked still has the music in it.
 #>
-function Find-Soundtrack($st) {
-    $dirs = @()
+Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
 
-    $dirs += Get-ChildItem -LiteralPath (Join-Path $dest "games\rampage") -Directory -Recurse -ErrorAction SilentlyContinue |
-             Where-Object { $_.Name -like $st.Match }
+function Get-SongsFromZip($path, $st, $depth) {
+    <#
+        What is in this archive, without unpacking all of it.
 
-    foreach ($r in $roots) {
-        if (-not (Test-Path -LiteralPath $r)) { continue }
-        $dirs += Get-ChildItem -Path $r -Directory -Recurse -Depth 4 -ErrorAction SilentlyContinue |
-                 Where-Object { $_.Name -like $st.Match }
-    }
+        GOG's bonus content is a zip of zips with no installer, so the music
+        can be nested one level down and may never have been extracted at all.
+        Reading the entry list first means a large or unrelated archive costs a
+        directory read rather than a full extraction.
+    #>
+    try {
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($path)
+    } catch { return @() }
 
-    foreach ($d in $dirs) {
-        $songs = @(Get-ChildItem -LiteralPath $d.FullName -File -ErrorAction SilentlyContinue |
-                   Where-Object { $_.Extension -match '^\.(mp3|ogg|flac)$' } | Sort-Object Name)
-        if ($songs.Count -gt 0) { return ,$songs }
-    }
+    $audio = @()
+    $inner = @()
+    try {
+        foreach ($e in $zip.Entries) {
+            if ($e.Name -match '\.(mp3|ogg|flac)$') { $audio += $e.FullName }
+            elseif ($e.Name -match '\.zip$' -and $e.Name -like $st.Zip) { $inner += $e.FullName }
+        }
+    } finally { $zip.Dispose() }
 
-    # Nothing unpacked. Try the archive itself.
-    $zips = @()
-    $zips += Get-ChildItem -LiteralPath (Join-Path $dest "games\rampage") -File -Recurse -ErrorAction SilentlyContinue |
-             Where-Object { $_.Name -like $st.Zip }
-    foreach ($r in $roots) {
-        if (-not (Test-Path -LiteralPath $r)) { continue }
-        $zips += Get-ChildItem -Path $r -File -Recurse -Depth 4 -ErrorAction SilentlyContinue |
-                 Where-Object { $_.Name -like $st.Zip }
-    }
-
-    foreach ($z in $zips) {
+    if ($audio.Count -gt 0) {
         $tmp = Join-Path $env:TEMP ("razexr_mus_" + [guid]::NewGuid().ToString())
         try {
-            Expand-Archive -LiteralPath $z.FullName -DestinationPath $tmp -Force -ErrorAction Stop
-            $songs = @(Get-ChildItem -LiteralPath $tmp -File -Recurse -ErrorAction SilentlyContinue |
+            Expand-Archive -LiteralPath $path -DestinationPath $tmp -Force -ErrorAction Stop
+            return @(Get-ChildItem -LiteralPath $tmp -File -Recurse -ErrorAction SilentlyContinue |
+                     Where-Object { $_.Extension -match '^\.(mp3|ogg|flac)$' } | Sort-Object Name)
+        } catch { return @() }
+    }
+
+    # A zip of zips. One level only - the download is not deeper than that,
+    # and following archives without a bound is how a setup script hangs.
+    if ($inner.Count -gt 0 -and $depth -lt 1) {
+        $tmp = Join-Path $env:TEMP ("razexr_musz_" + [guid]::NewGuid().ToString())
+        try {
+            Expand-Archive -LiteralPath $path -DestinationPath $tmp -Force -ErrorAction Stop
+        } catch { return @() }
+        foreach ($z in (Get-ChildItem -LiteralPath $tmp -File -Recurse -ErrorAction SilentlyContinue |
+                        Where-Object { $_.Name -like $st.Zip })) {
+            $songs = @(Get-SongsFromZip $z.FullName $st ($depth + 1))
+            if ($songs.Count -gt 0) { return $songs }
+        }
+    }
+
+    return @()
+}
+
+function Find-Soundtrack($st) {
+    <#
+        Where the music might be, in the order it is most likely to be.
+
+        GOG does not put this music in the game - the only copy in an install
+        is under Extras\, which a separate "bonus content" download fills, and
+        that download is a zip of zips with no installer that people extract
+        wherever they happen to be standing. So look beside the game data, then
+        anywhere setup already searches, then the places a download lands, and
+        finally inside the archives themselves.
+    #>
+    $places = @((Join-Path $dest "games\rampage"))
+    $places += $roots
+    foreach ($d in @("$env:USERPROFILE\Downloads", "$env:USERPROFILE\Desktop",
+                     "$env:USERPROFILE\Documents")) {
+        if (Test-Path -LiteralPath $d) { $places += $d }
+    }
+
+    # Unpacked, somewhere.
+    foreach ($r in $places) {
+        if (-not (Test-Path -LiteralPath $r)) { continue }
+        foreach ($d in (Get-ChildItem -Path $r -Directory -Recurse -Depth 4 -ErrorAction SilentlyContinue |
+                        Where-Object { $_.Name -like $st.Match })) {
+            $songs = @(Get-ChildItem -LiteralPath $d.FullName -File -ErrorAction SilentlyContinue |
                        Where-Object { $_.Extension -match '^\.(mp3|ogg|flac)$' } | Sort-Object Name)
+            if ($songs.Count -gt 0) { return $songs }
+        }
+    }
+
+    # Still in an archive: the soundtrack zip itself, or the bundle holding it.
+    foreach ($r in $places) {
+        if (-not (Test-Path -LiteralPath $r)) { continue }
+        foreach ($z in (Get-ChildItem -Path $r -File -Recurse -Depth 4 -ErrorAction SilentlyContinue |
+                        Where-Object { $_.Name -like "*redneck*.zip" })) {
+            $songs = @(Get-SongsFromZip $z.FullName $st 0)
             if ($songs.Count -gt 0) {
                 Info ("using the soundtrack from " + $z.Name)
-                return ,$songs
+                return $songs
             }
-        } catch { }
-        Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 
     return @()

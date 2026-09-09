@@ -230,9 +230,11 @@ in the GRP - and whether you get it depends on what your copy shipped with:
 - **Redneck Rampage** and **Rides Again** - these are CD audio with no MIDI to fall
   back on, so without the tracks they are completely silent. On GOG the soundtrack
   is a **separate bonus download**, not part of the game installer - get it from the
-  game's page in your library and install it, or setup has nothing to copy. Setup
-  puts it in the game's `music` folder under the names the engine asks for, and says
-  so if it cannot find it.
+  game's page in your library, and setup will do the rest. You do not have to unpack
+  it or put it anywhere in particular: setup looks beside the game data, everywhere it
+  searches for games, and in your Downloads, Desktop and Documents, and it will read
+  the music straight out of GOG's bonus zip - including the soundtrack zip nested
+  inside it. It says so plainly if it cannot find it.
 - **PowerSlave / Exhumed** - the music was CD audio and is in none of the game's own
   files: its data holds 648 entries and every one is a sound effect. Steam's free
   **soundtrack DLC** for the DOS Classic Edition installs the eighteen tracks, already
