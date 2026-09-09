@@ -91,7 +91,11 @@ void TBXR_LogVerbose(const char *fmt, ...);
 #define ALOGV(...)
 #endif
 
-enum { ovrMaxLayerCount = 1 };
+// 1 upstream: theirs submits the world or the virtual screen, never both.
+// The world-space pause menu is a second layer over the projection, and with
+// one slot it was refused every frame. xrEndFrame is given LayerCount, so the
+// spare slots cost nothing.
+enum { ovrMaxLayerCount = 4 };
 enum { ovrMaxNumEyes = 2 };
 
 // Theirs, unchanged - OpenXrInput.cpp fills these in and the game half reads

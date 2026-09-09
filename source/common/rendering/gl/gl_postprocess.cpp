@@ -38,6 +38,7 @@
 #include "v_draw.h"
 #include "gamestate.h"
 #include "menustate.h"
+namespace OpenGLRenderer { void VR_PaintMenuLayer(); }		// gl_stereo3d.cpp
 
 extern bool vid_hdr_active;
 
@@ -145,6 +146,9 @@ void FGLRenderer::Flush()
 			if (eyeCount - eye_ix > 1)
 				mBuffers->NextEye(eyeCount);
 		}
+		// PCVR port: the pause menu panel, from the same commands, before they
+		// go. Anything after the clear below paints from an empty list.
+		VR_PaintMenuLayer();
 		twod->Clear();
 
 		FGLPostProcessState savedState;
