@@ -133,7 +133,16 @@ CVAR(Bool, vr_hud_fixed_roll, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, vr_menu_world, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, vr_menu_lock, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)      // stays where opened, or follows the head
 CVAR(Float, vr_menu_scale, 0.75f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)    // half-width in metres, like vr_hud_scale
-CVAR(Float, vr_menu_distance, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)  // metres ahead
+CVAR(Float, vr_menu_distance, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)  // metres ahead - the eye-painted fallback
+/*
+	Depth of the panel when it is a compositor layer. Quake II's 3.5 m, and
+	the main menu's own screen layer is 4 m. Not 1 m: a panel that close moves
+	about six degrees against the far world for the ten centimetres a head
+	turn carries the eyes, which is correct optics and reads as the menu
+	swinging. At 3.5 m the same turn gives a degree and a half. Angular size
+	is preserved by widening the panel with the distance.
+*/
+CVAR(Float, vr_menu_depth, 3.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 /*
 	UNUSED on the normal path - see TBXR_PC.cpp, where the panel is a
@@ -424,6 +433,17 @@ VSMatrix VREyeInfo::GetHUDProjection(int width, int height) const
 // For the compositor, which places the panel itself. Metres.
 float VR_MenuScale()    { return vr_menu_scale; }
 float VR_MenuDistance() { return vr_menu_distance; }
+float VR_MenuDepth()    { return vr_menu_depth; }
+
+// See hw_vrmodes.h. True only inside VR_PaintMenuLayer.
+static bool menuLayerPainting = false;
+void VR_SetMenuLayerPainting(bool on) { menuLayerPainting = on; }
+bool VR_MenuLayerPainting()           { return menuLayerPainting; }
+
+// The world camera for eye 0 this frame, map units, for the pause diagnostic.
+static float worldEyePos[3] = {0, 0, 0};
+void VR_SetWorldEyePos(float x, float y, float z) { worldEyePos[0] = x; worldEyePos[1] = y; worldEyePos[2] = z; }
+void VR_GetWorldEyePos(float* x, float* y, float* z) { *x = worldEyePos[0]; *y = worldEyePos[1]; *z = worldEyePos[2]; }
 
 bool VR_MenuHidden()
 {

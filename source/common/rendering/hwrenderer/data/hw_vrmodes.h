@@ -63,4 +63,18 @@ void VR_MenuAnchorUpdate();
 bool VR_MenuHidden();
 float VR_MenuScale();
 float VR_MenuDistance();
+float VR_MenuDepth();
+
+/*
+	Set while the pause panel's own texture is being painted.
+
+	The panel is a compositor quad, and the quad is what puts it in the world.
+	The texture behind it must therefore be painted flat - a plain ortho, the
+	same one the main menu uses. Painting it with GetMenuProjection as well
+	placed the menu twice: the quad hung still while the picture inside it
+	slid, tilted and receded with the head, which is exactly what a panel
+	stuck to your face looks like.
+*/
+void VR_SetMenuLayerPainting(bool on);
+bool VR_MenuLayerPainting();
 void VR_MenuSetHidden(bool hidden);

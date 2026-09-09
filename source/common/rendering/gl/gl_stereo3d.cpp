@@ -57,7 +57,9 @@ bool TBXR_BeginMenuLayer();
 void TBXR_EndMenuLayer();
 int TBXR_MenuLayerSize();
 bool VR_MenuInWorld();
+void VR_SetMenuLayerPainting(bool on);
 void Draw2D(F2DDrawer* drawer, FRenderState& state);
+void Draw2D(F2DDrawer* drawer, FRenderState& state, int x, int y, int width, int height);
 
 EXTERN_CVAR(Int, vr_mode)
 EXTERN_CVAR(Float, vid_saturation)
@@ -387,6 +389,43 @@ bool FGLRenderer::QuadStereoCheckInitialRenderContextState()
 //
 //==========================================================================
 
+
+/*
+	The pause menu, painted into a layer of its own, once rather than per eye.
+
+	Called from FGLRenderer::Flush, between the 2D being drawn into the eyes
+	and the drawer being cleared - not from PresentOpenXR, where it first sat.
+	Flush clears the drawer before it presents, so a paint made during present
+	reads an empty command list, and did: the readback said "0 commands" and
+	the panel was invisible.
+
+	The buffer is square and the menu is not, so the menu is letterboxed
+	inside it rather than stretched. The one-argument Draw2D would impose the
+	screen's viewport, and a 2560x1440 viewport in a 2048x2048 target drops
+	the right fifth of the menu off the edge.
+*/
+void VR_PaintMenuLayer()
+{
+	if (!VR_MenuInWorld() || TBXR_MenuLayerSize() <= 0) return;
+	if (!TBXR_BeginMenuLayer()) return;
+
+	/*
+		Flat, over the whole square buffer, and the quad carries the placement.
+
+		The whole 2D screen goes into the square, aspect and all, because that
+		is what the eye-painted panel did before it - its matrix scaled x and y
+		by the same vr_menu_scale - and that panel's proportions were the ones
+		signed off in the headset. The quad is squared to match, so nothing
+		about the picture changes except that it now holds still.
+	*/
+	const int S = TBXR_MenuLayerSize();
+	VR_SetMenuLayerPainting(true);
+	::Draw2D(twod, gl_RenderState, 0, 0, S, S);
+	VR_SetMenuLayerPainting(false);
+
+	TBXR_EndMenuLayer();
+}
+
 void FGLRenderer::PresentOpenXR()
 {
 #ifdef __MOBILE__
@@ -414,21 +453,6 @@ void FGLRenderer::PresentOpenXR()
 		mBuffers->BindEyeTexture(eye, 0);
 		DrawPresentTexture(box, true);
 		TBXR_finishEyeBuffer(eye);
-	}
-
-	/*
-		The pause menu, into a layer of its own, once rather than per eye.
-		The 2D drawer still holds this frame's commands - it is cleared at the
-		start of the next one - so drawing it here rather than into the eye
-		texture costs nothing but the target it lands on.
-	*/
-	if (VR_MenuInWorld() && TBXR_MenuLayerSize() > 0)
-	{
-		if (TBXR_BeginMenuLayer())
-		{
-			::Draw2D(twod, gl_RenderState);
-			TBXR_EndMenuLayer();
-		}
 	}
 
 	TBXR_submitFrame();

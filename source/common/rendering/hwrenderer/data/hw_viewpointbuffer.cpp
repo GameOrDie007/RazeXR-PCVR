@@ -88,10 +88,17 @@ void HWViewpointBuffer::Set2D(F2DDrawer *drawer, FRenderState &di, int width, in
 	const bool isIn2D = drawer == nullptr || drawer->isIn2D;
 	const bool forceFull = drawer != nullptr && drawer->forceFullscreen;
 
-	// PCVR port: a menu open inside a level goes onto a panel in the world
-	// rather than a flat ortho over the whole eye buffer. See hw_vrmodes.cpp.
+	/*
+		PCVR port: a menu open inside a level goes onto a panel in the world
+		rather than a flat ortho over the whole eye buffer. See hw_vrmodes.cpp.
+
+		Except while that panel's own texture is being painted, when the flat
+		ortho is exactly right: the quad layer carries the placement, so
+		placing it here as well moved the picture inside the panel with every
+		turn and tilt of the head.
+	*/
 	VR_MenuAnchorUpdate();
-	const bool menuInWorld = VR_MenuInWorld() && !forceFull;
+	const bool menuInWorld = VR_MenuInWorld() && !forceFull && !VR_MenuLayerPainting();
 	const bool isDrawingFullscreen = ((gamestate != GS_LEVEL) || menuactive != MENU_Off || forceFull) && !menuInWorld;
 	{
 		HWViewpointUniforms matrices;

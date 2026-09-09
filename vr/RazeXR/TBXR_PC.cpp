@@ -58,6 +58,9 @@
 bool VR_MenuInWorld();	// hw_vrmodes.cpp
 float VR_MenuScale();
 float VR_MenuDistance();
+float VR_MenuDepth();
+float vr_hunits_per_meter();
+void VR_GetWorldEyePos(float* x, float* y, float* z);
 
 /*
 	The pause menu as a layer of its own.
@@ -82,6 +85,11 @@ static bool gMenuBufferReady = false;
 static bool gMenuLayerDrawn = false;
 static XrPosef gMenuAnchorPose;
 static bool gMenuAnchored = false;
+static float gMenuAnchorYawDeg = 0.0f;
+static float gMenuAnchorWorld[3] = {0, 0, 0};	// eye-0 camera at pause, map units
+static bool gMenuLayerAcquired = false;	// Begin succeeded; End owes a Release
+static bool gMenuStatsPending = false;	// one readback per menu opening
+static bool gMenuGeomPending = false;	// one geometry line per menu opening
 
 // Square, and large enough that the menu is not the thing losing detail.
 // The 2D canvas is one eye wide, so this is a mild reduction, not a blur.
@@ -1293,8 +1301,18 @@ void TBXR_prepareEyeBuffer(int eye)
 */
 bool TBXR_BeginMenuLayer(void)
 {
-	if (!gMenuBufferReady || !gAppState.SessionActive) return false;
+	if (!gMenuBufferReady || !gAppState.SessionActive)
+	{
+		if (gMenuStatsPending)
+		{
+			gMenuStatsPending = false;
+			VR_Log("VR: menu layer refused - buffer ready %d, session active %d\n",
+					(int)gMenuBufferReady, (int)gAppState.SessionActive);
+		}
+		return false;
+	}
 
+	gMenuLayerAcquired = true;
 	ovrFramebuffer_Acquire(&gMenuBuffer);
 	ovrFramebuffer_SetCurrent(&gMenuBuffer);
 
@@ -1307,7 +1325,11 @@ bool TBXR_BeginMenuLayer(void)
 
 void TBXR_EndMenuLayer(void)
 {
-	if (!gMenuBufferReady) return;
+	// Paired with the acquire, not with the session: were the session to drop
+	// between the two calls, the image would still be held and every later
+	// frame would wait on it.
+	if (!gMenuLayerAcquired) return;
+	gMenuLayerAcquired = false;
 
 	ovrFramebuffer_Resolve(&gMenuBuffer);
 	ovrFramebuffer_Release(&gMenuBuffer);
@@ -1317,7 +1339,13 @@ void TBXR_EndMenuLayer(void)
 
 int TBXR_MenuLayerSize(void)
 {
-	return gMenuBufferReady ? MENU_LAYER_SIZE : 0;
+	/*
+		Must answer the same question TBXR_BeginMenuLayer will: the eye path
+		skips drawing 2D whenever this is non-zero. Report a usable layer that
+		Begin then refuses - the session inactive, on lifting the headset or
+		a Virtual Desktop reconnect - and the menu is drawn into neither.
+	*/
+	return (gMenuBufferReady && gAppState.SessionActive) ? MENU_LAYER_SIZE : 0;
 }
 
 void TBXR_finishEyeBuffer(int eye)
@@ -1454,6 +1482,112 @@ void TBXR_submitFrame(void)
 	TBXR_updateProjections();
 
 	/*
+		Frame-period check, one line per pause. The paused loop once slept to
+		the 30 Hz game tick (mainloop.cpp, TryRunTics): 10.85 ms a frame in
+		play, 32.78 paused, and the world reached the compositor three frames
+		stale under a panel drawn fresh - which is a sway. The two numbers here
+		must agree.
+	*/
+	{
+		static XrTime lastDisplay = 0;
+		static double playPeriodMs = 0.0, menuSumMs = 0.0, menuMaxMs = 0.0;
+		static float menuPeakHeadM = 0.0f, menuPeakWorldM = 0.0f, menuPeakGapM = 0.0f;
+		static float menuPeakHeadV = 0.0f, menuPeakWorldV = 0.0f, menuPeakGapV = 0.0f;
+		static int menuFrames = 0;
+		static bool wasInWorld = false;
+
+		const XrTime now = gAppState.FrameState.predictedDisplayTime;
+		const double dtMs = lastDisplay ? (now - lastDisplay) / 1.0e6 : 0.0;
+		lastDisplay = now;
+
+		const bool inWorld = VR_MenuInWorld();
+		if (!inWorld)
+		{
+			if (dtMs > 0.0)
+				playPeriodMs = playPeriodMs == 0.0 ? dtMs : playPeriodMs * 0.95 + dtMs * 0.05;
+		}
+		else
+		{
+			if (!wasInWorld)
+			{
+				menuFrames = 0;
+				menuSumMs = menuMaxMs = 0.0;
+				menuPeakHeadM = menuPeakWorldM = menuPeakGapM = 0.0f;
+				menuPeakHeadV = menuPeakWorldV = menuPeakGapV = 0.0f;
+			}
+			if (menuFrames < 300)
+			{
+				if (dtMs > 0.0) { menuSumMs += dtMs; if (dtMs > menuMaxMs) menuMaxMs = dtMs; }
+				if (gMenuAnchored)
+				{
+					/*
+						Head travel since the pause, in metres, against the
+						world camera's travel in metre-equivalents.
+
+						These two must be equal. A stage-fixed panel and a
+						world that translates by a different amount cannot
+						agree, and the disagreement appears as the panel
+						drifting - largest when the head moves most, which is
+						why the peak is what gets reported.
+					*/
+					float wx, wy, wz;
+					VR_GetWorldEyePos(&wx, &wy, &wz);
+					const float hx = gAppState.xfStageFromHead.position.x - gMenuAnchorPose.position.x;
+					const float hz = gAppState.xfStageFromHead.position.z - gMenuAnchorPose.position.z;
+					const float headM = sqrtf(hx * hx + hz * hz);
+					const float dx = wx - gMenuAnchorWorld[0], dy = wy - gMenuAnchorWorld[1];
+					const float worldM = sqrtf(dx * dx + dy * dy) / vr_hunits_per_meter();
+
+					/*
+						And the vertical, separately. A nod or a spoken word
+						moves the head mostly up and down, and the horizontal
+						check above cannot see any of it: Build's up axis is z
+						where the runtime's is y, so the two never met.
+					*/
+					const float headV = fabsf(gAppState.xfStageFromHead.position.y - gMenuAnchorPose.position.y);
+					const float worldV = fabsf(wz - gMenuAnchorWorld[2]) / vr_hunits_per_meter();
+					if (headV > menuPeakHeadV)
+					{
+						menuPeakHeadV = headV;
+						menuPeakWorldV = worldV;
+					}
+					const float gapV = fabsf(headV - worldV);
+					if (gapV > menuPeakGapV) menuPeakGapV = gapV;
+					if (headM > menuPeakHeadM)
+					{
+						menuPeakHeadM = headM;
+						menuPeakWorldM = worldM;
+					}
+					const float gap = fabsf(headM - worldM);
+					if (gap > menuPeakGapM) menuPeakGapM = gap;
+				}
+				if (++menuFrames == 300)
+				{
+					const double slipDeg = RAD2DEG(atan2((double)menuPeakGapM,
+							(double)(VR_MenuDepth() > 0.01f ? VR_MenuDepth() : 3.5f)));
+					VR_Log("VR: pause frame period mean %.2f ms, max %.2f ms over 300 frames (play %.2f ms)\n",
+							menuSumMs / 300.0, menuMaxMs, playPeriodMs);
+					const double slipDegV = RAD2DEG(atan2((double)menuPeakGapV,
+							(double)(VR_MenuDepth() > 0.01f ? VR_MenuDepth() : 3.5f)));
+					VR_Log("VR: pause travel flat - head %.3f m, world %.3f m, ratio %.3f, gap %.3f m = %.2f deg\n",
+							menuPeakHeadM, menuPeakWorldM,
+							menuPeakHeadM > 0.001f ? menuPeakWorldM / menuPeakHeadM : 0.0f,
+							menuPeakGapM, slipDeg);
+					VR_Log("VR: pause travel vert - head %.3f m, world %.3f m, ratio %.3f, gap %.3f m = %.2f deg\n",
+							menuPeakHeadV, menuPeakWorldV,
+							menuPeakHeadV > 0.001f ? menuPeakWorldV / menuPeakHeadV : 0.0f,
+							menuPeakGapV, slipDegV);
+					VR_Log("VR: pause panel %.2f m away, %.2f m wide = %.1f deg across\n",
+							VR_MenuDepth(), 2.0f * VR_MenuScale() * VR_MenuDepth()
+									/ (VR_MenuDistance() > 0.01f ? VR_MenuDistance() : 1.0f),
+							2.0 * RAD2DEG(atan2((double)(VR_MenuScale() / (VR_MenuDistance() > 0.01f ? VR_MenuDistance() : 1.0f)), 1.0)));
+				}
+			}
+		}
+		wasInWorld = inWorld;
+	}
+
+	/*
 		Theirs, exactly. RazeXR does not build a per eye asymmetric frustum -
 		it builds one frustum that is the union of the two eyes (the left
 		eye's leftmost angle, the right eye's rightmost, and the first eye's
@@ -1502,8 +1636,24 @@ void TBXR_submitFrame(void)
 	{
 		if (!gMenuAnchored)
 		{
-			gMenuAnchorPose = gAppState.xfStageFromHead;
+			/*
+				Yaw only, as the Quake ports place theirs: a panel that
+				inherited the pitch and roll of wherever you were looking when
+				you paused would hang at that angle. Heading and height are
+				the head's; the tilt is not. QuatToYawPitchRoll writes pitch,
+				yaw, roll - index 1 is yaw - and the forward vector rotates
+				(0,0,-1) by it, the pairing the screen layer already relies on.
+			*/
+			vec3_t rot = {0, 0, 0}, ang = {0, 0, 0};
+			const XrVector3f up = {0.0f, 1.0f, 0.0f};
+			QuatToYawPitchRoll(gAppState.xfStageFromHead.orientation, rot, ang);
+			gMenuAnchorPose.position = gAppState.xfStageFromHead.position;
+			gMenuAnchorPose.orientation = XrQuaternionf_CreateFromVectorAngle(up, DEG2RAD(ang[1]));
+			gMenuAnchorYawDeg = ang[1];
+			VR_GetWorldEyePos(&gMenuAnchorWorld[0], &gMenuAnchorWorld[1], &gMenuAnchorWorld[2]);
 			gMenuAnchored = true;
+			gMenuStatsPending = true;
+			gMenuGeomPending = true;
 		}
 	}
 	else gMenuAnchored = false;
@@ -1593,17 +1743,24 @@ void TBXR_submitFrame(void)
 	{
 		XrCompositionLayerQuad menu_layer = {};
 
-		const float dist = VR_MenuDistance();
-		const float half = VR_MenuScale();
-
-		// Forward along the anchor's own facing: rotate (0,0,-1) by its
-		// orientation, which is what the runtime means by "in front of".
-		const XrVector3f back = { 0.0f, 0.0f, -1.0f };
-		XrVector3f fwd = XrQuaternionf_Rotate(gMenuAnchorPose.orientation, back);
+		/*
+			Placed exactly as the main menu's screen layer places itself -
+			the one panel confirmed rock-steady on this machine - from the
+			head position and yaw captured when the menu opened: back along
+			(sin yaw, cos yaw), facing the head. At vr_menu_depth, with the
+			width grown in proportion so the panel subtends the same angle it
+			did at one metre, where its size was approved.
+		*/
+		const float dist = VR_MenuDepth();
+		// Square, and grown with the distance so it subtends the angle the
+		// approved panel did at vr_menu_distance.
+		const float ref = VR_MenuDistance() > 0.01f ? VR_MenuDistance() : 1.0f;
+		const float width = 2.0f * VR_MenuScale() * dist / ref;
+		const float yaw = DEG2RAD(gMenuAnchorYawDeg);
+		const XrVector3f axis = {0.0f, 1.0f, 0.0f};
 
 		menu_layer.type = XR_TYPE_COMPOSITION_LAYER_QUAD;
-		menu_layer.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT |
-				XR_COMPOSITION_LAYER_CORRECT_CHROMATIC_ABERRATION_BIT;
+		menu_layer.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
 		menu_layer.space = gAppState.CurrentSpace;
 		menu_layer.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
 		menu_layer.subImage.swapchain = gMenuBuffer.ColorSwapChain.Handle;
@@ -1612,14 +1769,30 @@ void TBXR_submitFrame(void)
 		menu_layer.subImage.imageRect.extent.width = gMenuBuffer.Width;
 		menu_layer.subImage.imageRect.extent.height = gMenuBuffer.Height;
 		menu_layer.subImage.imageArrayIndex = 0;
-		menu_layer.pose.orientation = gMenuAnchorPose.orientation;
-		menu_layer.pose.position.x = gMenuAnchorPose.position.x + fwd.x * dist;
-		menu_layer.pose.position.y = gMenuAnchorPose.position.y + fwd.y * dist;
-		menu_layer.pose.position.z = gMenuAnchorPose.position.z + fwd.z * dist;
-		menu_layer.size.width = half * 2.0f;
-		menu_layer.size.height = half * 2.0f;
+		menu_layer.pose.orientation = XrQuaternionf_CreateFromVectorAngle(axis, yaw);
+		menu_layer.pose.position.x = gMenuAnchorPose.position.x - sinf(yaw) * dist;
+		menu_layer.pose.position.y = gMenuAnchorPose.position.y;
+		menu_layer.pose.position.z = gMenuAnchorPose.position.z - cosf(yaw) * dist;
+		menu_layer.size.width = width;
+		menu_layer.size.height = width;
 
+		if (gMenuGeomPending)
+		{
+			gMenuGeomPending = false;
+			VR_Log("VR: menu quad at (%.2f %.2f %.2f) size %.2f m, head at (%.2f %.2f %.2f), layer %d of %d\n",
+					menu_layer.pose.position.x, menu_layer.pose.position.y, menu_layer.pose.position.z,
+					menu_layer.size.width,
+					gAppState.xfStageFromHead.position.x, gAppState.xfStageFromHead.position.y,
+					gAppState.xfStageFromHead.position.z,
+					gAppState.LayerCount + 1, ovrMaxLayerCount);
+		}
 		gAppState.Layers[gAppState.LayerCount++].Quad = menu_layer;
+	}
+	else if (gMenuGeomPending && VR_MenuInWorld())
+	{
+		gMenuGeomPending = false;
+		VR_Log("VR: menu quad NOT submitted - drawn %d, layers %d/%d\n",
+				(int)gMenuLayerDrawn, gAppState.LayerCount, ovrMaxLayerCount);
 	}
 	gMenuLayerDrawn = false;
 

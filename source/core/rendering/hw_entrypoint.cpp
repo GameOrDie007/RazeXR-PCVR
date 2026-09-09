@@ -57,6 +57,7 @@
 EXTERN_CVAR(Bool, cl_capfps)
 EXTERN_CVAR(Bool, vr_allowPitchOverride);
 
+void VR_SetWorldEyePos(float x, float y, float z);	// hw_vrmodes.cpp
 extern float vrYaw;
 extern float vrPitch;
 
@@ -195,6 +196,10 @@ void RenderViewpoint(FRenderViewpoint& mainvp, IntRect* bounds, float fov, float
 				vp.SectCount = sectindex(sect);
 			}
 		}
+
+		// PCVR port: the camera this eye is drawn from, for the pause
+		// diagnostic that compares its travel with the head's.
+		if (eye_ix == 0) VR_SetWorldEyePos((float)vp.Pos.X, (float)vp.Pos.Y, (float)vp.Pos.Z);
 
 		di->SetupView(RenderState, vp.Pos.X, vp.Pos.Y, vp.Pos.Z, false, false);
 		di->ProcessScene(toscreen);
