@@ -227,10 +227,12 @@ in the GRP - and whether you get it depends on what your copy shipped with:
 
 - **Blood** and **Shadow Warrior** - GOG ships the tracks with the game and setup
   copies them across. Nothing to do.
-- **Redneck Rampage** and **Rides Again** - GOG ships the soundtrack as MP3s under
-  `Extras`, which is not where the engine looks. Setup now copies them into the
-  game's `music` folder under the names the engine asks for, so both games and
-  Route 66 have their music.
+- **Redneck Rampage** and **Rides Again** - these are CD audio with no MIDI to fall
+  back on, so without the tracks they are completely silent. On GOG the soundtrack
+  is a **separate bonus download**, not part of the game installer - get it from the
+  game's page in your library and install it, or setup has nothing to copy. Setup
+  puts it in the game's `music` folder under the names the engine asks for, and says
+  so if it cannot find it.
 - **PowerSlave / Exhumed** - the music was CD audio and is in none of the game's own
   files: its data holds 648 entries and every one is a sound effect. Steam's free
   **soundtrack DLC** for the DOS Classic Edition installs the eighteen tracks, already

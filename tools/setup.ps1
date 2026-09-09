@@ -712,7 +712,15 @@ foreach ($st in $soundtracks) {
     # in games\ rather than back at wherever it was installed.
     $srcDir = Get-ChildItem -LiteralPath (Join-Path $dest "games\rampage") -Directory -Recurse -ErrorAction SilentlyContinue |
               Where-Object { $_.Name -like $st.Match } | Select-Object -First 1
-    if (-not $srcDir) { continue }
+    if (-not $srcDir) {
+        # Say so. Redneck is CD audio with no MIDI to fall back on, so this
+        # is the difference between a game with music and a silent one, and
+        # GOG ships the soundtrack as a separate bonus download that an
+        # ordinary install does not include.
+        Warn ("no soundtrack found for {0} - the game will be silent" -f $st.Base)
+        Info "it is a separate 'bonus content' download on GOG; install it and re-run SETUP"
+        continue
+    }
 
     $songs = @(Get-ChildItem -LiteralPath $srcDir.FullName -File -ErrorAction SilentlyContinue |
                Where-Object { $_.Extension -match '^\.(mp3|ogg|flac)$' } |
