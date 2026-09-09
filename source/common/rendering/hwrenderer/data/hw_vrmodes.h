@@ -61,4 +61,6 @@ bool VR_MenuInWorld();
 void VR_MenuAnchorUpdate();
 // Hidden for a screenshot: the 2D layer is not drawn while a menu is up.
 bool VR_MenuHidden();
+float VR_MenuScale();
+float VR_MenuDistance();
 void VR_MenuSetHidden(bool hidden);

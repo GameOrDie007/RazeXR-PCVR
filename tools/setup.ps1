@@ -697,9 +697,68 @@ if (Test-Path $builder) {
     answer a request for .ogg.
 #>
 $soundtracks = @(
-    @{ Dir = Join-Path $dest "games\rampage";       Base = "redneck";      Match = "*Redneck Rampage Soundtrack*" },
-    @{ Dir = Join-Path $dest "games\rampage\AGAIN"; Base = "redneckrides"; Match = "*Rides Again soundtrack*" }
+    @{ Dir = Join-Path $dest "games\rampage";       Base = "redneck";      Match = "*Redneck Rampage Soundtrack*"; Zip = "*redneck_rampage_soundtrack*.zip" },
+    @{ Dir = Join-Path $dest "games\rampage\AGAIN"; Base = "redneckrides"; Match = "*Rides Again soundtrack*";     Zip = "*rides_again_soundtrack*.zip" }
 )
+
+<#
+    Where a soundtrack might be.
+
+    GOG does not put this music in the game. The only copy anywhere in a
+    Redneck install is under Extras\, and Extras\ is filled by a separate
+    "bonus content" download - so an ordinary install has no music at all and
+    the game is silent, which is what it did on the machine this was reported
+    from.
+
+    Nothing can conjure it, but it can be looked for properly: beside the game
+    data, then anywhere setup already searches for games, and then inside the
+    zip GOG leaves next to the folder it unpacks - because a download that was
+    never unpacked still has the music in it.
+#>
+function Find-Soundtrack($st) {
+    $dirs = @()
+
+    $dirs += Get-ChildItem -LiteralPath (Join-Path $dest "games\rampage") -Directory -Recurse -ErrorAction SilentlyContinue |
+             Where-Object { $_.Name -like $st.Match }
+
+    foreach ($r in $roots) {
+        if (-not (Test-Path -LiteralPath $r)) { continue }
+        $dirs += Get-ChildItem -Path $r -Directory -Recurse -Depth 4 -ErrorAction SilentlyContinue |
+                 Where-Object { $_.Name -like $st.Match }
+    }
+
+    foreach ($d in $dirs) {
+        $songs = @(Get-ChildItem -LiteralPath $d.FullName -File -ErrorAction SilentlyContinue |
+                   Where-Object { $_.Extension -match '^\.(mp3|ogg|flac)$' } | Sort-Object Name)
+        if ($songs.Count -gt 0) { return ,$songs }
+    }
+
+    # Nothing unpacked. Try the archive itself.
+    $zips = @()
+    $zips += Get-ChildItem -LiteralPath (Join-Path $dest "games\rampage") -File -Recurse -ErrorAction SilentlyContinue |
+             Where-Object { $_.Name -like $st.Zip }
+    foreach ($r in $roots) {
+        if (-not (Test-Path -LiteralPath $r)) { continue }
+        $zips += Get-ChildItem -Path $r -File -Recurse -Depth 4 -ErrorAction SilentlyContinue |
+                 Where-Object { $_.Name -like $st.Zip }
+    }
+
+    foreach ($z in $zips) {
+        $tmp = Join-Path $env:TEMP ("razexr_mus_" + [guid]::NewGuid().ToString())
+        try {
+            Expand-Archive -LiteralPath $z.FullName -DestinationPath $tmp -Force -ErrorAction Stop
+            $songs = @(Get-ChildItem -LiteralPath $tmp -File -Recurse -ErrorAction SilentlyContinue |
+                       Where-Object { $_.Extension -match '^\.(mp3|ogg|flac)$' } | Sort-Object Name)
+            if ($songs.Count -gt 0) {
+                Info ("using the soundtrack from " + $z.Name)
+                return ,$songs
+            }
+        } catch { }
+        Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    return @()
+}
 
 foreach ($st in $soundtracks) {
     if (-not (Test-Path -LiteralPath $st.Dir)) { continue }
@@ -708,24 +767,16 @@ foreach ($st in $soundtracks) {
     # Already done by a previous run.
     if (Test-Path -LiteralPath (Join-Path $musicDir ($st.Base + "02.mp3"))) { continue }
 
-    # The soundtrack folder travels with the game data, so look under the copy
-    # in games\ rather than back at wherever it was installed.
-    $srcDir = Get-ChildItem -LiteralPath (Join-Path $dest "games\rampage") -Directory -Recurse -ErrorAction SilentlyContinue |
-              Where-Object { $_.Name -like $st.Match } | Select-Object -First 1
-    if (-not $srcDir) {
-        # Say so. Redneck is CD audio with no MIDI to fall back on, so this
-        # is the difference between a game with music and a silent one, and
-        # GOG ships the soundtrack as a separate bonus download that an
-        # ordinary install does not include.
+    $songs = @(Find-Soundtrack $st)
+    if ($songs.Count -eq 0) {
+        # Say so. Redneck is CD audio with no MIDI to fall back on, so this is
+        # the difference between a game with music and a silent one.
         Warn ("no soundtrack found for {0} - the game will be silent" -f $st.Base)
-        Info "it is a separate 'bonus content' download on GOG; install it and re-run SETUP"
+        Info "on GOG it is a separate 'bonus content' download, not part of the game"
+        Info "installer. Install it, or drop its folder anywhere setup searches,"
+        Info "then re-run SETUP."
         continue
     }
-
-    $songs = @(Get-ChildItem -LiteralPath $srcDir.FullName -File -ErrorAction SilentlyContinue |
-               Where-Object { $_.Extension -match '^\.(mp3|ogg|flac)$' } |
-               Sort-Object Name)
-    if ($songs.Count -eq 0) { continue }
 
     if (-not (Test-Path -LiteralPath $musicDir)) {
         New-Item -ItemType Directory -Path $musicDir -Force | Out-Null

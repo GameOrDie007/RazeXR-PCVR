@@ -76,6 +76,8 @@ extern bool vid_hdr_active;
 void DrawVersionString ();
 
 void TBXR_prepareEyeBuffer(int eye );
+int TBXR_MenuLayerSize();
+bool VR_MenuInWorld();
 void RazeXR_PC_PreInit();
 #include "m_argv.h"
 
@@ -624,7 +626,15 @@ void OpenGLFrameBuffer::Draw2D()
 	if (GLRenderer != nullptr)
 	{
 		GLRenderer->mBuffers->BindCurrentFB();
-		::Draw2D(twod, gl_RenderState);
+		/*
+			PCVR port: a menu hanging in the world is drawn into a layer of
+			its own, in PresentOpenXR, so it must not be painted into the eye
+			texture as well - that copy is what the compositor reprojects, and
+			reprojecting a panel is what made it jitter. The palette blends
+			stay: they belong to the world, not to the panel.
+		*/
+		if (!VR_MenuInWorld() || TBXR_MenuLayerSize() == 0)
+			::Draw2D(twod, gl_RenderState);
 		::Draw2D(twod_blend, gl_RenderState);
 	}
 }
