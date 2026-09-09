@@ -333,7 +333,22 @@ FRenderViewpoint SetupViewpoint(DCoreActor* cam, const DVector3& position, int s
 		r_viewpoint.HWAngles.Roll = FAngle::fromDeg(roll);
 	}
 	r_viewpoint.FieldOfView = FAngle::fromDeg((float)RazeXR_GetFOV());
-	r_viewpoint.RotAngle = angles.Yaw.BAMs();
+	/*
+		PCVR port: cull around the direction being drawn, not the one the game
+		thinks the player faces.
+
+		The bunch drawer bounds its sector scan by RotAngle, and in play that is
+		the game's yaw, which the view yaw above tracks within a frame. Paused
+		by a menu in the world, the game's yaw is frozen while the view follows
+		the head - so once the head was roughly a frustum away from it, nothing
+		the scan admitted was in front of you and the world simply stopped
+		being drawn. The view yaw is the game's minus ninety, as the remote
+		camera branch above spells out.
+	*/
+	if (!renderingRemoteCamera && VR_MenuInWorld())
+		r_viewpoint.RotAngle = DAngle::fromDeg(vrYaw + 90.).BAMs();
+	else
+		r_viewpoint.RotAngle = angles.Yaw.BAMs();
 	double FocalTangent = tan(r_viewpoint.FieldOfView.Radians() / 2);
 	DAngle an = DAngle::fromDeg(270. - r_viewpoint.HWAngles.Yaw.Degrees());
 	r_viewpoint.TanSin = FocalTangent * an.Sin();
