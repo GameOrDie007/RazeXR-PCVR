@@ -377,8 +377,11 @@ Replaces their JNI_OnLoad, the GLES3JNILib entry points and the app thread.
 
 	Their SS_MULTIPLIER clamp is kept where they put it.
 */
+void VR_Trace(const char* stage);
+
 void RazeXR_PC_PreInit()
 {
+	VR_Trace("VR PreInit");
 	//Set device defaults
 	if (SS_MULTIPLIER == 0.0f)
 	{
@@ -392,12 +395,21 @@ void RazeXR_PC_PreInit()
 	VR_Init();
 
 	TBXR_InitialiseOpenXR();
+
+	VR_Trace("VR PreInit done");
 }
 
 void RazeXR_PC_StartVR()
 {
+	VR_Trace("VR StartVR");
+
 	if (!TBXR_EnterVR())
+	{
+		VR_Trace("VR StartVR FAILED - no session");
 		return;
+	}
+
+	VR_Trace("VR session created");
 
 	TBXR_InitRenderer();
 	TBXR_InitActions();
@@ -408,6 +420,8 @@ void RazeXR_PC_StartVR()
 	{
 		RazeXR_SetRefreshRate(REFRESH);
 	}
+
+	VR_Trace("VR StartVR done");
 }
 
 void RazeXR_PC_StopVR()

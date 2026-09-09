@@ -575,6 +575,93 @@ void System_MenuDim();
 
 void RazeXR_PC_StopVR();
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+/*
+	A breadcrumb file that outlives the process.
+
+	Everything the engine normally records goes through the log opened by
+	execLogfile, and that happens some way into RunGame - after the config, the
+	resource file and the console. A crash before that point leaves no log at
+	all, which is exactly what a failed Switch Game produced: the game vanished
+	and the only evidence was the absence of a file.
+
+	This writes one line per startup stage and closes the file each time, so
+	what has been written is on disk before the next stage can fault. It is a
+	dozen short lines per run. The point is that the last line present names the
+	stage that did not finish, which is the one thing the existing logs cannot
+	say.
+*/
+void VR_Trace(const char* stage)
+{
+#ifdef _WIN32
+	FILE* f = fopen("logs/startup.log", "a");
+	if (!f) f = fopen("startup.log", "a");
+	if (!f) return;
+
+	SYSTEMTIME st;
+	GetLocalTime(&st);
+	fprintf(f, "%02d:%02d:%02d.%03d [%5lu] %s\n",
+		st.wHour, st.wMinute, st.wSecond, st.wMilliseconds,
+		(unsigned long)GetCurrentProcessId(), stage);
+	fclose(f);
+#else
+	(void)stage;
+#endif
+}
+
+/*
+	Wait for the game we were launched to replace.
+
+	Switch Game starts the successor and then exits, so for a moment two
+	processes exist and both want the same OpenXR runtime. The predecessor does
+	not release the headset until it is actually gone, and a successor that
+	reaches session creation first is refused.
+
+	This was already accounted for with a five second ping in the launcher
+	command, which is a guess, and a guess is only ever right until it is not:
+	teardown on a real headset can take longer, and when it does the successor
+	dies before it has opened any log to say so.
+
+	So the predecessor now names itself in the environment and we wait on its
+	handle, which is the event rather than an estimate of it. Absent the
+	variable - an ordinary launch, a shortcut, a user double-clicking the bat -
+	this costs one getenv and returns.
+*/
+static void VR_WaitForPredecessor()
+{
+#ifdef _WIN32
+	const char* pidstr = getenv("RAZEXR_WAIT_PID");
+	if (pidstr == nullptr || *pidstr == 0) return;
+
+	DWORD pid = (DWORD)strtoul(pidstr, nullptr, 10);
+
+	// Do not hand it on to anything we start later.
+	SetEnvironmentVariableW(L"RAZEXR_WAIT_PID", nullptr);
+	_putenv("RAZEXR_WAIT_PID=");
+
+	if (pid == 0 || pid == GetCurrentProcessId()) return;
+
+	HANDLE h = OpenProcess(SYNCHRONIZE, FALSE, pid);
+	if (h == nullptr)
+	{
+		VR_Trace("predecessor already gone");
+		return;
+	}
+
+	VR_Trace("waiting for predecessor");
+	DWORD r = WaitForSingleObject(h, 30000);
+	CloseHandle(h);
+
+	VR_Trace(r == WAIT_OBJECT_0 ? "predecessor exited" : "predecessor wait TIMED OUT");
+
+	// The runtime hands the headset back a moment after the process goes.
+	Sleep(750);
+#endif
+}
+
 int GameMain()
 {
 	int r;
@@ -1052,19 +1139,25 @@ static uint8_t palindexmap[256];
 
 int RunGame()
 {
+	VR_Trace("RunGame");
+	VR_WaitForPredecessor();
+
 	GameStartupInfo.FgColor = 0xffffff;
 
 	G_LoadConfig();
+	VR_Trace("config loaded");
 
 	auto wad = BaseFileSearch(ENGINERES_FILE, NULL, true, GameConfig);
 	if (wad == NULL)
 	{
 		I_FatalError("Cannot find " ENGINERES_FILE);
 	}
+	VR_Trace("raze.pk3 found");
 	LoadHexFont(wad);	// load hex font early so we have it during startup.
 
 	// Set up the console before anything else so that it can receive text.
 	C_InitConsole(1024, 768, true);
+	VR_Trace("console up");
 
 	// +logfile gets checked too late to catch the full startup log in the logfile so do some extra check for it here.
 	FString logfile = Args->TakeValue("+logfile");
@@ -1076,10 +1169,13 @@ int RunGame()
 	{
 		execLogfile(logfile);
 	}
+	VR_Trace(FStringf("logfile open: %s", logfile.GetChars()).GetChars());
 	I_DetectOS();
 	userConfig.ProcessOptions();
 	GetGames();
+	VR_Trace("identifying game");
 	auto usedgroups = SetupGame();
+	VR_Trace("game identified");
 
 	/*
 		PC branch: say so, rather than falling over further in.
