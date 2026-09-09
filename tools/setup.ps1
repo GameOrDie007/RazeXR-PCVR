@@ -697,8 +697,8 @@ if (Test-Path $builder) {
     answer a request for .ogg.
 #>
 $soundtracks = @(
-    @{ Dir = Join-Path $dest "games\rampage";       Base = "redneck";      Match = "*Redneck Rampage Soundtrack*"; Zip = "*redneck_rampage_soundtrack*.zip" },
-    @{ Dir = Join-Path $dest "games\rampage\AGAIN"; Base = "redneckrides"; Match = "*Rides Again soundtrack*";     Zip = "*rides_again_soundtrack*.zip" }
+    @{ Dir = Join-Path $dest "games\rampage";       Base = "redneck";      Name = "Redneck Rampage";             Match = "*Redneck Rampage Soundtrack*"; Zip = "*redneck_rampage_soundtrack*.zip" },
+    @{ Dir = Join-Path $dest "games\rampage\AGAIN"; Base = "redneckrides"; Name = "Redneck Rampage Rides Again"; Match = "*Rides Again soundtrack*";     Zip = "*rides_again_soundtrack*.zip" }
 )
 
 <#
@@ -819,12 +819,25 @@ foreach ($st in $soundtracks) {
 
     $songs = @(Find-Soundtrack $st)
     if ($songs.Count -eq 0) {
-        # Say so. Redneck is CD audio with no MIDI to fall back on, so this is
-        # the difference between a game with music and a silent one.
-        Warn ("no soundtrack found for {0} - the game will be silent" -f $st.Base)
-        Info "on GOG it is a separate 'bonus content' download, not part of the game"
-        Info "installer. Install it, or drop its folder anywhere setup searches,"
-        Info "then re-run SETUP."
+        <#
+            Say it in full, and name the folder.
+
+            Redneck is CD audio with no MIDI underneath, so this is the
+            difference between a game with music and a silent one - and the
+            music is not missing from the machine by accident. GOG keeps it in
+            a separate free download, so the person reading this owns it
+            already and simply has not fetched it. Telling them that, and
+            exactly where it can go, is the whole of the fix.
+        #>
+        Warn ("{0} has no music - the game will be silent" -f $st.Name)
+        Info "Its soundtrack is a separate free 'bonus content' download on GOG,"
+        Info "not part of the game installer - so you already own it. Get it from"
+        Info "the game's page in your GOG library, then either:"
+        Info ""
+        Info "  - leave the .zip in your Downloads folder and run SETUP.bat again"
+        Info "    (it is read straight out of the zip - no need to unpack it), or"
+        Info ("  - unpack it and put the soundtrack folder in " + $st.Dir)
+        Info ""
         continue
     }
 
