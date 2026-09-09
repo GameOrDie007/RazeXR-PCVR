@@ -8,3 +8,6 @@ build-vs2019/
 /build/
 /build-log-*.txt
 /run/
+
+# Written beside the executable when the VR layer starts up.
+razexr_vr.log
