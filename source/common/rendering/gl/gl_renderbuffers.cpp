@@ -34,7 +34,17 @@
 #include <random>
 
 EXTERN_CVAR(Int, gl_debug_level)
-CVAR(Int, gl_multisample, 1, CVAR_ARCHIVE|CVAR_GLOBALCONFIG);
+/*
+	PCVR port: 4x by default, not off.
+
+	The scene buffer here is one eye of a headset, and a still frame of it - the
+	paused world, the first thing anyone looks at closely - is all stair-stepped
+	edges with this at 1. In play the motion hides it; that is the only reason
+	it went unremarked. The buffer is recreated on change, so the menu setting
+	takes effect on the next frame, and an archived value in an existing config
+	still wins over this.
+*/
+CVAR(Int, gl_multisample, 4, CVAR_ARCHIVE|CVAR_GLOBALCONFIG);
 
 void TBXR_prepareEyeBuffer(int eye );
 
