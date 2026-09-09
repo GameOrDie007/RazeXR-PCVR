@@ -136,6 +136,11 @@ CVAR(Float, vr_menu_scale, 0.75f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)    // half-w
 CVAR(Float, vr_menu_distance, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)  // metres ahead
 
 /*
+	UNUSED on the normal path - see TBXR_PC.cpp, where the panel is a
+	compositor layer placed from the runtime's own pose. These remain only
+	for the fallback below, which draws the menu into the eye texture when a
+	menu swapchain could not be created.
+
 	Which way the panel answers head movement, one axis at a time.
 
 	The panel is pinned by translating it by the head's displacement since
@@ -416,6 +421,10 @@ VSMatrix VREyeInfo::GetHUDProjection(int width, int height) const
 	menu is a panel in the world - on the virtual screen there is nothing
 	behind the panel to photograph.
 */
+// For the compositor, which places the panel itself. Metres.
+float VR_MenuScale()    { return vr_menu_scale; }
+float VR_MenuDistance() { return vr_menu_distance; }
+
 bool VR_MenuHidden()
 {
 	return menuHidden && VR_MenuInWorld();

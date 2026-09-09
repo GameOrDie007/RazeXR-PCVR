@@ -56,6 +56,36 @@
 #include <math.h>
 
 bool VR_MenuInWorld();	// hw_vrmodes.cpp
+float VR_MenuScale();
+float VR_MenuDistance();
+
+/*
+	The pause menu as a layer of its own.
+
+	Painting the menu into the eye texture cannot hold it still. That texture
+	is submitted as a projection layer and the compositor reprojects it to the
+	head pose at display time - a correction that is right for the world,
+	because the world is at the depth the projection assumes, and wrong for a
+	panel a metre away that was placed with an older pose. It came out almost
+	right and jittering on every small movement, which is what was reported
+	twice and what no adjustment to the matrix could fix, because the error is
+	added after the matrix has had its say.
+
+	A quad layer is placed by the compositor itself, in stage space, from a
+	pose we give it. It is then as stable as the runtime can make it, and the
+	pose needs no Euler angles: the head pose at the moment the menu opened is
+	already an XrPosef in stage space, so the panel is that pose pushed forward
+	along its own facing. This is what the Quake II PCVR port does.
+*/
+static ovrFramebuffer gMenuBuffer;
+static bool gMenuBufferReady = false;
+static bool gMenuLayerDrawn = false;
+static XrPosef gMenuAnchorPose;
+static bool gMenuAnchored = false;
+
+// Square, and large enough that the menu is not the thing losing detail.
+// The 2D canvas is one eye wide, so this is a mild reduction, not a blur.
+#define MENU_LAYER_SIZE 2048
 
 #ifndef GL_FRAMEBUFFER_SRGB
 #define GL_FRAMEBUFFER_SRGB 0x8DB9
@@ -1124,6 +1154,13 @@ void TBXR_InitRenderer(void)
 
 	ovrRenderer_Create(gAppState.Session, &gAppState.Renderer,
 			(int)gAppState.Width, (int)gAppState.Height);
+
+	// Its own swapchain, so the menu can be handed over as its own layer.
+	// A failure here is not fatal: the menu falls back to the eye texture.
+	gMenuBufferReady = ovrFramebuffer_Create(gAppState.Session, &gMenuBuffer,
+			GL_SRGB8_ALPHA8, MENU_LAYER_SIZE, MENU_LAYER_SIZE, 0);
+	if (!gMenuBufferReady)
+		VR_Log("VR: no menu layer - the pause menu will be drawn into the eye\n");
 }
 
 void TBXR_WaitForSessionActive(void)
@@ -1247,6 +1284,40 @@ void TBXR_prepareEyeBuffer(int eye)
 	ovrFramebuffer_Acquire(frameBuffer);
 	ovrFramebuffer_SetCurrent(frameBuffer);
 	TBXR_ClearFrameBuffer(frameBuffer->Width, frameBuffer->Height);
+}
+
+/*
+	The menu layer is drawn after both eyes are copied, from the same 2D
+	drawer, and cleared to transparent so only what the menu draws is composited
+	over the world.
+*/
+bool TBXR_BeginMenuLayer(void)
+{
+	if (!gMenuBufferReady || !gAppState.SessionActive) return false;
+
+	ovrFramebuffer_Acquire(&gMenuBuffer);
+	ovrFramebuffer_SetCurrent(&gMenuBuffer);
+
+	glViewport(0, 0, gMenuBuffer.Width, gMenuBuffer.Height);
+	glScissor(0, 0, gMenuBuffer.Width, gMenuBuffer.Height);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	return true;
+}
+
+void TBXR_EndMenuLayer(void)
+{
+	if (!gMenuBufferReady) return;
+
+	ovrFramebuffer_Resolve(&gMenuBuffer);
+	ovrFramebuffer_Release(&gMenuBuffer);
+	ovrFramebuffer_SetNone();
+	gMenuLayerDrawn = true;
+}
+
+int TBXR_MenuLayerSize(void)
+{
+	return gMenuBufferReady ? MENU_LAYER_SIZE : 0;
 }
 
 void TBXR_finishEyeBuffer(int eye)
@@ -1421,6 +1492,22 @@ void TBXR_submitFrame(void)
 		positional origin while a menu is up, and both of those still want to
 		happen; only the choice of layer changes.
 	*/
+	/*
+		The pose the panel hangs at: the head's, at the moment the menu came
+		up, pushed forward along its own facing. Taken from the runtime's own
+		XrPosef rather than rebuilt from angles, so there are no conventions
+		to get wrong and nothing left to drift.
+	*/
+	if (VR_MenuInWorld())
+	{
+		if (!gMenuAnchored)
+		{
+			gMenuAnchorPose = gAppState.xfStageFromHead;
+			gMenuAnchored = true;
+		}
+	}
+	else gMenuAnchored = false;
+
 	if (!VR_UseScreenLayer() || VR_MenuInWorld())
 	{
 		XrCompositionLayerProjection projection_layer = {};
@@ -1495,6 +1582,46 @@ void TBXR_submitFrame(void)
 
 		gAppState.Layers[gAppState.LayerCount++].Quad = quad_layer;
 	}
+
+	/*
+		After the world, so it composites on top of it. Its width is taken from
+		vr_menu_scale so the existing slider still sizes it, and it is square
+		because the buffer is - the menu is letterboxed inside rather than
+		stretched.
+	*/
+	if (gMenuLayerDrawn && VR_MenuInWorld() && gAppState.LayerCount < ovrMaxLayerCount)
+	{
+		XrCompositionLayerQuad menu_layer = {};
+
+		const float dist = VR_MenuDistance();
+		const float half = VR_MenuScale();
+
+		// Forward along the anchor's own facing: rotate (0,0,-1) by its
+		// orientation, which is what the runtime means by "in front of".
+		const XrVector3f back = { 0.0f, 0.0f, -1.0f };
+		XrVector3f fwd = XrQuaternionf_Rotate(gMenuAnchorPose.orientation, back);
+
+		menu_layer.type = XR_TYPE_COMPOSITION_LAYER_QUAD;
+		menu_layer.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT |
+				XR_COMPOSITION_LAYER_CORRECT_CHROMATIC_ABERRATION_BIT;
+		menu_layer.space = gAppState.CurrentSpace;
+		menu_layer.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+		menu_layer.subImage.swapchain = gMenuBuffer.ColorSwapChain.Handle;
+		menu_layer.subImage.imageRect.offset.x = 0;
+		menu_layer.subImage.imageRect.offset.y = 0;
+		menu_layer.subImage.imageRect.extent.width = gMenuBuffer.Width;
+		menu_layer.subImage.imageRect.extent.height = gMenuBuffer.Height;
+		menu_layer.subImage.imageArrayIndex = 0;
+		menu_layer.pose.orientation = gMenuAnchorPose.orientation;
+		menu_layer.pose.position.x = gMenuAnchorPose.position.x + fwd.x * dist;
+		menu_layer.pose.position.y = gMenuAnchorPose.position.y + fwd.y * dist;
+		menu_layer.pose.position.z = gMenuAnchorPose.position.z + fwd.z * dist;
+		menu_layer.size.width = half * 2.0f;
+		menu_layer.size.height = half * 2.0f;
+
+		gAppState.Layers[gAppState.LayerCount++].Quad = menu_layer;
+	}
+	gMenuLayerDrawn = false;
 
 	for (i = 0; i < gAppState.LayerCount; i++)
 		layers[i] = (const XrCompositionLayerBaseHeader *)&gAppState.Layers[i];
