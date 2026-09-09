@@ -126,8 +126,24 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
         secondaryButton2 = offButton2;
     }
 
-    // Only do the following if we are definitely not in the menu
-    if (menuactive == MENU_Off)
+    /*
+        Theirs stops all of this while any menu is up, which is right for a
+        menu on a virtual screen: nothing of the world is being shown, so
+        nothing needs tracking.
+
+        A menu hanging in the world is the other case. The hands are still
+        in the picture, and a frozen pose does not merely stand still - 
+        get_weapon_pos_and_angle subtracts the weapon's angle from the head's
+        live one, so a still weapon swings as the head turns. Positional
+        movement matters here too: GetViewShift reads it, and without it
+        leaning does not move the eye.
+
+        What stays behind the old gate is everything a button drives - the
+        two-handed toggle and the snap turn - because the same presses are
+        working the menu. Snap turn also resets hmdOrigin, which is the
+        anchor the panel is pinned to.
+    */
+    if (menuactive == MENU_Off || VR_MenuInWorld())
     {
         float distance = sqrtf(powf(pOffTracking->Pose.position.x -
                                     pDominantTracking->Pose.position.x, 2) +
@@ -137,7 +153,7 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
                                     pDominantTracking->Pose.position.z, 2));
 
         //Turn on weapon stabilisation?
-        if (vr_two_handed_weapons &&
+        if (vr_two_handed_weapons && menuactive == MENU_Off &&
                 (pOffTrackedRemoteNew->Buttons & xrButton_GripTrigger) !=
             (pOffTrackedRemoteOld->Buttons & xrButton_GripTrigger)) {
 
@@ -250,7 +266,9 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
                   remote_movementForward);
 
 
-            if (!dominantGripPushedNew)
+            // Not while a menu is up: the stick is working the menu, and
+            // snap turn resets the origin the panel is anchored to.
+            if (!dominantGripPushedNew && menuactive == MENU_Off)
             {
                 // Turning logic
                 static int increaseSnap = true;

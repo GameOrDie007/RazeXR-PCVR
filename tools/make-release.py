@@ -49,13 +49,13 @@ FROM_RUN = [
     # was asked directly and in public and agreed; the wording and the link are
     # in THIRD-PARTY-PERMISSIONS.md. Bundling is what makes voxel monsters work
     # with no download - it is on ModDB, which cannot be fetched by script.
-    "voxel_duke3d.zip",
+    "assets/voxel_duke3d.zip",
     # The 66 weapon models that cannot be built from anything the user already
     # owns - Exhumed, NAM, Redneck and WWII GI, and the animation frames. Every
     # contributor gave permission in the Team Beef Discord; see
     # THIRD-PARTY-PERMISSIONS.md. The other 34 are the games' own data and
     # Cheello's, and are still built on the user's machine, never shipped.
-    "vrweapons_models.pk3",
+    "assets/vrweapons_models.pk3",
 ]
 
 FROM_REPO = [
@@ -110,9 +110,12 @@ def main():
             missing.append(rel)
 
     for name in FROM_RUN:
-        src = os.path.join(args.run, name)
+        # A name may carry a folder now - assets/ - so make it first.
+        src = os.path.join(args.run, os.path.basename(name))
+        dst = os.path.join(root, name.replace("/", os.sep))
         if os.path.isfile(src):
-            shutil.copy2(src, os.path.join(root, name))
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copy2(src, dst)
         else:
             missing.append(name)
 
@@ -145,7 +148,8 @@ def main():
     if not covers:
         missing.append("boxart/")
     else:
-        with zipfile.ZipFile(os.path.join(root, "boxart.pk3"), "w",
+        os.makedirs(os.path.join(root, "assets"), exist_ok=True)
+        with zipfile.ZipFile(os.path.join(root, "assets", "boxart.pk3"), "w",
                              zipfile.ZIP_STORED) as z:
             for f in covers:
                 z.write(os.path.join(art, f), "boxart/" + f)

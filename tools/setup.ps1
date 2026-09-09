@@ -177,6 +177,14 @@ function CopyGameFolder($src, $targetName) {
     return $n
 }
 
+<#
+    Everything that is not the engine, the game data or the player's own files
+    lives in assets\. Ten archives in the root was ten things to mistake for
+    something you were meant to open.
+#>
+$assets = Join-Path $dest "assets"
+[void][System.IO.Directory]::CreateDirectory($assets)
+
 Line "Copying game data"
 $found = 0
 $seedPath = ""      # a real data file, to hand the engine as -gamegrp later
@@ -413,7 +421,7 @@ if ($ppakDir -and -not $InPlace) {
         and the base game's own GAME/USER/DEFS.CON are left behind - those three
         names are the collision, not the add-on's own p* and ppak* sets.
     #>
-    $ppakZip = Join-Path $dest "penthouse_paradise.zip"
+    $ppakZip = Join-Path $assets "penthouse_paradise.zip"
     $stage = Join-Path $env:TEMP ("razexr_ppak_" + [guid]::NewGuid().ToString())
     try {
         [void][System.IO.Directory]::CreateDirectory($stage)
@@ -544,8 +552,8 @@ if ($found -eq 0) {
 Line ""
 Line "Optional extras"
 
-$vox = Join-Path $dest "duke3d_voxels.zip"
-$voxCheello = Join-Path $dest "voxel_duke3d.zip"
+$vox = Join-Path $assets "duke3d_voxels.zip"
+$voxCheello = Join-Path $assets "voxel_duke3d.zip"
 
 if (Test-Path $voxCheello) {
     Ok "Voxel Duke 3D already present - monsters and props as voxels"
@@ -601,7 +609,7 @@ $packs = @(
 )
 
 foreach ($pk in $packs) {
-    $out = Join-Path $dest $pk.File
+    $out = Join-Path $assets $pk.File
     if (Test-Path -LiteralPath $out) {
         Ok ("{0} already present" -f $pk.Name)
         continue
@@ -654,7 +662,7 @@ if (Test-Path $builder) {
     #>
     $overlay = $VRaze
     if (-not $overlay) {
-        $bundled = Join-Path $dest "vrweapons_models.pk3"
+        $bundled = Join-Path $assets "vrweapons_models.pk3"
         if (Test-Path -LiteralPath $bundled) { $overlay = $bundled }
     }
 

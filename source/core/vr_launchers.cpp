@@ -365,7 +365,7 @@ CCMD(vrwritelaunchers)
 		body << "\r\n";
 		body << "rem The cover art the Switch Game menu shows, if it is here.\r\n";
 		body << "set \"ART=\"\r\n";
-		body << "if exist \"%ROOT%\\boxart.pk3\" set \"ART=-file \"%ROOT%\\boxart.pk3\"\"\r\n";
+		body << "if exist \"%ROOT%\\assets\\boxart.pk3\" set \"ART=-file \"%ROOT%\\assets\\boxart.pk3\"\"\r\n";
 		body << "\r\n";
 		body << "rem The voxel weapon pack, if it has been built.\r\n";
 		body << "set \"VRW=\"\r\n";
@@ -379,7 +379,7 @@ CCMD(vrwritelaunchers)
 			assembled into "RazeXR (PC)" the voxel pack stopped loading, silently,
 			in every game.
 		*/
-		body << "if exist \"%ROOT%\\vrweapons.pk3\" set \"VRW=-file \"%ROOT%\\vrweapons.pk3\"\"\r\n";
+		body << "if exist \"%ROOT%\\assets\\vrweapons.pk3\" set \"VRW=-file \"%ROOT%\\assets\\vrweapons.pk3\"\"\r\n";
 		body << "\r\n";
 
 		/*
@@ -408,8 +408,8 @@ CCMD(vrwritelaunchers)
 			body << "rem A Duke voxel pack, if one has been installed beside this script.\r\n";
 			body << "rem Voxel Duke 3D wins where both are present - it covers monsters too.\r\n";
 			body << "set \"VOX=\"\r\n";
-			body << "if exist \"%ROOT%\\duke3d_voxels.zip\" set \"VOX=-file \"%ROOT%\\duke3d_voxels.zip\"\"\r\n";
-			body << "if exist \"%ROOT%\\voxel_duke3d.zip\" set \"VOX=-file \"%ROOT%\\voxel_duke3d.zip\"\"\r\n";
+			body << "if exist \"%ROOT%\\assets\\duke3d_voxels.zip\" set \"VOX=-file \"%ROOT%\\assets\\duke3d_voxels.zip\"\"\r\n";
+			body << "if exist \"%ROOT%\\assets\\voxel_duke3d.zip\" set \"VOX=-file \"%ROOT%\\assets\\voxel_duke3d.zip\"\"\r\n";
 			body << "\r\n";
 		}
 		/*
@@ -423,7 +423,7 @@ CCMD(vrwritelaunchers)
 		{
 			body << "rem The voxel pack for this game, if setup was able to fetch it.\r\n";
 			body << "set \"VOX=\"\r\n";
-			body << "if exist \"%ROOT%\\" << g.voxPack << "\" set \"VOX=-file \"%ROOT%\\" << g.voxPack << "\"\"\r\n";
+			body << "if exist \"%ROOT%\\assets\\" << g.voxPack << "\" set \"VOX=-file \"%ROOT%\\assets\\" << g.voxPack << "\"\"\r\n";
 			body << "\r\n";
 		}
 		/*
@@ -558,7 +558,7 @@ CCMD(vrwritelaunchers)
 			body << "rem Route 66 trips a fault in the full pack, so it takes the\r\n";
 			body << "rem Redneck-only one, which gives it the same weapons.\r\n";
 			body << "set \"VRW=\"\r\n";
-			body << "if exist \"%ROOT%\\vrweapons_rr.pk3\" set \"VRW=-file \"%ROOT%\\vrweapons_rr.pk3\"\"\r\n";
+			body << "if exist \"%ROOT%\\assets\\vrweapons_rr.pk3\" set \"VRW=-file \"%ROOT%\\assets\\vrweapons_rr.pk3\"\"\r\n";
 			body << "\r\n";
 
 			FString rel66 = basegrp;
@@ -728,7 +728,7 @@ CCMD(vrwritelaunchers)
 		{
 			FString ppak;
 			// The zip sits in the root beside raze.exe, not in launchers\.
-			ppak.Format("%s/penthouse_paradise.zip", root.GetChars());
+			ppak.Format("%s/assets/penthouse_paradise.zip", root.GetChars());
 
 			if (FileExists(ppak.GetChars()))
 			{
@@ -745,7 +745,7 @@ CCMD(vrwritelaunchers)
 					which is what a missing tile looks like. In an archive of its
 					own it reaches only the launcher that names it.
 				*/
-				pbody.Substitute(" %VRW% ", " %VRW% -file \"%ROOT%\\penthouse_paradise.zip\" ");
+				pbody.Substitute(" %VRW% ", " %VRW% -file \"%ROOT%\\assets\\penthouse_paradise.zip\" ");
 
 				/*
 					And the name it announces itself by.
