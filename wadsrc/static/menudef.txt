@@ -609,6 +609,11 @@ OptionMenu "VROptionsMenu" protected
     Option "VR HUD Fix Roll",		    "vr_hud_fixed_roll", "OnOff"
 
     StaticText ""
+    StaticText "Picture"
+    StaticText ""
+    Option "Anti-Aliasing",			"gl_multisample", "Multisample"
+
+    StaticText ""
     StaticText "Pause Menu"
     StaticText ""
     Option "Menu In The World",		"vr_menu_world", "OnOff"
