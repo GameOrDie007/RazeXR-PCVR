@@ -672,6 +672,122 @@ if (Test-Path $builder) {
     Warn "build-vrweapons.ps1 is missing - no voxel weapons"
 }
 
+<#
+    Redneck Rampage's soundtrack.
+
+    Redneck is CD audio and has no MIDI to fall back on, so a copy with no
+    tracks is simply silent - which is what every Redneck game did until now.
+    GOG does ship the music, as MP3s under Extras with the song titles for
+    names, so nothing needs downloading; it just has to be where the engine
+    looks and named what the engine asks for.
+
+    S_PlayRRMusic asks for redneck02..09 (redneckrides02..09 for Rides Again),
+    and OpenMusic always searches a "music" subfolder as well. Track 1 on the
+    disc is the data track, so the first song is track 2.
+
+    The launchers pass +set mus_extendedlookup 1, which is what lets the .mp3
+    answer a request for .ogg.
+#>
+$soundtracks = @(
+    @{ Dir = Join-Path $dest "games\rampage";       Base = "redneck";      Match = "*Redneck Rampage Soundtrack*" },
+    @{ Dir = Join-Path $dest "games\rampage\AGAIN"; Base = "redneckrides"; Match = "*Rides Again soundtrack*" }
+)
+
+foreach ($st in $soundtracks) {
+    if (-not (Test-Path -LiteralPath $st.Dir)) { continue }
+
+    $musicDir = Join-Path $st.Dir "music"
+    # Already done by a previous run.
+    if (Test-Path -LiteralPath (Join-Path $musicDir ($st.Base + "02.mp3"))) { continue }
+
+    # The soundtrack folder travels with the game data, so look under the copy
+    # in games\ rather than back at wherever it was installed.
+    $srcDir = Get-ChildItem -LiteralPath (Join-Path $dest "games\rampage") -Directory -Recurse -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -like $st.Match } | Select-Object -First 1
+    if (-not $srcDir) { continue }
+
+    $songs = @(Get-ChildItem -LiteralPath $srcDir.FullName -File -ErrorAction SilentlyContinue |
+               Where-Object { $_.Extension -match '^\.(mp3|ogg|flac)$' } |
+               Sort-Object Name)
+    if ($songs.Count -eq 0) { continue }
+
+    if (-not (Test-Path -LiteralPath $musicDir)) {
+        New-Item -ItemType Directory -Path $musicDir -Force | Out-Null
+    }
+
+    $track = 2
+    $n = 0
+    foreach ($song in $songs) {
+        if ($track -gt 9) { break }
+        $target = Join-Path $musicDir ("{0}{1:D2}{2}" -f $st.Base, $track, $song.Extension)
+        Copy-Item -LiteralPath $song.FullName -Destination $target -Force -ErrorAction SilentlyContinue
+        $track++
+        $n++
+    }
+    if ($n -gt 0) { Ok ("{0,-24} {1} CD tracks" -f "Redneck music", $n) }
+}
+
+<#
+    CD music that shipped with a different copy of the same game.
+
+    PowerSlave is why this exists. The Steam DOS Classic Edition and the GOG DOS
+    release ship a byte-identical STUFF.DAT - 27,020,745 bytes either way - so
+    the search above can legitimately pick either one. Only Steam's has the free
+    soundtrack DLC's MUSIC folder beside it, and PowerSlave has no music
+    anywhere else: its data holds 648 entries and every one of them is a sound
+    effect. So whichever copy the walk happened to reach first decided, in
+    silence, whether the game had any music at all.
+
+    A game that came across without music therefore gets one more look: any
+    other copy of the same data file, with a music folder beside it, and that
+    folder alone is brought over. The game data itself is never touched, and a
+    game that already has its music is skipped.
+#>
+foreach ($g in $games) {
+    $gdir = Join-Path (Join-Path $dest "games") $g.Folder
+    if (-not (Test-Path -LiteralPath $gdir)) { continue }
+
+    $already = @(Get-ChildItem -LiteralPath $gdir -Directory -ErrorAction SilentlyContinue |
+                 Where-Object { $_.Name -ieq "music" })
+    if ($already.Count -gt 0) { continue }
+
+    $srcMusic = $null
+    foreach ($r in $roots) {
+        foreach ($fn in $g.Files) {
+            $c = Get-ChildItem -Path $r -Filter $fn -Recurse -File -Depth 4 -ErrorAction SilentlyContinue |
+                 Select-Object -First 5
+            foreach ($cand in $c) {
+                # The same guards the search above uses. Without them Duke's own
+                # 840KB stuff.dat answers the search for Exhumed - it has a MUSIC
+                # folder beside it, so Duke's soundtrack lands in games\exhumed.
+                if ($g.Folder -eq "ridesagain" -and $cand.Length -ne $RIDESAGAIN_SIZE) { continue }
+                if ($g.Folder -eq "rampage"    -and $cand.Length -eq $RIDESAGAIN_SIZE) { continue }
+                if ($g.Folder -eq "exhumed"    -and $cand.Length -lt $EXHUMED_MIN)     { continue }
+                if ($g.Folder -eq "duke"       -and $cand.Length -lt $DUKE_ATOMIC_MIN) { continue }
+
+                $m = Join-Path $cand.DirectoryName "MUSIC"
+                if (Test-Path -LiteralPath $m) { $srcMusic = $m; break }
+            }
+            if ($srcMusic) { break }
+        }
+        if ($srcMusic) { break }
+    }
+    if (-not $srcMusic) { continue }
+
+    $dstMusic = Join-Path $gdir "music"
+    [void][System.IO.Directory]::CreateDirectory($dstMusic)
+    $n = 0
+    foreach ($f in Get-ChildItem -LiteralPath $srcMusic -File -ErrorAction SilentlyContinue) {
+        if ($skipExt -contains $f.Extension.ToLower()) { continue }
+        $o = Join-Path $dstMusic $f.Name
+        if (-not (Test-Path -LiteralPath $o)) {
+            Copy-Item -LiteralPath $f.FullName -Destination $o -ErrorAction SilentlyContinue
+            $n++
+        }
+    }
+    if ($n -gt 0) { Ok ("{0,-24} {1} CD tracks" -f ($g.Name + " music"), $n) }
+}
+
 # ---------------------------------------------------------------- 4. launchers
 
 Line ""
@@ -755,6 +871,13 @@ if (-not $seedPath) {
 Line ""
 Line "Done."
 Line ""
-Line "Start Virtual Desktop and connect your headset FIRST, then run the .bat for"
-Line "the game you want. Everything lives in this folder - copy it anywhere."
+Line "Start Virtual Desktop and connect your headset FIRST, then run"
+Line "  Play RazeXR PCVR.bat"
+Line ""
+Line "It opens the game you played last, and Switch Game in the menu moves"
+Line "between all of them without leaving the headset. To start one directly,"
+Line "the individual scripts are in the launchers folder."
+Line ""
+Line "Settings go in config, logs go in logs, game data in games. Everything"
+Line "lives in this folder - copy it to another PC and it runs."
 Line ""
