@@ -1656,6 +1656,15 @@ DEFINE_ACTION_FUNCTION_NATIVE(_Raze, ShadeToLight, shadeToLight)
 	ACTION_RETURN_INT(shadeToLight(shade));
 }
 
+FString VRLaunchers_BoxartForItem(int item);
+
+DEFINE_ACTION_FUNCTION(_Raze, VRBoxartName)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(item);
+	ACTION_RETURN_STRING(VRLaunchers_BoxartForItem(item));
+}
+
 DEFINE_ACTION_FUNCTION(_Raze, PlayerName)
 {
 	PARAM_PROLOGUE;

@@ -568,6 +568,8 @@ OptionValue "ControlScheme"
 
 OptionMenu "VRGameSelectMenu" protected
 {
+	// Draws the highlighted game's cover beside the list.
+	Class "VRGameSelectMenu"
 	Title "Select Game"
 	StaticText ""
 	// Game entries are inserted here at runtime by BuildVRGameSelectMenu()

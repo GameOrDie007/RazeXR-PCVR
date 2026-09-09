@@ -135,3 +135,5 @@ version "4.10"
 #include "zscript/games/exhumed/ui/menu.zs"
 #include "zscript/games/exhumed/ui/sbar.zs"
 #include "zscript/games/exhumed/ui/screens.zs"
+
+#include "zscript/vrgameselect.zs"
