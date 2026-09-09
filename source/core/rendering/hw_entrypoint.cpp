@@ -269,12 +269,28 @@ FRenderViewpoint SetupViewpoint(DCoreActor* cam, const DVector3& position, int s
 
 		if (gamestate == GS_LEVEL)
 		{
+			/*
+				PCVR port: while a menu holds the game paused and is drawn as a
+				panel in the world, the resync below must not run.
+
+				The game's yaw is frozen for the whole pause. The resync pulls
+				the view halfway back to it every frame, so a head turn moved
+				the world for a frame or two and then it slid back - the paused
+				level looked stuck at one viewpoint and swam slightly with the
+				head, while the menu panel, anchored to the live head, moved
+				against it. Tracking the head freely here is what puts the panel
+				and the world in the same frame. The resync resumes the moment
+				the menu closes, and does exactly what it was written for.
+			*/
+			const bool pausedInWorld = VR_MenuInWorld();
+
 			// Special frame-yaw-resync code
 			// Basically, if the game code changes the player's yaw, then we need to gradually resync
 			// our "vrYaw" back to match it, doing the full amount on a frame causes it to glitch
 			// but smoothly transitioning to it means the user doesn't notice and we should never be out
 			// of sync with the game's yaw for very long
-			lerpValue((float) (-90.f + angles.Yaw.Degrees()), vrYaw);
+			if (!pausedInWorld)
+				lerpValue((float) (-90.f + angles.Yaw.Degrees()), vrYaw);
 
 			// And now apply the delta of hmd movement for this frame
 			vrYaw -= hmdYawDeltaDegrees;
@@ -283,7 +299,8 @@ FRenderViewpoint SetupViewpoint(DCoreActor* cam, const DVector3& position, int s
 			// the user allows it
 			if (vr_allowPitchOverride)
 			{
-				lerpValue((float) (angles.Pitch.Degrees()), vrPitch);
+				if (!pausedInWorld)
+					lerpValue((float) (angles.Pitch.Degrees()), vrPitch);
 				vrPitch += hmdPitchDeltaDegrees;
 			}
 			else
