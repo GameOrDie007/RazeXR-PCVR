@@ -474,11 +474,22 @@ function Write-Pack($outPath, $modelFilter, $gameFilter) {
 $n = Write-Pack $Out $null $null
 Say ("{0}: {1} models, {2:N0} bytes" -f (Split-Path -Leaf $Out), $n, (Get-Item $Out).Length)
 
-# Redneck loads a pack of its own. The full one overruns a stack in Route 66, so
-# it gets the same weapons through an archive holding nothing else.
+# Redneck loads a pack of its own, because Route 66 dies with a stack buffer
+# overrun - 0xC0000409, before the first frame - if the archive it loads contains
+# a filter directory for a *sibling* dotted game filter.
+#
+# Measured, 8 Sept 2026: a pk3 containing nothing but a ZERO BYTE file at
+# filter/redneck.ridesagain/engine/vr_weapon_animations.def kills Route 66, and
+# the same empty file at filter/redneck.route66/ does not. It is the path, not
+# the content, and it is the engine's own filter handling - so this is worked
+# around here rather than fixed.
+#
+# The pack meant to hold "nothing else" was matching the game folder with
+# ^redneck, which is a prefix and so kept redneck.ridesagain as well. It has
+# therefore never actually excluded the thing it exists to exclude. Anchored.
 $rrModels = @($models.Keys | Where-Object { $_ -like "models/weapons/rr/*" })
 if ($rrModels.Count -gt 0) {
     $rrOut = Join-Path (Split-Path -Parent $Out) "vrweapons_rr.pk3"
-    $n = Write-Pack $rrOut "^models/weapons/rr/" "^redneck"
+    $n = Write-Pack $rrOut "^models/weapons/rr/" "^redneck$"
     Say ("{0}: {1} models" -f (Split-Path -Leaf $rrOut), $n)
 }
