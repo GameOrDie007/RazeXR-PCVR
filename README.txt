@@ -157,8 +157,14 @@ Blood must be One Unit Whole Blood, or a collection containing it.
 Licence and credit
 ------------------
 
-GPL-2.0, inherited from Raze. Full source at the repository this came from,
-licence text in gpl-2.0.txt.
+GPL-2.0, inherited from Raze. Licence text in gpl-2.0.txt.
+
+The complete corresponding source is at
+  https://github.com/GameOrDie007/RazeXR-PCVR
+That is not a formality: this is a port of Team Beef's work, released with
+their agreement on the condition that every derivative stays open, and the
+engine under it is GPL. If you were given this folder by someone else, that
+link is yours as much as theirs.
 
 Raze by Christoph Oelckers, Mitchell Richters and the ZDoom team. RazeXR by
 Team Beef. VRaze by Domyoji. The voxel models by the Build modding community -

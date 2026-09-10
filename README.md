@@ -296,7 +296,9 @@ Named and behaving the same as in the Quake and Quake II PCVR ports.
 
 ## Licence
 
-GPL-2.0, inherited from Raze — see `COPYING`. The additions made by
+GPL-2.0, inherited from Raze — see `COPYING`. The complete corresponding source
+is [github.com/GameOrDie007/RazeXR-PCVR](https://github.com/GameOrDie007/RazeXR-PCVR), which is what Team Beef's
+agreement to a PCVR port was conditional on. The additions made by
 this port are under the same licence. The OpenXR SDK headers in `vr/OpenXR-SDK/` are
 Khronos', under `Apache-2.0 OR MIT`.
 
