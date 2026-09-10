@@ -24,10 +24,12 @@ The PC VR port itself is by **Game Or Die** ([github.com/GameOrDie007](https://g
   tracking, the VR projection and the input scheme are all their design.
 - **VRaze** — Domyoji, whose voxel weapon data this port's weapon code was written
   against. See "Voxel weapons" below.
-- **The Build voxel modders** — **Ermac**, **fgsfds** and others whose names are
-  not recorded anywhere we could find. Around forty of the weapon models VRaze
-  collected are theirs, and this port **does ship them**, in `vrweapons_models.pk3`,
-  with permission given in the Team Beef Discord — see `THIRD-PARTY-PERMISSIONS.md`.
+- **The Build voxel modders** — **Ermac**, **Cheello**, **Life_My_Agony**,
+  **fgsfds**, **MarioJCH** and **mxrtxn**, with **BennyD** on testing and feedback.
+  Around forty of the weapon models VRaze collected are theirs, and this port
+  **does ship them**, in `vrweapons_models.pk3`, with permission given in the Team
+  Beef Discord — see `THIRD-PARTY-PERMISSIONS.md`. Their names come from VRaze's own
+  Contributors list, sent by Domyoji after release.
   If one is yours and you would rather it were not included, please open an issue
   and it will be removed.
 - **Voxel Duke 3D** — Daniel Peterson ("Cheello"), included with his permission.
