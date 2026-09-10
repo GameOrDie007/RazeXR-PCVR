@@ -4,7 +4,7 @@ Seven Build engine games in PC VR: **Duke Nukem 3D**, **Blood**, **Shadow Warrio
 **Redneck Rampage**, **NAM**, **WWII GI** and **Exhumed/PowerSlave** — plus their
 expansions - nineteen entries in all, including World Tour's Alien World Order.
 
-This is a PC port of [Team Beef](https://www.teambeef.org/)'s **RazeXR**, their Quest VR
+This is a PC port of [Team Beef](https://www.teambeefvr.com/)'s **RazeXR**, their Quest VR
 build of [Raze](https://github.com/ZDoom/Raze). RazeXR runs on Android and OpenXR; this
 moves it to Windows, desktop OpenGL and PCVR, and adds voxel weapons held in your hand - ninety-one of them, every game covered.
 
@@ -19,7 +19,7 @@ The PC VR port itself is by **Game Or Die** ([github.com/GameOrDie007](https://g
 - **Raze** — Christoph Oelckers, Mitchell Richters and the ZDoom team. See `AUTHORS.md`
   for the full chain back through EDuke32, JFDuke3D, NBlood, PCExhumed, SWP and the
   BUILD engine by Ken Silverman.
-- **RazeXR** — [Team Beef](https://www.teambeef.org/) (DrBeef and contributors). The VR
+- **RazeXR** — [Team Beef](https://www.teambeefvr.com/) (DrBeef and contributors). The VR
   layer in `vr/RazeXR/` is theirs, imported and adapted for PC; the head and hand
   tracking, the VR projection and the input scheme are all their design.
 - **VRaze** — Domyoji, whose voxel weapon data this port's weapon code was written

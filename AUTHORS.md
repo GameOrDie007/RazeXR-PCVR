@@ -1,6 +1,6 @@
 ### RazeXR (Quest VR build this port is based on):
   * Team Beef - DrBeef and contributors
-  * https://www.teambeef.org/
+  * https://www.teambeefvr.com/
 
 ### RazeXR PCVR port:
   * Game Or Die

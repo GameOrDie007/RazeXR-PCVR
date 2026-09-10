@@ -1,7 +1,7 @@
 # RazeXR PCVR — first release
 
 Seven Build engine games in PC VR, nineteen entries with their expansions, from the
-copies you already own. This is a PC port of [Team Beef](https://www.teambeef.org/)'s
+copies you already own. This is a PC port of [Team Beef](https://www.teambeefvr.com/)'s
 **RazeXR**, their Quest build of [Raze](https://github.com/ZDoom/Raze).
 
 Tested with a Quest 3 over Virtual Desktop (VDXR).
