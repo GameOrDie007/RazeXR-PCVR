@@ -283,9 +283,9 @@ CD, any of those formats will do.
 
 ## Playing seated
 
-**Options → VR Options → Recentre Height.** Sit the way you mean to play, select it, and
+**Options → VR Options → Recenter Height.** Sit the way you mean to play, select it, and
 that height becomes the one the game treats as standing — a chair stops reading as a
-permanent crouch. `vr_recentre` at the console does the same. It is a capture rather
+permanent crouch. `vr_recenter` at the console does the same. It is a capture rather
 than a guessed number, and the **Height Adjust** slider below it shows what was taken.
 
 Each game has its own idea of eye height — Duke and Redneck 40 map units, Blood 60,

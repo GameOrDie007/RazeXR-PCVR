@@ -305,18 +305,18 @@ float getHmdAdjustedHeightInMapUnit()
 	60, Shadow Warrior and Exhumed 58) against its own scale, so this lands
 	correctly per game without a table of heights here.
 */
-CCMD(vr_recentre)
+CCMD(vr_recenter)
 {
 	if (playerHeight == 0.f)
 	{
-		Printf("vr_recentre: not in a level yet.\n");
+		Printf("vr_recenter: not in a level yet.\n");
 		return;
 	}
 
 	const float perMetre = vr_hunits_per_meter();
 	if (perMetre <= 0.f)
 	{
-		Printf("vr_recentre: no world scale for this game.\n");
+		Printf("vr_recenter: no world scale for this game.\n");
 		return;
 	}
 
@@ -324,7 +324,7 @@ CCMD(vr_recentre)
 	const float adjust = standing - hmdPosition[1];
 	vr_height_adjust = adjust;
 
-	Printf("Recentre height: head at %.2f m, standing height %.2f m, adjust %+.2f m\n",
+	Printf("Recenter height: head at %.2f m, standing height %.2f m, adjust %+.2f m\n",
 			hmdPosition[1], standing, adjust);
 }
 

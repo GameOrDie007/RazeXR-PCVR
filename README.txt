@@ -113,10 +113,10 @@ turning your head; closer feels more immediate. 3.5 metres is the default.
 Playing seated
 --------------
 
-Options - VR Options - Recentre Height. Sit however you mean to play, select
+Options - VR Options - Recenter Height. Sit however you mean to play, select
 it, and that height becomes the one the game treats as standing, so a chair
 stops reading as a permanent crouch. Same command as the Quake and Quake II
-ports - vr_recentre at the console does the same thing.
+ports - vr_recenter at the console does the same thing.
 
 It is a capture, not a guess: the Height Adjust slider under it shows what was
 taken and can be nudged by hand afterwards.
