@@ -126,11 +126,26 @@ These are covered by the permission above.
 **Roughly 40 models have no known author** — Exhumed's 6, Redneck's 12, NAM's
 10, WWII GI's 10, and Blood's four `vr_pitchfork` files.
 
-Domyoji was asked for the Contributors list he had pointed at. **He does not have
-one**: he said he does not know exactly who made them and that they are unknown.
-The list is not in the pk3, and no copy of it has been found. The names he could
-give are **Ermac** and **fgsfds**, alongside the wider Build voxel modding
-community the models came out of. Both are credited in the README.
+Domyoji was asked for the Contributors list he had pointed at, and at the time
+he could only name Ermac and fgsfds; the list was not in the pk3 and no copy had
+been found.
+
+**He sent it on 10 September 2026**, the day after the release, unprompted:
+
+| Contributor | For |
+|---|---|
+| Ermac | Models |
+| Cheello | Models |
+| Life_My_Agony | Models |
+| fgsfds | Models |
+| MarioJCH | Models |
+| mxrtxn | Models |
+| BennyD | Testing and feedback |
+
+All seven are credited in `README.md` and `AUTHORS.md`. Transcribed from the
+screenshot he sent, which is cropped at both edges and does not show where the
+section begins or ends, so **this may not be the whole list** - if more names
+surface they belong here too. The spellings are his file's, not ours to tidy.
 
 That is as far as attribution can honestly be taken, and it does not hold up a
 release, because **this project redistributes none of these models.** They exist

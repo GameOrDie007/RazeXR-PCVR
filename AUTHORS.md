@@ -11,6 +11,15 @@
 ### Voxel weapon data modelled on:
   * VRaze by Domyoji
 
+### The voxel weapon models VRaze collected, from its Contributors list:
+  * Ermac
+  * Cheello
+  * Life_My_Agony
+  * fgsfds
+  * MarioJCH
+  * mxrtxn
+  * BennyD - testing and feedback
+
 ### Voxel Duke 3D (included with the author's permission):
   * Daniel Peterson ("Cheello")
 
