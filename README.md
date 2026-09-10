@@ -281,7 +281,7 @@ CD, any of those formats will do.
 
 ## Licence
 
-GPL-2.0, inherited from Raze — see `package/common/gpl-2.0.txt`. The additions made by
+GPL-2.0, inherited from Raze — see `COPYING`. The additions made by
 this port are under the same licence. The OpenXR SDK headers in `vr/OpenXR-SDK/` are
 Khronos', under `Apache-2.0 OR MIT`.
 
