@@ -211,6 +211,38 @@ from any game, and no game ships its cover inside its own data.
 
 The VR layer under `vr/RazeXR/` is theirs, imported and adapted for PC.
 
+## Runtime libraries in the release archive
+
+Four libraries ship as DLLs beside the executable. None is built from this
+source and none is modified: each is an unmodified upstream build, loaded at
+runtime. They are listed here because every one of their licences asks to be
+acknowledged, and because a reader is entitled to know what is in the folder.
+
+| File | Project | Licence | Source |
+|---|---|---|---|
+| `zmusiclite.dll` | ZMusic 1.1.13, from the ZDoom project | GPL-3.0 | <https://github.com/ZDoom/ZMusic> |
+| `openal32.dll` | OpenAL Soft 1.23.1 | LGPL-2.1-or-later | <https://github.com/kcat/openal-soft> |
+| `libsndfile-1.dll` | libsndfile | LGPL-2.1-or-later | <https://github.com/libsndfile/libsndfile> |
+| `openxr_loader.dll` | OpenXR loader, The Khronos Group | Apache-2.0 | <https://github.com/KhronosGroup/OpenXR-SDK> |
+
+The two LGPL libraries are dynamically loaded and can be replaced by dropping a
+different build of the DLL in beside the executable, which is what that licence
+asks to remain possible.
+
+`zmusiclite.dll` is GPL-3.0 rather than GPL-2.0. Raze is GPL-2.0 **or, at your
+option, any later version**, so the combination is lawful and the resulting
+binary is effectively GPL-3.0. The source of every part of it is public.
+
+## BUILD engine
+
+- **Author:** Ken Silverman
+- **Basis:** the BUILD source licence, shipped in the archive as `buildlic.txt`
+  and in this repository at `package/common/buildlic.txt`.
+
+Raze descends from the BUILD engine, so those terms travel with it. They are
+short and worth reading; the one that bites is that derivative works may be
+distributed only over the internet, which a GitHub release satisfies.
+
 ## OpenXR SDK headers
 
 - **Author:** The Khronos Group
