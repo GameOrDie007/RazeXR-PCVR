@@ -157,7 +157,13 @@ Blood must be One Unit Whole Blood, or a collection containing it.
 Licence and credit
 ------------------
 
-GPL-2.0, inherited from Raze. Licence text in gpl-2.0.txt.
+GPL-2.0, inherited from Raze. Licence text in gpl-2.0.txt, and Ken
+Silverman's BUILD engine terms in buildlic.txt - Raze descends from BUILD
+and those terms travel with it.
+
+The four DLLs beside the executable are unmodified upstream builds of
+ZMusic, OpenAL Soft, libsndfile and the OpenXR loader. Their licences and
+where to get their source are listed in THIRD-PARTY-PERMISSIONS.md.
 
 The complete corresponding source is at
   https://github.com/GameOrDie007/RazeXR-PCVR

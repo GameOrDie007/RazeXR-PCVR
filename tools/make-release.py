@@ -68,6 +68,10 @@ FROM_REPO = [
     ("THIRD-PARTY-PERMISSIONS.md", "THIRD-PARTY-PERMISSIONS.md"),
     ("AUTHORS.md", "AUTHORS.md"),
     ("package/common/gpl-2.0.txt", "gpl-2.0.txt"),
+    # Ken Silverman's BUILD source terms. Raze contains BUILD engine code and
+    # upstream ships this beside the GPL text; ours shipped only the GPL until
+    # the pre-publish audit on 9 Sept 2026.
+    ("package/common/buildlic.txt", "buildlic.txt"),
 ]
 
 SUBDIR_FILES = [("soundfonts/raze.sf2", "soundfonts/raze.sf2")]
