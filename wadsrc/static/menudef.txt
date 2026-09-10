@@ -587,7 +587,7 @@ OptionMenu "VROptionsMenu" protected
 	Option "Turning Mode",	"vr_snapTurn", "TurningMode"
 	Option "Direction Mode",	"vr_move_use_offhand", "DirectionMode"
 	StaticText 	""
-	Command "Recentre Height",	"vr_recentre"
+	Command "Recenter Height",	"vr_recenter"
 	Slider "Height Adjust",	"vr_height_adjust", -0.5, 1.0, 0.05, 2
 	StaticText 	""
 	Option "Positional Tracking",	"vr_positional_tracking", "YesNo"
