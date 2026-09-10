@@ -587,7 +587,8 @@ OptionMenu "VROptionsMenu" protected
 	Option "Turning Mode",	"vr_snapTurn", "TurningMode"
 	Option "Direction Mode",	"vr_move_use_offhand", "DirectionMode"
 	StaticText 	""
-	Slider "Height Adjust",	"vr_height_adjust", 0.0, 1.0, 0.1
+	Command "Recentre Height",	"vr_recentre"
+	Slider "Height Adjust",	"vr_height_adjust", -0.5, 1.0, 0.05, 2
 	StaticText 	""
 	Option "Positional Tracking",	"vr_positional_tracking", "YesNo"
 	Option "Allow Pitch Override*",	"vr_allowPitchOverride", "YesNo"
@@ -624,7 +625,7 @@ OptionMenu "VROptionsMenu" protected
     Slider "Menu Distance",			"vr_menu_distance", 0.5, 3.0, 0.1, 2
     Slider "Menu Depth",			"vr_menu_depth", 1.0, 10.0, 0.5, 1
     StaticText ""
-    SafeCommand "$OPTMNU_DEFAULTS", "resetcvar vr_hud_scale hud_scale vr_hud_stereo vr_hud_rotate vr_hud_fixed_pitch vr_hud_fixed_roll vr_menu_world vr_menu_lock vr_menu_scale vr_menu_distance vr_menu_depth"
+    SafeCommand "$OPTMNU_DEFAULTS", "resetcvar vr_hud_scale hud_scale vr_hud_stereo vr_hud_rotate vr_hud_fixed_pitch vr_hud_fixed_roll vr_menu_world vr_menu_lock vr_menu_scale vr_menu_distance vr_menu_depth vr_height_adjust"
 
 }
 

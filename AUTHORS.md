@@ -3,7 +3,10 @@
   * https://www.teambeef.org/
 
 ### RazeXR PCVR port:
-  * The PC/OpenGL platform layer, desktop mirror, voxel weapons and launchers
+  * Game Or Die
+  * https://github.com/GameOrDie007
+  * The PC/OpenGL platform layer, desktop mirror, voxel weapons, in-world pause
+    menu, game switching, launchers and setup
 
 ### Voxel weapon data modelled on:
   * VRaze by Domyoji

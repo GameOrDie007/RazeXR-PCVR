@@ -43,6 +43,8 @@
 #include "i_interface.h"
 #include "RazeXR/mathlib.h"
 #include "menustate.h"
+#include "c_dispatch.h"
+#include "printf.h"
 #include "gamestate.h"
 
 extern vec3_t hmdPosition;
@@ -279,6 +281,51 @@ float getHmdAdjustedHeightInMapUnit()
 
 	//Just use offset from origin
 	return ((hmdPosition[1] - hmdOrigin[1]) * vr_hunits_per_meter());
+}
+
+/*
+	Take the height being stood - or sat - at now as the standing height.
+
+	Uniform with the Quake and Quake II ports: same command name, same meaning.
+	A capture rather than a guessed number, because chairs and people differ,
+	and the height in front of us is always right where a number typed into a
+	slider is only sometimes.
+
+	Raze expresses it through vr_height_adjust, which the height maths above
+	already reads. That maths puts the camera at
+
+	    (head + adjust) * units-per-metre  -  the game's own player height
+
+	as an offset from where the game would otherwise put the eye, so the adjust
+	that leaves the offset at zero - the current head height reading as a
+	normal stance - is the game's player height in metres, less the head height
+	now.
+
+	Each game carries its own player height (Duke and Redneck 40 units, Blood
+	60, Shadow Warrior and Exhumed 58) against its own scale, so this lands
+	correctly per game without a table of heights here.
+*/
+CCMD(vr_recentre)
+{
+	if (playerHeight == 0.f)
+	{
+		Printf("vr_recentre: not in a level yet.\n");
+		return;
+	}
+
+	const float perMetre = vr_hunits_per_meter();
+	if (perMetre <= 0.f)
+	{
+		Printf("vr_recentre: no world scale for this game.\n");
+		return;
+	}
+
+	const float standing = playerHeight / perMetre;
+	const float adjust = standing - hmdPosition[1];
+	vr_height_adjust = adjust;
+
+	Printf("Recentre height: head at %.2f m, standing height %.2f m, adjust %+.2f m\n",
+			hmdPosition[1], standing, adjust);
 }
 
 #define isqrt2 0.7071067812f

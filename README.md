@@ -14,6 +14,8 @@ Tested with a Quest 3 over Virtual Desktop (VDXR).
 
 This exists because of other people's work.
 
+The PC VR port itself is by **Game Or Die** ([github.com/GameOrDie007](https://github.com/GameOrDie007)).
+
 - **Raze** — Christoph Oelckers, Mitchell Richters and the ZDoom team. See `AUTHORS.md`
   for the full chain back through EDuke32, JFDuke3D, NBlood, PCExhumed, SWP and the
   BUILD engine by Ken Silverman.
@@ -278,6 +280,19 @@ CD, any of those formats will do.
   hands, since those are voxels too.
 - Turn speed is degrees per rendered frame, so it is faster on a 120 Hz headset than a
   90 Hz one. Options → VR Options → Turning Mode.
+
+## Playing seated
+
+**Options → VR Options → Recentre Height.** Sit the way you mean to play, select it, and
+that height becomes the one the game treats as standing — a chair stops reading as a
+permanent crouch. `vr_recentre` at the console does the same. It is a capture rather
+than a guessed number, and the **Height Adjust** slider below it shows what was taken.
+
+Each game has its own idea of eye height — Duke and Redneck 40 map units, Blood 60,
+Shadow Warrior and Exhumed 58, against their own world scales — so recentring lands
+correctly in each without setting it per game.
+
+Named and behaving the same as in the Quake and Quake II PCVR ports.
 
 ## Licence
 
