@@ -55,6 +55,31 @@ struct VRGame
 		voxel pack replaces Duke's own tiles, so it must not be loaded into NAM,
 		WW2GI or Redneck, which run on Duke's module but have their own art.
 	*/
+	/*
+		A Blood add-on that brings its own soundtrack as redbook tracks.
+
+		Blood's levels name two pieces of music: Song, a MIDI track from
+		BLOOD.RFF, and Track, a CD audio number that Raze looks for as
+		blood%02i.ogg. Which one plays is mus_redbook, and Raze deliberately
+		defaults it OFF for Blood and on for everything else - right for the
+		base game, wrong for these two, whose own music is the ogg.
+
+		MARROW is the one that shows it. It ships sixteen tracks, blood10 to
+		blood25, an original score written for it by five composers, and not a
+		single .mid of its own - so with redbook off every one of its levels
+		falls back to the Song line, which is Blood's stock CBlood1..10. The
+		whole soundtrack is unreachable and nothing reports it. Death Wish is
+		milder: it ships both, so it plays its own MIDI instead of its own ogg.
+
+		Their authors know. Death Wish's readme tells NBlood users to "enable
+		Redbook audio from the sound options" in as many words. A launcher can
+		simply do it for them.
+
+		Per game, and only these two: the switch lives in each game's own
+		config, so base Blood and Cryptic Passage keep the default upstream
+		chose for them.
+	*/
+	bool wantsRedbook = false;
 	bool isDuke = false;
 	/*
 		World Tour, told apart by the game filter rather than by its file name,
@@ -161,6 +186,8 @@ void VRLaunchers_SetScannedGames(const TArray<GrpEntry>& games)
 		e.isRoute66 = (g.FileInfo.flags & GAMEFLAG_ROUTE66) != 0;
 		e.isCryptic = (g.FileInfo.flags & GAMEFLAG_BLOODCP) != 0 && e.path.IsEmpty();
 		e.isDuke = (g.FileInfo.flags & GAMEFLAG_DUKE) != 0;
+		e.wantsRedbook = g.FileInfo.gamefilter.CompareNoCase("Blood.DeathWish") == 0
+					  || g.FileInfo.gamefilter.CompareNoCase("Blood.Marrow") == 0;
 		e.isWorldTour = g.FileInfo.gamefilter.CompareNoCase("Duke.WorldTour") == 0;
 
 		// Named for the game rather than for whoever packaged it, so setup can
@@ -498,6 +525,7 @@ CCMD(vrwritelaunchers)
 			body << "\r\n";
 			body << "\"%ROOT%\\raze.exe\" -nosetup -portable -cryptic -gamegrp \"%GRP%\" %VOX% %VRW% %ART% ";
 			body << "+set mus_extendedlookup 1 ";
+			if (g.wantsRedbook) body << "+set mus_redbook 1 ";
 			body << "-config \"%ROOT%\\config\\" << base << ".ini\" ";
 			body << "+logfile \"%ROOT%\\logs\\" << base << ".log\"\r\n";
 
@@ -591,6 +619,7 @@ CCMD(vrwritelaunchers)
 				with two lines. That has now cost two diagnoses.
 			*/
 			body << "+set mus_extendedlookup 1 ";
+			if (g.wantsRedbook) body << "+set mus_redbook 1 ";
 			body << "-config \"%ROOT%\\config\\" << base << ".ini\" ";
 			body << "+logfile \"%ROOT%\\logs\\" << base << ".log\"\r\n";
 
@@ -685,6 +714,7 @@ CCMD(vrwritelaunchers)
 		if (g.isDuke || g.voxPack.IsNotEmpty()) body << " %VOX%";
 		body << " %VRW% %ART% ";
 		body << "+set mus_extendedlookup 1 ";
+		if (g.wantsRedbook) body << "+set mus_redbook 1 ";
 		body << "-config \"%ROOT%\\config\\" << base << ".ini\" ";
 		body << "+logfile \"%ROOT%\\logs\\" << base << ".log\"\r\n";
 
