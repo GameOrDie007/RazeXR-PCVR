@@ -58,6 +58,8 @@
 bool VR_MenuInWorld();	// hw_vrmodes.cpp
 float VR_MenuScale();
 float VR_MenuDistance();
+float VR_MenuAspect();
+void VR_Get2DMetrics(int* canvasW, int* canvasH, int* viewW, int* viewH);
 float VR_MenuDepth();
 float vr_hunits_per_meter();
 void VR_GetWorldEyePos(float* x, float* y, float* z);
@@ -1742,6 +1744,41 @@ void TBXR_submitFrame(void)
 		const float screenHeight = 4.5f;
 		XrExtent2Df size = {screenHeight * (float)width / (float)height, screenHeight};
 
+		/*
+			One line, once per change of shape, to settle the virtual screen's
+			aspect without costing a testing round.
+
+			Welz reported the game menus as "very tall and thin" on a 3440x1440
+			ultrawide, fixed by forcing 4:3 per game. The pause panel's own
+			stretch is understood and corrected - it was a square texture on a
+			square quad - but the main menu is not that panel. It is this
+			layer, and which of the three numbers below disagrees decides
+			whether the fix is the same one:
+
+			  canvas   what the 2D was laid out for, in pixels
+			  viewport where Draw2D put it inside the eye buffer
+			  buffer   the eye buffer this quad shows, and the quad's shape
+
+			If canvas and buffer differ in aspect while the viewport covers the
+			buffer, the picture is stretched and the quad wants the canvas
+			aspect, exactly as the pause panel did. If the viewport is smaller
+			than the buffer, nothing is stretched and the picture is sitting in
+			a corner instead, which is a different repair.
+		*/
+		{
+			static int lastW = -1, lastH = -1, lastCW = -1;
+			int cw = 0, ch = 0, vw = 0, vh = 0;
+			VR_Get2DMetrics(&cw, &ch, &vw, &vh);
+			if (lastW != width || lastH != height || lastCW != cw)
+			{
+				lastW = width; lastH = height; lastCW = cw;
+				VR_Log("VR: virtual screen - canvas %dx%d (%.2f), viewport %dx%d, buffer %dx%d (%.2f), quad %.2f x %.2f m\n",
+						cw, ch, ch > 0 ? (float)cw / (float)ch : 0.f,
+						vw, vh, width, height, height > 0 ? (float)width / (float)height : 0.f,
+						size.width, size.height);
+			}
+		}
+
 		quad_layer.type = XR_TYPE_COMPOSITION_LAYER_QUAD;
 		quad_layer.next = NULL;
 		quad_layer.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
@@ -1761,10 +1798,10 @@ void TBXR_submitFrame(void)
 	}
 
 	/*
-		After the world, so it composites on top of it. Its width is taken from
-		vr_menu_scale so the existing slider still sizes it, and it is square
-		because the buffer is - the menu is letterboxed inside rather than
-		stretched.
+		After the world, so it composites on top of it. Its height is taken
+		from vr_menu_scale so the existing slider still sizes it, and its
+		width from the aspect of the screen that was painted into the square
+		texture, so the picture comes out the shape it went in.
 	*/
 	if (gMenuLayerDrawn && VR_MenuInWorld() && gAppState.LayerCount < ovrMaxLayerCount)
 	{
@@ -1779,10 +1816,18 @@ void TBXR_submitFrame(void)
 			did at one metre, where its size was approved.
 		*/
 		const float dist = VR_MenuDepth();
-		// Square, and grown with the distance so it subtends the angle the
-		// approved panel did at vr_menu_distance.
+		// Grown with the distance so it subtends the angle the approved panel
+		// did at vr_menu_distance.
 		const float ref = VR_MenuDistance() > 0.01f ? VR_MenuDistance() : 1.0f;
-		const float width = 2.0f * VR_MenuScale() * dist / ref;
+		const float height = 2.0f * VR_MenuScale() * dist / ref;
+		/*
+			Height is the size that was signed off, so height is what is kept.
+			The width carries the screen's aspect, which is the squeeze the paint
+			put into the square texture - see VR_MenuAspect. Square until a paint
+			reports one, which is what this always did.
+		*/
+		const float aspect = VR_MenuAspect() > 0.01f ? VR_MenuAspect() : 1.0f;
+		const float width = height * aspect;
 		const float yaw = DEG2RAD(gMenuAnchorYawDeg);
 		const XrVector3f axis = {0.0f, 1.0f, 0.0f};
 
@@ -1801,14 +1846,14 @@ void TBXR_submitFrame(void)
 		menu_layer.pose.position.y = gMenuAnchorPose.position.y;
 		menu_layer.pose.position.z = gMenuAnchorPose.position.z - cosf(yaw) * dist;
 		menu_layer.size.width = width;
-		menu_layer.size.height = width;
+		menu_layer.size.height = height;
 
 		if (gMenuGeomPending)
 		{
 			gMenuGeomPending = false;
-			VR_Log("VR: menu quad at (%.2f %.2f %.2f) size %.2f m, head at (%.2f %.2f %.2f), layer %d of %d\n",
+			VR_Log("VR: menu quad at (%.2f %.2f %.2f) size %.2f x %.2f m (aspect %.2f), head at (%.2f %.2f %.2f), layer %d of %d\n",
 					menu_layer.pose.position.x, menu_layer.pose.position.y, menu_layer.pose.position.z,
-					menu_layer.size.width,
+					menu_layer.size.width, menu_layer.size.height, aspect,
 					gAppState.xfStageFromHead.position.x, gAppState.xfStageFromHead.position.y,
 					gAppState.xfStageFromHead.position.z,
 					gAppState.LayerCount + 1, ovrMaxLayerCount);

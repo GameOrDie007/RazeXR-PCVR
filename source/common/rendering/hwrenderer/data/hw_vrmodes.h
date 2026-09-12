@@ -66,6 +66,33 @@ float VR_MenuDistance();
 float VR_MenuDepth();
 
 /*
+	The shape of the panel, width over height.
+
+	The panel's texture is a square, and the whole 2D screen is painted across
+	it - so a 16:9 screen is squeezed to 1:1 on the way in, and an ultrawide
+	3440x1440 is squeezed by 2.39. A square quad then shows that squeeze, and
+	everything on the panel stands too tall and too narrow. Reported by Welz,
+	12 September 2026: "the game menus were in a funny resolution (very tall
+	and thin)", with forcing the game to 4:3 as the workaround - which is
+	exactly what you would expect, because 4:3 is the aspect closest to the
+	square the panel actually is.
+
+	This is the aspect of the pixels that went in, recorded during the paint,
+	so making the quad this shape undoes precisely the squeeze and nothing
+	else. The quad keeps the height it has always had - the size signed off in
+	the headset - and grows sideways, because a panel that keeps its text size
+	is easier to read than one that shrinks to fit a fixed width.
+
+	Zero until the first paint, and the caller falls back to square.
+*/
+void VR_Set2DMetrics(int canvasW, int canvasH, int viewW, int viewH);
+float VR_MenuAspect();
+
+// The same numbers, for the one-shot diagnostic in the virtual screen layer.
+// See VR_MenuAspect for why they are worth having.
+void VR_Get2DMetrics(int* canvasW, int* canvasH, int* viewW, int* viewH);
+
+/*
 	Set while the pause panel's own texture is being painted.
 
 	The panel is a compositor quad, and the quad is what puts it in the world.

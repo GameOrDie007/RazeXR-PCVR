@@ -482,6 +482,30 @@ float VR_MenuScale()    { return vr_menu_scale; }
 float VR_MenuDistance() { return vr_menu_distance; }
 float VR_MenuDepth()    { return vr_menu_depth; }
 
+// See hw_vrmodes.h. Recorded once a frame by the 2D pass, read by the quads.
+static int canvas2DW = 0, canvas2DH = 0, view2DW = 0, view2DH = 0;
+
+void VR_Set2DMetrics(int canvasW, int canvasH, int viewW, int viewH)
+{
+	canvas2DW = canvasW; canvas2DH = canvasH;
+	view2DW = viewW; view2DH = viewH;
+}
+
+void VR_Get2DMetrics(int* canvasW, int* canvasH, int* viewW, int* viewH)
+{
+	if (canvasW) *canvasW = canvas2DW;
+	if (canvasH) *canvasH = canvas2DH;
+	if (viewW) *viewW = view2DW;
+	if (viewH) *viewH = view2DH;
+}
+
+float VR_MenuAspect()
+{
+	if (canvas2DW <= 0 || canvas2DH <= 0) return 0.0f;
+	const float a = (float)canvas2DW / (float)canvas2DH;
+	return (a > 0.01f && a < 100.f) ? a : 0.0f;
+}
+
 // See hw_vrmodes.h. True only inside VR_PaintMenuLayer.
 static bool menuLayerPainting = false;
 void VR_SetMenuLayerPainting(bool on) { menuLayerPainting = on; }

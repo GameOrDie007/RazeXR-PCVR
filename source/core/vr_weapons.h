@@ -91,6 +91,30 @@ void VRWeapons_EndWeapon();
 bool VRWeapons_IsWeaponTile(int tile);
 float VRWeapons_ModelYaw();
 
+/*
+	True when this tile is one of ours and the held weapon models are switched
+	on - independently of r_voxels.
+
+	r_voxels is the world's switch: it decides whether enemies and pickups are
+	substituted for their voxel models. The weapon in your hand is not that. It
+	is a model this port puts there because a flat sprite pinned to the eye is
+	not a thing you can hold, and it has to survive r_voxels going off.
+
+	Without this, turning voxels off left no weapon at all. The voxel lookup in
+	DispatchSprites sits behind r_voxels, so our tile fell through to flat
+	billboard rendering of a voxel-only tile, which has no texture and draws
+	nothing - while the flat 2D weapon stayed suppressed, because the hook had
+	already found a model and told the game not to draw it. Reported by Welz,
+	12 September 2026: "Switching voxels off results in the 2D weapons not
+	displaying."
+
+	The same allowance is what gives the voxel-weapons-only setup VRaze had:
+	r_voxels off for enemies and pickups, so Duke's expansions keep their
+	Christmas hats, Hawaiian shirts and Beach weapon skins, and the weapon in
+	your hand is still a model.
+*/
+bool VRWeapons_WantsVoxel(int tile);
+
 // Closes the capture window however the caller returns, which matters where the
 // draw has several exit paths.
 struct VRWeaponScope { ~VRWeaponScope() { VRWeapons_EndWeapon(); } };

@@ -305,7 +305,9 @@ void HWDrawInfo::DispatchSprites()
 				//HWSprite hwsprite;
 				//if (hwsprite.ProcessModel(pt, tspr)) continue;
 			}
-			if (r_voxels)
+			// r_voxels is the world's switch. The weapon in your hand is not
+			// the world - see VRWeapons_WantsVoxel.
+			if (r_voxels || VRWeapons_WantsVoxel(tilenum))
 			{
 				auto vox = GetExtInfo(texid).tiletovox;
 				if (tilenum >= 30000 && tilenum < 30720)

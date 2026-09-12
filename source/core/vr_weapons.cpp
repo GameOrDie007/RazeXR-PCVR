@@ -489,6 +489,11 @@ bool VRWeapons_IsWeaponTile(int tile)
 	return OurTiles.CheckKey(tile) != nullptr;
 }
 
+bool VRWeapons_WantsVoxel(int tile)
+{
+	return VRWeapons_Active() && VRWeapons_IsWeaponTile(tile);
+}
+
 float VRWeapons_ModelYaw()
 {
 	if (!CurrentValid) return 0.f;

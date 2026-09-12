@@ -412,11 +412,11 @@ void VR_PaintMenuLayer()
 	/*
 		Flat, over the whole square buffer, and the quad carries the placement.
 
-		The whole 2D screen goes into the square, aspect and all, because that
-		is what the eye-painted panel did before it - its matrix scaled x and y
-		by the same vr_menu_scale - and that panel's proportions were the ones
-		signed off in the headset. The quad is squared to match, so nothing
-		about the picture changes except that it now holds still.
+		The whole 2D screen goes into the square, so it arrives squeezed by
+		whatever the screen's aspect is. The buffer stays square - it is a
+		texture, and a square one wastes no resolution on an axis - and the
+		quad is given the same aspect instead, which undoes the squeeze at the
+		other end. See VR_MenuAspect.
 	*/
 	const int S = TBXR_MenuLayerSize();
 	VR_SetMenuLayerPainting(true);
