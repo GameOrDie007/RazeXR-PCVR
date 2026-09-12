@@ -633,6 +633,14 @@ void OpenGLFrameBuffer::Draw2D()
 			reprojecting a panel is what made it jitter. The palette blends
 			stay: they belong to the world, not to the panel.
 		*/
+		/*
+			Recorded here because this is the one place that runs every frame
+			with both numbers in hand, and both compositor quads are shaped
+			from them - see VR_MenuAspect.
+		*/
+		VR_Set2DMetrics(twod->GetWidth(), twod->GetHeight(),
+			screen->mScreenViewport.width, screen->mScreenViewport.height);
+
 		if (!VR_MenuInWorld() || TBXR_MenuLayerSize() == 0)
 			::Draw2D(twod, gl_RenderState);
 		::Draw2D(twod_blend, gl_RenderState);

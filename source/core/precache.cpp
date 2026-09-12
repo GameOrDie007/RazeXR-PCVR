@@ -48,6 +48,7 @@
 #include "texinfo.h"
 
 #include "buildtiles.h"
+#include "vr_weapons.h"
 
 static void PrecacheTex(FGameTexture* tex, int palid)
 {
@@ -71,7 +72,9 @@ static void doprecache(FTextureID texid, int palette)
 
 	if (mid < 0)
 	{
-		if (r_voxels)
+		// Ours are precached whether or not the world's voxels are on, for the
+		// same reason they are drawn - see VRWeapons_WantsVoxel.
+		if (r_voxels || VRWeapons_WantsVoxel(legacyTileNum(texid)))
 		{
 			int vox = GetExtInfo(texid).tiletovox;
 			if (vox >= 0 && vox < MAXVOXELS && voxmodels[vox] && voxmodels[vox]->model)

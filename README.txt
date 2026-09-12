@@ -158,6 +158,45 @@ VRaze declares them but ships no model:
 Type  vrweapons  at the console (~) to see what the running game resolved:
 every weapon, its model, and whether it has a placement.
 
+Voxel Weapons, under Options - VR Options, is separate from the Voxels setting
+under Display. Voxels there is the world: enemies, pickups, decoration. Voxel
+Weapons is only the one in your hand. You can turn the world's voxels off and
+keep the weapon a model, which is what Duke's expansions want - their enemies
+carry Christmas hats and Hawaiian shirts, and Duke It Out In D.C. has weapon
+skins of its own, none of which survive being replaced by a voxel.
+
+Turn Voxel Weapons off and the flat weapon sprite comes back.
+
+
+Mods and fan expansions
+-----------------------
+
+Blood's fan campaigns - Death Wish, MARROW, and anything else that brings its
+own .INI - run in Raze, so they run here. They are not found automatically:
+Raze recognises Cryptic Passage that way and nothing else. You point a launcher
+at one instead.
+
+Unpack the mod into its own folder, say  games\blood\addons\deathwish\ , then copy
+any launcher in launchers\ to a new name and change two lines. The second line
+is the name the Switch Game menu shows. The raze.exe line gains the folder and
+the .INI:
+
+    rem Blood: Death Wish
+
+    "%ROOT%\raze.exe" -nosetup -portable -gamegrp "%GRP%" %VRW% %ART% ^
+        -j "%ROOT%\games\blood\addons\deathwish" -ini DW.INI ...
+
+-j adds a folder to the ones Raze searches. -ini names the script to run in
+place of BLOOD.INI; what it is called is whatever is inside the mod's own
+archive, so open it and look.
+
+Keep the third line, the one saying the file was written by vrwritelaunchers,
+or the Switch Game menu will not list it. That line is how the menu tells a
+game launcher from any other .bat you keep in the folder.
+
+A zip dropped into  games\blood\  on its own will not appear, and nothing is
+wrong when it does not. There is simply no rule that recognises it.
+
 
 If something goes wrong
 -----------------------
