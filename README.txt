@@ -88,6 +88,28 @@ Turning is smooth by default. Snap is still there, under Options - VR Options -
 Turning Mode.
 
 
+Hold the grip for a second set of controls
+------------------------------------------
+
+The grip button on your gun hand works like a shift key. Hold it and the same
+buttons and stick do something else. This is where inventory lives, so if you
+have ever wondered how to take the steroids, this is it.
+
+    Grip + dominant stick down   Next inventory item
+    Grip + dominant stick up     Previous inventory item
+    Grip + A                     Use the selected item
+    Grip + off-hand A            Fly down    (jetpack, or swimming)
+    Grip + off-hand B            Fly up
+    Grip + off-hand stick click  Land
+
+Without the grip held, the dominant stick up and down changes weapon instead.
+Nothing else on the controller changes, so you can hold the grip, flick to what
+you want, press A, and let go.
+
+There is no button that takes steroids directly. Select them first, then use
+them - the same as every other item.
+
+
 The pause menu
 --------------
 

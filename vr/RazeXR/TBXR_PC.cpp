@@ -908,7 +908,17 @@ bool TBXR_InitialiseInstance(void)
 	if (!TBXR_AddExtensionIfAvailable(availableExtensions, availableExtensionCount,
 			XR_KHR_OPENGL_ENABLE_EXTENSION_NAME, enabledExtensions, &enabledExtensionCount))
 	{
+		/*
+			Named rather than just logged, because this is the one failure a
+			player can fix themselves and it says nothing about their setup
+			being broken. Meta's PC runtime supports D3D and Vulkan only; Raze
+			is OpenGL, so it can never provide a session here.
+		*/
 		VR_Log("VR: the OpenXR runtime does not support " XR_KHR_OPENGL_ENABLE_EXTENSION_NAME "\n");
+		Printf("VR: this OpenXR runtime cannot give an OpenGL application a headset.\n");
+		Printf("VR: Meta's PC runtime (Link and Air Link) is Direct3D and Vulkan only.\n");
+		Printf("VR: use Virtual Desktop, or make SteamVR the active OpenXR runtime -\n");
+		Printf("VR: SteamVR supports OpenGL and works over Link.\n");
 		free(availableExtensions);
 		return false;
 	}
@@ -1041,6 +1051,23 @@ bool TBXR_EnterVR(void)
 
 	if (gAppState.Session)
 		return true;
+
+	/*
+		No instance means TBXR_InitialiseInstance refused, and the only thing
+		that makes it refuse is a runtime without XR_KHR_opengl_enable.
+
+		Without this the next line called xrCreateSession with XR_NULL_HANDLE
+		and the loader dereferenced it - a crash a moment after the shaders
+		finish compiling, which is where anyone would look for it and where it
+		is not. Reported on Meta Link, whose PC runtime offers D3D and Vulkan
+		but no OpenGL.
+	*/
+	if (gAppState.Instance == XR_NULL_HANDLE)
+	{
+		Printf("VR: no OpenXR instance, so there is nothing to start.\n");
+		Printf("VR: see the runtime note above; the game will run on the monitor.\n");
+		return false;
+	}
 
 	/*
 		The whole platform seam, in four lines. Their EGL display, surface and

@@ -11,3 +11,7 @@ build-vs2019/
 
 # Written beside the executable when the VR layer starts up.
 razexr_vr.log
+
+# Working documents - plans, the development log. Not for the public repo.
+REBASE-PLAN.md
+PROGRESS.md

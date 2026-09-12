@@ -283,6 +283,23 @@ CD, any of those formats will do.
 - Turn speed is degrees per rendered frame, so it is faster on a 120 Hz headset than a
   90 Hz one. Options → VR Options → Turning Mode.
 
+### Hold the grip for a second set of controls
+
+The grip button on your gun hand acts as a shift key, and **inventory lives behind
+it** — which is why "how do I take the steroids" is a fair question with no obvious
+answer.
+
+| | |
+|---|---|
+| Grip + dominant stick down | Next inventory item |
+| Grip + dominant stick up | Previous inventory item |
+| Grip + **A** | Use the selected item |
+| Grip + off-hand **A** / **B** | Fly down / up |
+| Grip + off-hand stick click | Land |
+
+Without the grip, the dominant stick up and down changes weapon instead. No button
+takes steroids directly; select them first, like any other item.
+
 ## Playing seated
 
 **Options → VR Options → Recenter Height.** Sit the way you mean to play, select it, and
