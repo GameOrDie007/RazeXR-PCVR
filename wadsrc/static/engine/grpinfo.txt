@@ -588,6 +588,101 @@ addon
 	GameID "CrypticPassage"
 }
 
+/*
+	PC branch: the two big Blood fan episodes, detected the way Cryptic Passage
+	is, so they arrive in Switch Game with a launcher of their own instead of
+	needing a command line.
+
+	Neither is Cryptic Passage, so neither carries GAMEFLAG_BLOODCP - that flag
+	turns on Cryptic's own episode handling, and these two bring their own .INI
+	saying what their episodes are.
+
+	Both ship tiles007.art and tiles008.art, which are the names Blood's own
+	art already uses. That is why the zip form is the one to use and why these
+	are not meant to be unpacked loose into the Blood folder: mounted as an
+	archive the replacement art applies to the episode being played and the
+	base game keeps its own. Death Wish's readme says the same in its own words
+	- save a copy before replacing them.
+
+	Asked for by Welz, 12 September 2026, who had put both zips in games/blood
+	and found they did not appear in Switch Game.
+*/
+
+grpinfo
+{
+	// Death Wish, by Dustin "Bloatoid" Twilley. Zipped, which is how its own
+	// readme says to hand it to Raze.
+	name "BLOOD: Death Wish"
+	scriptname "DW.INI"
+	mustcontain "DW.INI", "DWE1M1.MAP", "DWE1M2.MAP"
+	flags GAMEFLAG_BLOOD|GAMEFLAG_ADDON
+	dependency BLOOD_CRC
+	gamefilter "Blood.DeathWish"
+	GameID "DeathWish"
+}
+
+addon
+{
+	// The same files sitting loose in the Blood folder.
+	name "BLOOD: Death Wish"
+	scriptname "DW.INI"
+	mustcontain "DW.INI", "DWE1M1.MAP", "DWE1M2.MAP"
+	flags GAMEFLAG_BLOOD|GAMEFLAG_ADDON
+	dependency BLOOD_CRC
+	gamefilter "Blood.DeathWish"
+	GameID "DeathWish"
+}
+
+addon
+{
+	// And in a subfolder, which is how both Fresh Supply and Refreshed Supply
+	// take their add-ons.
+	name "BLOOD: Death Wish"
+	scriptname "DW.INI"
+	mustcontain "addons/Death Wish/DW.INI", "addons/Death Wish/DWE1M1.MAP", "addons/Death Wish/DWE1M2.MAP"
+	loadgrp "addons/Death Wish"
+	flags GAMEFLAG_BLOOD|GAMEFLAG_ADDON
+	dependency BLOOD_CRC
+	gamefilter "Blood.DeathWish"
+	GameID "DeathWish"
+}
+
+grpinfo
+{
+	// MARROW, by Damien_Azreal. Episode 2 and the full soundtrack arrived in
+	// 2.0; the map names below are episode 1's, which every version has.
+	name "BLOOD: MARROW"
+	scriptname "MARROW.INI"
+	mustcontain "MARROW.INI", "MRW01.MAP", "MRW02.MAP"
+	flags GAMEFLAG_BLOOD|GAMEFLAG_ADDON
+	dependency BLOOD_CRC
+	gamefilter "Blood.Marrow"
+	GameID "Marrow"
+}
+
+addon
+{
+	name "BLOOD: MARROW"
+	scriptname "MARROW.INI"
+	mustcontain "MARROW.INI", "MRW01.MAP", "MRW02.MAP"
+	flags GAMEFLAG_BLOOD|GAMEFLAG_ADDON
+	dependency BLOOD_CRC
+	gamefilter "Blood.Marrow"
+	GameID "Marrow"
+}
+
+addon
+{
+	name "BLOOD: MARROW"
+	scriptname "MARROW.INI"
+	mustcontain "addons/MARROW/MARROW.INI", "addons/MARROW/MRW01.MAP", "addons/MARROW/MRW02.MAP"
+	loadgrp "addons/MARROW"
+	flags GAMEFLAG_BLOOD|GAMEFLAG_ADDON
+	dependency BLOOD_CRC
+	gamefilter "Blood.Marrow"
+	GameID "Marrow"
+}
+
 grpinfo
 {
 	name "Shadow Warrior"
