@@ -168,23 +168,66 @@ skins of its own, none of which survive being replaced by a voxel.
 Turn Voxel Weapons off and the flat weapon sprite comes back.
 
 
-Mods and fan expansions
------------------------
+The expansions
+--------------
 
-Blood's fan campaigns - Death Wish, MARROW, and anything else that brings its
-own .INI - run in Raze, so they run here. They are not found automatically:
-Raze recognises Cryptic Passage that way and nothing else. You point a launcher
-at one instead.
+The official add-ons are recognised on sight. Put the file in the game's own
+folder under games\ , beside the base game's data, and run SETUP.bat again. Each
+one then appears in the Switch Game menu with a launcher of its own.
 
-Unpack the mod into its own folder, say  games\blood\addons\deathwish\ , then copy
-any launcher in launchers\ to a new name and change two lines. The second line
-is the name the Switch Game menu shows. The raze.exe line gains the folder and
-the .INI:
+    Duke it out in D.C.            DUKEDC.GRP     into  games\duke\
+    Duke Caribbean: Life's a Beach VACATION.GRP   into  games\duke\
+    Duke Nuclear Winter            NWINTER.GRP    into  games\duke\
+    Duke!ZONE II                   DUKE!ZON.GRP   into  games\duke\
+    Blood: Cryptic Passage         cryptic.zip    into  games\blood\
+    Shadow Warrior expansions      already in the Classic Redux release
+    Redneck Rampage expansions     already in the GOG release
 
-    rem Blood: Death Wish
+Loose in the folder, not in a subfolder, and keep the name. If your copy of a
+Duke add-on also has a loose .CON beside it - DUKEDC.CON, VACATION.CON,
+NWINTER.CON - bring that across too. Some releases keep the script outside the
+GRP and will not start without it.
+
+You need the base game first. Every add-on is tied to it, and on its own it is
+not a game Raze can identify.
+
+If you are working from an original CD, the disc may not hold a .GRP at all.
+Sunstorm's Duke add-ons shipped their data as .SSI - Duke it out in D.C. is
+DUKEDCPP.SSI in a DUKEDC folder. Copy that in and run SETUP.bat; Raze can read
+.SSI directly and it may simply be recognised. If it is not, the usual add-on
+patch utility converts it to a .GRP, and that goes in as above.
+
+
+Fan campaigns
+-------------
+
+Death Wish and MARROW, Blood's two big fan episodes, are recognised the same way
+the official add-ons are. Put the .zip in  games\blood\  and run SETUP.bat.
+
+Hand Raze the zip, and do not unpack it into the Blood folder. Both ship
+tiles007.art and tiles008.art, which are names Blood's own art already uses, so
+unpacking overwrites the base game's art - Death Wish's own readme warns about
+this. Mounted as an archive the replacement art applies only to the episode you
+are playing.
+
+The archive has to be flat: the .INI and the maps at the top of the zip, not
+inside a folder. The downloads from ModDB wrap everything in a folder, so open
+the zip and move the contents up a level before copying it in.
+
+Both bring their own soundtracks as music tracks, and their launchers switch
+those on. Nothing to set.
+
+Anything else with its own .INI runs too, but is not recognised - there is no
+rule that knows about it, and nothing is wrong when it does not appear. Point a
+launcher at it instead. Unpack it into its own folder, say
+games\blood\addons\yourmod\ , then copy any launcher in launchers\ to a new
+name and change two lines. The second line is the name the Switch Game menu
+shows. The raze.exe line gains the folder and the .INI:
+
+    rem Blood: Your Mod
 
     "%ROOT%\raze.exe" -nosetup -portable -gamegrp "%GRP%" %VRW% %ART% ^
-        -j "%ROOT%\games\blood\addons\deathwish" -ini DW.INI ...
+        -j "%ROOT%\games\blood\addons\yourmod" -ini YOURMOD.INI ...
 
 -j adds a folder to the ones Raze searches. -ini names the script to run in
 place of BLOOD.INI; what it is called is whatever is inside the mod's own
@@ -193,9 +236,6 @@ archive, so open it and look.
 Keep the third line, the one saying the file was written by vrwritelaunchers,
 or the Switch Game menu will not list it. That line is how the menu tells a
 game launcher from any other .bat you keep in the folder.
-
-A zip dropped into  games\blood\  on its own will not appear, and nothing is
-wrong when it does not. There is simply no rule that recognises it.
 
 
 If something goes wrong

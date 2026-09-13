@@ -68,6 +68,37 @@ Raze also recognises **NAPALM** (a NAM variant) and **Duke Nukem's Penthouse Par
 both obscure enough that most people will never see them, and the shareware and demo
 versions of Duke and Shadow Warrior.
 
+### If you own an add-on on its own
+
+A separately bought or original-CD copy works too. Drop the file into the game's folder
+under `games\` - `DUKEDC.GRP`, `VACATION.GRP`, `NWINTER.GRP` or `DUKE!ZON.GRP` into
+`games\duke\` - and run `SETUP.bat` again. Loose in the folder, keeping its name, and
+bring any loose `.CON` beside it, because some releases keep the script outside the GRP.
+
+An original CD may hold no GRP at all: Sunstorm's Duke add-ons shipped as `.SSI`, so the
+D.C. disc has `DUKEDCPP.SSI` in a `DUKEDC` folder. Copy that in and try it - Raze reads
+`.SSI` directly. If it is not picked up, the usual add-on patch utility turns it into a
+GRP.
+
+### Blood's fan campaigns
+
+**Death Wish** and **MARROW**, the two big Blood fan episodes - both good enough that
+Nightdive later made them official expansions in Blood: Refreshed Supply - are recognised
+here the same way the official add-ons are. Put the `.zip` in `games\blood\` and run
+`SETUP.bat`.
+
+Get them from their authors, free: [Death Wish](https://www.moddb.com/mods/death-wish-for-blood)
+by Dustin "Bloatoid" Twilley and [MARROW](https://www.moddb.com/mods/marrow) by Nickolas
+"Damien_Azreal" Palsmeier. Both free releases include the new episodes. Nothing of theirs
+is redistributed here.
+
+Two things to know. The zip has to be **flat** - the `.INI` and maps at the top, not
+inside a folder, which is how the ModDB downloads arrive - so open it and move the
+contents up a level. And hand Raze the **zip**, never unpack it into the Blood folder:
+both ship `tiles007.art` and `tiles008.art`, names Blood's own art already uses, so
+unpacking overwrites the base game's art. Death Wish's own readme warns about this.
+Their soundtracks are switched on for you.
+
 ### Exhumed / PowerSlave needs the DOS original
 
 The 2022 **PowerSlave Exhumed** from Nightdive - the one currently sold on Steam and GOG -
