@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "gstrings.h"
 #include "gamestate.h"
 #include "automap.h"
+#include "vr_crosshair.h"
 
 void get_weapon_pos_and_angle(float &x, float &y, float &z, float &pitch, float &yaw);
 float vr_hunits_per_meter();
@@ -1581,14 +1582,15 @@ void ProcessInput(PLAYER* pPlayer)
 				//Update the existing aiming sprites if there is one
 				BloodStatIterator it(kStatCrosshair);
 				DBloodActor *crosshair = it.Next();
+				const DVector3 chpos = VRCrosshair_Place(spos, hit.hitpos);
 				if (crosshair)
 				{
 					//update position
-					SetActorZ(crosshair, hit.hitpos);
+					SetActorZ(crosshair, chpos);
 				}
 				else
 				{
-					crosshair = actSpawnSprite(hit.hitSector, hit.hitpos, kStatCrosshair, 1);
+					crosshair = actSpawnSprite(hit.hitSector, chpos, kStatCrosshair, 1);
 				}
 
 				//Check we got the crosshair
@@ -1597,6 +1599,9 @@ void ProcessInput(PLAYER* pPlayer)
 					crosshair->spr.picnum = kCrosshairTile;
 					crosshair->spr.scale = DVector2(0.55 + length / 512.0, 0.55 + length / 512.0);
 					crosshair->spr.shade = -40;
+					// Applied every frame: the games keep this actor and reuse
+					// it, so it carries whatever flags it was last left with.
+					VRCrosshair_SetFlags(crosshair);
 				}
 			}
 		}

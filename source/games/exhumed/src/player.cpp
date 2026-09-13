@@ -37,6 +37,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include "vr_crosshair.h"
 
 void get_weapon_pos_and_angle(float &x, float &y, float &z, float &pitch, float &yaw);
 float vr_hunits_per_meter();
@@ -2688,15 +2689,16 @@ sectdone:
                 //Update the existing aiming sprites if there is one
                 ExhumedStatIterator it(kStatCrosshair);
                 DExhumedActor *crosshair = it.Next();
+                const DVector3 chpos = VRCrosshair_Place(spos, hit.hitpos);
                 if (crosshair)
                 {
                     //update position
-                    SetActorZ(crosshair, hit.hitpos);
+                    SetActorZ(crosshair, chpos);
                 }
                 else
                 {
                     crosshair = insertActor(hit.hitSector, kStatCrosshair);
-                    crosshair->spr.pos = hit.hitpos;
+                    crosshair->spr.pos = chpos;
                 }
 
                 //Check we got the crosshair
@@ -2705,6 +2707,9 @@ sectdone:
                     crosshair->spr.picnum = kCrosshairTile;
                     crosshair->spr.scale = DVector2(0.4 + length / 512.0, 0.4 + length / 512.0);
                     crosshair->spr.shade = -64;
+                    // Applied every frame: the games keep this actor and reuse
+                    // it, so it carries whatever flags it was last left with.
+                    VRCrosshair_SetFlags(crosshair);
                 }
             }
         }

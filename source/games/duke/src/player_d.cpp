@@ -38,6 +38,7 @@ source as it is released.
 #include "gamevar.h"
 #include "names_d.h"
 #include "dukeactor.h"
+#include "vr_crosshair.h"
 
 void get_weapon_pos_and_angle(float &x, float &y, float &z, float &pitch, float &yaw);
 float vr_hunits_per_meter();
@@ -2600,16 +2601,20 @@ static void processweapon(int snum, ESyncBits actions)
 					//Update the existing aiming sprites if there is one
 					DukeStatIterator it(STAT_AIM_SPRITE);
 					DDukeActor* crosshair = it.Next();
+					const DVector3 chpos = VRCrosshair_Place(spos, hit.hitpos);
 					if (crosshair)
 					{
 						//update position
-						SetActorZ(crosshair, hit.hitpos);
+						SetActorZ(crosshair, chpos);
 						crosshair->spr.scale = DVector2(0.1 + length / 512.0, 0.1 + length / 512.0);
 					}
 					else
 					{
-						CreateActor(hit.hitSector, hit.hitpos, DTILE_CROSSHAIR, -15, DVector2(0.1, 0.1), sang, 0., 0., pact, STAT_AIM_SPRITE);
+						crosshair = CreateActor(hit.hitSector, chpos, DTILE_CROSSHAIR, -15, DVector2(0.1, 0.1), sang, 0., 0., pact, STAT_AIM_SPRITE);
 					}
+					// Applied every frame: the games keep this actor and reuse
+					// it, so it carries whatever flags it was last left with.
+					VRCrosshair_SetFlags(crosshair);
 				}
 			}
 		}

@@ -55,6 +55,7 @@ Prepared for public release: 03/28/2005 - Charlie Wiederhold, 3D Realms
 #include "v_draw.h"
 #include "gamestate.h"
 #include "vm.h"
+#include "vr_crosshair.h"
 
 void get_weapon_pos_and_angle(float &x, float &y, float &z, float &pitch, float &yaw);
 float vr_hunits_per_meter();
@@ -7033,14 +7034,15 @@ void domovethings(void)
                     //Update the existing aiming sprites if there is one
                     SWStatIterator it(STAT_CROSSHAIR);
                     DSWActor* crosshair = it.Next();
+                    const DVector3 chpos = VRCrosshair_Place(spos, hit.hitpos);
                     if (crosshair)
                     {
                         //update position
-                        SetActorZ(crosshair, hit.hitpos);
+                        SetActorZ(crosshair, chpos);
                     }
                     else
                     {
-                        crosshair = SpawnActor(STAT_CROSSHAIR, CROSSHAIRTILE, s_Crosshair, hit.hitSector, hit.hitpos, pp->actor->spr.Angles.Yaw, 0);
+                        crosshair = SpawnActor(STAT_CROSSHAIR, CROSSHAIRTILE, s_Crosshair, hit.hitSector, chpos, pp->actor->spr.Angles.Yaw, 0);
                     }
 
                     //Check we got the crosshair
@@ -7048,6 +7050,10 @@ void domovethings(void)
                     {
                         crosshair->spr.scale = DVector2(0.25 + length / 512.0, 0.25 + length / 512.0);
                         crosshair->spr.shade = -40;
+                        // Applied every frame: the games keep this actor and
+                        // reuse it, so it carries whatever flags it was last
+                        // left with.
+                        VRCrosshair_SetFlags(crosshair);
                     }
                 }
             }
