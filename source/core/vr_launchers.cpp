@@ -92,6 +92,23 @@ struct VRGame
 	*/
 	bool isWorldTour = false;
 	/*
+		A Blood add-on that lives as loose files in a folder rather than as an
+		archive, and so has no file of its own to hand to -gamegrp.
+
+		Cryptic Passage above is the same situation, and the engine has a
+		dedicated -cryptic for it. Nothing is dedicated to the rest, but nothing
+		needs to be: -ini names a script, and Raze picks the grpinfo entry whose
+		scriptname matches (gamecontrol.cpp, the groupno == -1 branch). That is
+		exactly what -cryptic does internally, so this is the same remedy
+		written out in general.
+
+		It is what a Fresh Supply or Refreshed Supply install looks like, where
+		every add-on sits in addons\<name>\ beside the base game. The grpinfo
+		entry brings the folder in with it, so naming the base game in full is
+		enough for the engine to find both.
+	*/
+	FString iniScript;
+	/*
 		The community voxel pack for this game, if it has one - monsters, props
 		and scenery as voxel models. Duke is the exception and carries its own
 		two-file rule below, because two different packs exist for it.
@@ -188,6 +205,13 @@ void VRLaunchers_SetScannedGames(const TArray<GrpEntry>& games)
 		e.isDuke = (g.FileInfo.flags & GAMEFLAG_DUKE) != 0;
 		e.wantsRedbook = g.FileInfo.gamefilter.CompareNoCase("Blood.DeathWish") == 0
 					  || g.FileInfo.gamefilter.CompareNoCase("Blood.Marrow") == 0;
+		// Only where there is no file to name instead, and never for Cryptic
+		// Passage, which has its own switch and is handled above.
+		if (e.path.IsEmpty() && !e.isCryptic && e.isAddon
+			&& (g.FileInfo.flags & GAMEFLAG_BLOOD) != 0)
+		{
+			e.iniScript = g.FileInfo.scriptname;
+		}
 		e.isWorldTour = g.FileInfo.gamefilter.CompareNoCase("Duke.WorldTour") == 0;
 
 		// Named for the game rather than for whoever packaged it, so setup can
@@ -537,6 +561,80 @@ CCMD(vrwritelaunchers)
 			}
 			wcp->Write(body.GetChars(), body.Len());
 			delete wcp;
+			Printf("  %s%s\n", base.GetChars(), g.isAddon ? "   (add-on)" : "");
+			writtenFiles.Push(base + ".bat");
+			written++;
+			continue;
+		}
+
+		/*
+			Every other Blood add-on that is loose files rather than an archive.
+
+			Same shape as Cryptic Passage above and the same remedy, only
+			without a dedicated switch: -ini names the script, and Raze selects
+			the grpinfo entry whose scriptname matches it. The entry carries the
+			add-on's own folder, so naming the base game in full is enough for
+			both to be found.
+
+			This is what a Fresh Supply or Refreshed Supply install looks like -
+			addons\Death Wish\, addons\MARROW\ beside BLOOD.RFF. Before this
+			they were detected by the scan and then skipped here, with "the scan
+			found no file for it", because a folder has no file to name.
+		*/
+		if (g.iniScript.IsNotEmpty())
+		{
+			FString basegrp;
+			for (auto& other : Games)
+			{
+				FString lower = other.path;
+				lower.ToLower();
+				FixPathSeperator(lower);
+				if (lower.Right(9).Compare("blood.rff") == 0)
+				{
+					basegrp = other.path;
+					break;
+				}
+			}
+
+			if (basegrp.IsEmpty())
+			{
+				Printf(TEXTCOLOR_YELLOW "  %s: skipped, its base game was not found\n", base.GetChars());
+				continue;
+			}
+
+			FString relini = basegrp;
+			relini.Substitute("\\", "/");
+			FString tailini = relini;
+			{
+				ptrdiff_t slash = relini.LastIndexOf('/');
+				if (slash > 0)
+				{
+					ptrdiff_t prev = relini.LastIndexOf('/', slash - 1);
+					tailini = prev >= 0 ? relini.Mid(prev + 1) : relini.Mid(slash + 1);
+				}
+			}
+			tailini.Substitute("/", "\\");
+
+			body << "rem This add-on is loose files beside BLOOD.RFF, so -ini names its\r\n";
+			body << "rem script and the base game is named in full.\r\n";
+			body << "set \"GRP=%ROOT%\\games\\" << tailini << "\"\r\n";
+			body << "if not exist \"%GRP%\" set \"GRP=" << basegrp << "\"\r\n";
+			body << "\r\n";
+			body << "\"%ROOT%\\raze.exe\" -nosetup -portable -ini " << g.iniScript;
+			body << " -gamegrp \"%GRP%\" %VOX% %VRW% %ART% ";
+			body << "+set mus_extendedlookup 1 ";
+			if (g.wantsRedbook) body << "+set mus_redbook 1 ";
+			body << "-config \"%ROOT%\\config\\" << base << ".ini\" ";
+			body << "+logfile \"%ROOT%\\logs\\" << base << ".log\"\r\n";
+
+			FileWriter* wini = FileWriter::Open(file.GetChars());
+			if (wini == nullptr)
+			{
+				Printf(TEXTCOLOR_RED "Could not write %s\n", file.GetChars());
+				continue;
+			}
+			wini->Write(body.GetChars(), body.Len());
+			delete wini;
 			Printf("  %s%s\n", base.GetChars(), g.isAddon ? "   (add-on)" : "");
 			writtenFiles.Push(base + ".bat");
 			written++;
