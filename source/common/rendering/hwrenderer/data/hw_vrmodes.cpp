@@ -482,6 +482,33 @@ float VR_MenuScale()    { return vr_menu_scale; }
 float VR_MenuDistance() { return vr_menu_distance; }
 float VR_MenuDepth()    { return vr_menu_depth; }
 
+/*
+	PC branch: declare each eye at the position it was drawn from.
+
+	Every frame the projection layer tells the compositor where each image was
+	rendered, and a compositor that corrects for head movement does so from the
+	difference between that and where the eye really is. Both eyes have always
+	been declared at the centre of the head, while the engine draws them half an
+	IPD to either side. A compositor that ignores position never notices. One that
+	honours it corrects each eye by its own offset, in opposite directions, and
+	the result is double vision - cross-eyed, in the report.
+
+	That fits everything a Pimax Crystal Light player described on 25 Sep 2026:
+	crossed eyes in game under Pimax Play; correct under the sboys3 SteamVR
+	driver; correct the moment the SteamVR dashboard opens, which takes the
+	compositing over; and a correct menu throughout, because the menu is a quad
+	layer that already declares a true pose.
+
+	OFF by default because it is unverified - nobody here has a Pimax - and
+	because Team Beef's own comment on that line warns that feeding the
+	compositor "anything else" shears the world. This changes only the declared
+	position, never the orientation, and matches exactly the offset the engine
+	renders. The state is written to razexr_vr.log at startup.
+*/
+CVAR(Bool, vr_declare_eye_positions, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+bool VR_DeclareEyePositions() { return vr_declare_eye_positions; }
+float VR_IPDMetres()          { return vr_ipd; }
+
 // See hw_vrmodes.h. Recorded once a frame by the 2D pass, read by the quads.
 static int canvas2DW = 0, canvas2DH = 0, view2DW = 0, view2DH = 0;
 

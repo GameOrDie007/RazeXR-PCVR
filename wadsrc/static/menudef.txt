@@ -542,7 +542,7 @@ OptionValue "TurningMode"
 
 OptionValue "DirectionMode"
 {
-	0, "HMD"
+	0, "Head"
 	1, "Off-hand controller"
 }
 
@@ -616,6 +616,11 @@ OptionMenu "VROptionsMenu" protected
     StaticText "Picture"
     StaticText ""
     Option "Anti-Aliasing",			"gl_multisample", "Multisample"
+    StaticText ""
+    StaticText "Troubleshooting"
+    StaticText ""
+    Option "Keep Running When Alt-Tabbed",	"vr_draw_unfocused", "OnOff"
+    Option "Fix Double Vision (Pimax)",	"vr_declare_eye_positions", "OnOff"
 
     StaticText ""
     StaticText "Pause Menu"

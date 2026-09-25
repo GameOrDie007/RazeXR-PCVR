@@ -61,6 +61,9 @@ float VR_MenuDistance();
 float VR_MenuAspect();
 void VR_Get2DMetrics(int* canvasW, int* canvasH, int* viewW, int* viewH);
 float VR_MenuDepth();
+bool VR_DeclareEyePositions();
+bool VR_DrawUnfocused();
+float VR_IPDMetres();
 float vr_hunits_per_meter();
 void VR_GetWorldEyePos(float* x, float* y, float* z);
 
@@ -1511,6 +1514,41 @@ void TBXR_submitFrame(void)
 	TBXR_updateProjections();
 
 	/*
+		Once per session: the geometry the runtime handed us, and what we do with
+		it. This is what turns a "double vision on my headset" report into a
+		reading - per eye, where the runtime puts the eye, which way it points,
+		and its four field-of-view angles. Canted displays show as a non-zero
+		yaw; parallel projection shows as strongly lopsided left and right
+		angles; an IPD far from vr_ipd shows in the positions.
+	*/
+	{
+		static bool geometryLogged = false;
+		if (!geometryLogged && gAppState.Projections[0].fov.angleLeft != 0.0f)
+		{
+			geometryLogged = true;
+			for (int e = 0; e < ovrMaxNumEyes; e++)
+			{
+				const XrView& v = gAppState.Projections[e];
+				vec3_t rot = {0, 0, 0}, ang = {0, 0, 0};
+				QuatToYawPitchRoll(v.pose.orientation, rot, ang);
+				VR_Log("VR: eye %d at (%+.1f %+.1f %+.1f) mm, yaw %+.2f deg, fov L %.1f R %.1f U %.1f D %.1f deg\n",
+					e, v.pose.position.x * 1000.0f, v.pose.position.y * 1000.0f, v.pose.position.z * 1000.0f,
+					ang[1],
+					v.fov.angleLeft * 180.0f / (float)M_PI, v.fov.angleRight * 180.0f / (float)M_PI,
+					v.fov.angleUp * 180.0f / (float)M_PI, v.fov.angleDown * 180.0f / (float)M_PI);
+			}
+			VR_Log("VR: vr_declare_eye_positions %s - eyes declared %s, engine IPD %.1f mm\n",
+				VR_DeclareEyePositions() ? "ON" : "off",
+				VR_DeclareEyePositions() ? "at the positions they were drawn from" : "at the head centre (stock)",
+				VR_IPDMetres() * 1000.0f);
+			VR_Log("VR: vr_draw_unfocused %s - %s\n",
+				VR_DrawUnfocused() ? "ON" : "off",
+				VR_DrawUnfocused() ? "the headset keeps drawing when the desktop window loses focus"
+				                   : "stock: alt-tab stops the VR frame loop");
+		}
+	}
+
+	/*
 		Frame-period check, one line per pause. The paused loop once slept to
 		the 30 Hz game tick (mainloop.cpp, TryRunTics): 10.85 ms a frame in
 		play, 32.78 paused, and the world reached the compositor three frames
@@ -1711,6 +1749,31 @@ void TBXR_submitFrame(void)
 				the compositor anything else and the world shears.
 			*/
 			projection_layer_elements[eye].pose = gAppState.xfStageFromHead;
+			if (VR_DeclareEyePositions())
+			{
+				/*
+					See vr_declare_eye_positions. The head's orientation, which is
+					what the engine rendered both eyes with, and the head's
+					position moved to this eye - by the same half IPD the engine
+					used, along the direction the runtime says this eye lies.
+
+					The direction comes from the runtime rather than from the
+					engine's sign convention, so there is no sign here to get
+					wrong. A runtime that reports no eye offset at all falls back
+					to OpenXR's own axis: left eye towards -x, right towards +x.
+				*/
+				XrVector3f dir = gAppState.Projections[eye].pose.position;
+				const float len = sqrtf(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+				if (len > 1e-5f) { dir.x /= len; dir.y /= len; dir.z /= len; }
+				else             { dir.x = (eye == 0) ? -1.0f : 1.0f; dir.y = 0.0f; dir.z = 0.0f; }
+
+				const float half = VR_IPDMetres() * 0.5f;
+				XrPosef headFromDrawnEye;
+				headFromDrawnEye.orientation = {0.0f, 0.0f, 0.0f, 1.0f};
+				headFromDrawnEye.position = {dir.x * half, dir.y * half, dir.z * half};
+				projection_layer_elements[eye].pose =
+					XrPosef_Multiply(gAppState.xfStageFromHead, headFromDrawnEye);
+			}
 			projection_layer_elements[eye].fov = fov;
 			projection_layer_elements[eye].subImage.swapchain = frameBuffer->ColorSwapChain.Handle;
 			projection_layer_elements[eye].subImage.imageRect.offset.x = 0;

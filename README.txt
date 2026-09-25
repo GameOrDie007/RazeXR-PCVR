@@ -242,7 +242,28 @@ If something goes wrong
 -----------------------
 
 logs\ holds one log per game plus startup.log, which records each startup stage
-in order. Between them they say how far it got.
+in order. Between them they say how far it got. razexr_vr.log, beside raze.exe,
+records what your headset and runtime reported - include it with any report.
+
+The game stops responding when I alt-tab
+    Options - VR Options - Troubleshooting - Keep Running When Alt-Tabbed.
+    On a monitor the game rightly stops drawing when its window loses focus.
+    In a headset that stops the VR picture too, and SteamVR reads it as a
+    hang. New in 1.1, and off until it has been confirmed on more headsets.
+
+Double vision, or crossed eyes, on a Pimax
+    Options - VR Options - Troubleshooting - Fix Double Vision (Pimax).
+    Seen under Pimax Play; the sboys3 SteamVR driver does not show it, and the
+    menus look right either way - only the game world is affected. New in 1.1
+    and off by default. Whether it helps or not, please say so and send
+    razexr_vr.log: it now records exactly what your headset reports per eye.
+
+Changing the render resolution
+    Set it in SteamVR (Settings - Video - Per-application video settings) or
+    in Pimax Play. The port renders at whatever size the runtime asks for.
+
+Walking goes where I look, and I want it to go where I point
+    Options - VR Options - Direction Mode - Off-hand controller.
 
 Redneck Rampage has no music unless you have its soundtrack. GOG ships it in a
 separate free bonus download that comes with the game rather than inside it.

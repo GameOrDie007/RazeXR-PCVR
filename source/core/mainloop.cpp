@@ -412,9 +412,32 @@ void DrawOverlays()
 CVAR(String, drawtile, "", 0)	// debug stuff. Draws the tile with the given number on top of thze HUD
 
 void TBXR_FrameSetup();
+bool TBXR_VREnabled();
+CVAR(Bool, vr_draw_unfocused, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+bool VR_DrawUnfocused() { return vr_draw_unfocused; }
 void Display()
 {
-	if (screen == nullptr || (!AppActive && (screen->IsFullscreen() || !vid_activeinbackground)))
+	/*
+		PC branch: in a headset, the desktop window losing focus is not a
+		reason to stop drawing.
+
+		Stock Raze skips the whole frame when the window is inactive, which is
+		right on a monitor - nobody is looking at it. But the OpenXR frame is
+		begun inside TBXR_FrameSetup below, so returning here stops the VR
+		loop outright: no xrWaitFrame, no xrEndFrame. The runtime sees an app
+		that has stopped submitting frames and treats it as hung - reported in
+		September 2026 as the game hanging whenever a player alt-tabbed.
+
+		The headset is the display, and it is still being looked at. Only the
+		flat path keeps the old rule; VR draws regardless of desktop focus.
+
+		Behind vr_draw_unfocused, default OFF, until it has been seen working
+		in a headset: the mechanism is certain from the code, but no session
+		could be brought up on the development machine to watch it happen.
+		See never-ship-an-unverified-change-enabled.
+	*/
+	const bool drawingToHeadset = vr_draw_unfocused && TBXR_VREnabled();
+	if (screen == nullptr || (!AppActive && !drawingToHeadset && (screen->IsFullscreen() || !vid_activeinbackground)))
 	{
 		return;
 	}
