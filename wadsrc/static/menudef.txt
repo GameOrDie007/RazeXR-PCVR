@@ -594,6 +594,8 @@ OptionMenu "VROptionsMenu" protected
 	Option "Allow Pitch Override*",	"vr_allowPitchOverride", "YesNo"
 	Option "6DoF Weapons",	"vr_6dof_weapons", "YesNo"
 	Option "Voxel Weapons",	"vr_voxel_weapons", "YesNo"
+	Option "Weapon Wheel (hold stick click)",	"vr_weapon_wheel", "OnOff"
+	Slider "Wheel Slow Motion",	"vr_wheel_slowmo", 0.1, 1.0, 0.05, 2
 	Slider "Weapon Pitch Adjust",	"vr_weaponPitchAdjust", 0.0, 90.0, 5
 	Slider "Weapon Yaw Adjust",	"vr_weaponYawAdjust", -10.0, 10.0, 1
 	Option "VR Crosshair",	"vr_6dof_crosshair", "YesNo"

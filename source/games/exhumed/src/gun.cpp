@@ -1167,4 +1167,33 @@ void DrawWeapons(double interpfrac)
         }
     }
 }
+//---------------------------------------------------------------------------
+//
+// PC branch: the VR weapon wheel's view of this game (vr_wheel.cpp).
+//
+// Seven slots, slot k weapon k-1, owned as a bit in nPlayerWeapons - the same
+// test this game's own next and previous weapon keys make.
+//
+//---------------------------------------------------------------------------
+
+int GameInterface::VRWheelEntries(VRWheelEntry* out, int max)
+{
+	static const char* const names[] = {
+		"sword", "pistol", "m60", "flamer", "grenade", "staff", "ring", "mummified"
+	};
+	auto& pl = PlayerList[nLocalPlayer];
+	int n = 0;
+	for (int slot = 1; slot <= 7 && n < max; slot++)
+	{
+		const int w = slot - 1;
+		if (!(pl.nPlayerWeapons & (1 << w))) continue;
+		out[n].slot = slot;
+		out[n].model = names[w];
+		out[n].current = pl.nCurrentWeapon == w;
+		n++;
+	}
+	return n;
+}
+
+
 END_PS_NS

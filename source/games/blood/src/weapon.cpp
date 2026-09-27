@@ -3063,4 +3063,35 @@ void teslaHit(DBloodActor* missileactor, int a2)
 	}
 }
 
+//---------------------------------------------------------------------------
+//
+// PC branch: the VR weapon wheel's view of this game (vr_wheel.cpp).
+//
+// Blood's slot numbers are its weapon numbers - kWeapPitchFork is 1 - and the
+// "slot" command allows twelve here, one per weapon. Names as the held weapon
+// uses them, above.
+//
+//---------------------------------------------------------------------------
+
+int GameInterface::VRWheelEntries(VRWheelEntry* out, int max)
+{
+	static const char* const names[] = {
+		"", "pitchfork", "flaregun", "shotgun", "tommygun", "napalm",
+		"dynamite", "spraycan", "tesla", "lifeleech", "voodoo",
+		"proximity", "remote"
+	};
+	PLAYER* p = &gPlayer[myconnectindex];
+	int n = 0;
+	for (int slot = 1; slot <= 12 && n < max; slot++)
+	{
+		if (slot >= kWeapMax || !p->hasWeapon[slot]) continue;
+		out[n].slot = slot;
+		out[n].model = slot < (int)countof(names) ? names[slot] : "";
+		out[n].current = p->curWeapon == slot;
+		n++;
+	}
+	return n;
+}
+
+
 END_BLD_NS

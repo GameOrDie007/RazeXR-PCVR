@@ -237,6 +237,7 @@ struct GameInterface : public ::GameInterface
     PlayerAngles* getConsoleAngles() override { return &PlayerList[nLocalPlayer].Angles; }
     void ToggleThirdPerson() override;
     void processSprites(tspriteArray& tsprites, const DVector3& view, DAngle viewang, double interpfrac) override;
+    int VRWheelEntries(VRWheelEntry* out, int max) override;	// PC branch, vr_wheel.cpp
     int GetCurrentSkill() override;
     void StartSoundEngine() override;
 

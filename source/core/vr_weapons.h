@@ -115,6 +115,11 @@ float VRWeapons_ModelYaw();
 */
 bool VRWeapons_WantsVoxel(int tile);
 
+// For the weapon wheel: a weapon's voxel tile by name, or -1 when it has no
+// model that loaded; and that model's own facing correction.
+int VRWeapons_ModelTile(const char* name);
+float VRWeapons_ModelYawFor(const char* name);
+
 // Closes the capture window however the caller returns, which matters where the
 // draw has several exit paths.
 struct VRWeaponScope { ~VRWeaponScope() { VRWeapons_EndWeapon(); } };

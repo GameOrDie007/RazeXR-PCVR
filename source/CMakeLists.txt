@@ -999,6 +999,7 @@ set (PCH_SOURCES
 	core/gamehud.cpp
 	core/vr_weapons.cpp
 	core/vr_crosshair.cpp
+	core/vr_wheel.cpp
 	core/vr_launchers.cpp
 	core/gamefuncs.cpp
 	core/gameinput.cpp

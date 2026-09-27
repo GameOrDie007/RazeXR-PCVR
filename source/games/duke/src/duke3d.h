@@ -57,6 +57,7 @@ struct GameInterface : public ::GameInterface
 	void SwitchCoopView() override;
 	void ToggleShowWeapon() override;
 	void processSprites(tspriteArray& tsprites, const DVector3& view, DAngle viewang, double interpfrac) override;
+	int VRWheelEntries(VRWheelEntry* out, int max) override;	// PC branch, vr_wheel.cpp
 	void UpdateCameras(double smoothratio) override;
 	void EnterPortal(DCoreActor* viewer, int type) override;
 	void LeavePortal(DCoreActor* viewer, int type) override;

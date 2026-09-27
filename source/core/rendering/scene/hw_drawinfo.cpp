@@ -27,6 +27,7 @@
 
 #include "hw_portal.h"
 #include "vr_weapons.h"
+#include "vr_wheel.h"
 #include "build.h"
 #include "hw_renderstate.h"
 #include "hw_drawinfo.h"
@@ -414,6 +415,8 @@ void HWDrawInfo::CreateScene(bool portal)
 	// PC branch: the held weapon is added per frame rather than per tic, so it
 	// tracks the controller smoothly instead of stepping at the game's tic rate.
 	VRWeapons_AddSprite(tsprites, vp);
+	// PC branch: the weapon wheel, when it is up. See vr_wheel.cpp.
+	VRWheel_AddSprites(tsprites, vp);
 	DispatchSprites();
 	SetupSprite.Unclock();
 

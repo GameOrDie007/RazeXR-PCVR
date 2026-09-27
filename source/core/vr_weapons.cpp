@@ -10,6 +10,7 @@
 */
 
 #include "vr_weapons.h"
+#include "vr_wheel.h"
 
 #include "build.h"
 #include "coreactor.h"
@@ -491,7 +492,21 @@ bool VRWeapons_IsWeaponTile(int tile)
 
 bool VRWeapons_WantsVoxel(int tile)
 {
-	return VRWeapons_Active() && VRWeapons_IsWeaponTile(tile);
+	// The wheel shows these models whatever the voxel settings are.
+	return (VRWeapons_Active() || VRWheel_IsOpen()) && VRWeapons_IsWeaponTile(tile);
+}
+
+int VRWeapons_ModelTile(const char* name)
+{
+	if (!DefsLoaded || name == nullptr || name[0] == 0) return -1;
+	auto t = WeaponBaseTile.CheckKey(FString(name));
+	return (t && TileHasVoxel(*t)) ? *t : -1;
+}
+
+float VRWeapons_ModelYawFor(const char* name)
+{
+	auto o = name ? WeaponOffsets.CheckKey(FString(name)) : nullptr;
+	return (o ? o->yaw : 0.f) + vr_weapon_rot_yaw;
 }
 
 float VRWeapons_ModelYaw()

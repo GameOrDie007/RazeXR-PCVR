@@ -63,6 +63,19 @@ struct GeoEffect
 
 };
 
+/*
+	PC branch: one owned weapon slot, for the VR weapon wheel (vr_wheel.cpp).
+	slot is what the engine's "slot N" command takes; model is the VR weapon
+	model's name, the same name the held weapon uses; current is true for the
+	slot whose weapon is in hand.
+*/
+struct VRWheelEntry
+{
+	int slot;
+	const char* model;
+	bool current;
+};
+
 struct GameInterface
 {
 	virtual const char* Name() { return "$"; }
@@ -111,6 +124,8 @@ struct GameInterface
 	virtual void ToggleThirdPerson() { }
 	virtual void SwitchCoopView() { Printf("Unsupported command\n"); }
 	virtual void ToggleShowWeapon() { Printf("Unsupported command\n"); }
+	// PC branch: the slots the local player owns, for the VR weapon wheel.
+	virtual int VRWheelEntries(VRWheelEntry* out, int max) { return 0; }
 	virtual void processSprites(tspriteArray& tsprites, const DVector3& view, DAngle viewang, double interpfrac) = 0;
 	virtual void UpdateCameras(double smoothratio) {}
 	virtual void EnterPortal(DCoreActor* viewer, int type) {}

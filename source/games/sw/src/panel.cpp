@@ -8058,4 +8058,45 @@ saveable_module saveable_panel =
     SIZ(saveable_panel_data)
 };
 
+//---------------------------------------------------------------------------
+//
+// PC branch: the VR weapon wheel's view of this game (vr_wheel.cpp).
+//
+// Slot k is weapon k-1: fist, shuriken, riot gun, uzi, missile launcher,
+// grenades, sticky bombs, railgun, guardian head, heart. The missile
+// launcher's nuke and the guardian head's two other fire modes are separate
+// weapon numbers the game switches to itself; while one of those is in hand
+// its slot is the current one and its own model is shown.
+//
+//---------------------------------------------------------------------------
+
+int GameInterface::VRWheelEntries(VRWheelEntry* out, int max)
+{
+	static const char* const names[] = {
+		"", "star", "shotgun", "uzi", "micro", "grenade", "mine", "rail",
+		"hothead", "heart", "napalm", "ring", "rocket", ""
+	};
+	PLAYER* pp = &Player[myconnectindex];
+	int cur = (pp->actor && pp->actor->hasU()) ? pp->actor->user.WeaponNum : -1;
+	int curSlotWeapon = cur;
+	if (cur == 10 || cur == 11) curSlotWeapon = 8;	// napalm, ring -> guardian head
+	if (cur == 12) curSlotWeapon = 4;				// rocket -> missile launcher
+	if (cur == 13) curSlotWeapon = 0;				// sword -> fist
+
+	int n = 0;
+	for (int slot = 1; slot <= 10 && n < max; slot++)
+	{
+		const int w = slot - 1;
+		if (!(pp->WpnFlags & BIT(w))) continue;
+		const bool current = curSlotWeapon == w;
+		const int shown = current ? cur : w;
+		out[n].slot = slot;
+		out[n].model = shown >= 0 && shown < (int)countof(names) ? names[shown] : "";
+		out[n].current = current;
+		n++;
+	}
+	return n;
+}
+
+
 END_SW_NS

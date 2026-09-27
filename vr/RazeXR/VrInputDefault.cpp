@@ -20,6 +20,8 @@ Authors		:	Simon Brown
 // hw_vrmodes.cpp - the pause menu as a panel in the world, and hiding it.
 bool VR_MenuInWorld();
 bool TBXR_IndexControllersActive();	// OpenXrInput.cpp
+bool VRWheel_Enabled();				// source/core/vr_wheel.cpp
+void VRWheel_SetHeld(bool held);
 bool VR_MenuHidden();
 void VR_MenuSetHidden(bool hidden);
 
@@ -441,13 +443,28 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
                     ((primaryButtonsNew & primaryButton2) != 0) && !dominantGripPushedNew ? 1 : 0,
                     1, KEY_PAD_A);
 
-            //Crouch
-            Joy_GenerateButtonEvents(
-                    ((pDominantTrackedRemoteOld->Buttons & xrButton_Joystick) != 0) &&
-                    !dominantGripPushedOld ? 1 : 0,
-                    ((pDominantTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
-                    !dominantGripPushedNew ? 1 : 0,
-                    1, KEY_LCTRL);
+            /*
+                PC branch: with the weapon wheel on, the gun hand's stick click
+                opens it instead of crouching. Crouch was on two buttons - here
+                and X - which a player pointed out, so X keeps it. Read on its
+                state here rather than as a key: a key binding can be swallowed.
+            */
+            if (VRWheel_Enabled())
+            {
+                VRWheel_SetHeld(((pDominantTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
+                                !dominantGripPushedNew);
+            }
+            else
+            {
+                VRWheel_SetHeld(false);
+                //Crouch
+                Joy_GenerateButtonEvents(
+                        ((pDominantTrackedRemoteOld->Buttons & xrButton_Joystick) != 0) &&
+                        !dominantGripPushedOld ? 1 : 0,
+                        ((pDominantTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
+                        !dominantGripPushedNew ? 1 : 0,
+                        1, KEY_LCTRL);
+            }
 
             //Just reserve this for the Quest which has a clearly defined thumbrest location
             if (strstr(gAppState.OpenXRHMD, "meta") != NULL || TBXR_IndexControllersActive())

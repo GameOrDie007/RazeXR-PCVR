@@ -1108,4 +1108,65 @@ void displayweapon_d(int snum, double interpfrac)
 	displayloogie(p, interpfrac);
 }
 
+//---------------------------------------------------------------------------
+//
+// PC branch: the VR weapon wheel's view of this game (vr_wheel.cpp).
+//
+// Number key k selects weapon k-1 here - selectweapon_d and selectweapon_r
+// both do "j = weap - 1" - and the game resolves the shared slots itself. So
+// a slot is on the wheel if its weapon is owned, or, in Duke, the alternate
+// that shares it: the expander with the shrinker, World Tour's flamethrower
+// with the freezer. Whichever of the two is in hand is the model shown.
+//
+// The names are the same tables the held weapon uses (hudweapon_d.cpp and
+// hudweapon_r.cpp), repeated here so a wheel entry and a held weapon can only
+// ever name the same model.
+//
+//---------------------------------------------------------------------------
+
+int GameInterface::VRWheelEntries(VRWheelEntry* out, int max)
+{
+	static const char* const dukeNames[] = {
+		"knee", "pistol", "shotgun", "chaingun", "rpg", "handbomb",
+		"shrinker", "devastator", "tripbomb", "freeze", "handremote",
+		"grow", "flamethrower"
+	};
+	static const char* const rrNames[] = {
+		"crowbar", "pistol", "shotgun", "rifle", "dynamite", "crossbow",
+		"throwsaw", "alienblaster", "powderkeg", "titgun",
+		"throwingdynamite", "buzzsaw", "bowling", "", "",
+		"slingblade", "chicken"
+	};
+	const bool rr = isRR();
+	const char* const* names = rr ? rrNames : dukeNames;
+	const int nnames = rr ? (int)countof(rrNames) : (int)countof(dukeNames);
+
+	auto p = &ps[myconnectindex];
+	const int cur = p->curr_weapon;
+	int n = 0;
+	for (int slot = 1; slot <= 10 && n < max; slot++)
+	{
+		const int w = slot - 1;
+		int alt = -1;
+		if (!rr && slot == 7) alt = GROW_WEAPON;
+		if (!rr && slot == 10) alt = FLAMETHROWER_WEAPON;
+		if (!rr && slot == 6) alt = HANDREMOTE_WEAPON;
+
+		const bool ownPrimary = p->gotweapon[w];
+		const bool ownAlt = alt >= 0 && p->gotweapon[alt];
+		if (!ownPrimary && !ownAlt) continue;
+
+		const bool current = cur == w || (alt >= 0 && cur == alt);
+		int shown = ownPrimary ? w : alt;
+		if (current) shown = cur;
+
+		out[n].slot = slot;
+		out[n].model = shown >= 0 && shown < nnames ? names[shown] : "";
+		out[n].current = current;
+		n++;
+	}
+	return n;
+}
+
+
 END_DUKE_NS

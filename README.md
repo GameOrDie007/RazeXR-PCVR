@@ -245,14 +245,43 @@ Right-handed default. Everything is rebindable in Options → Customize Controls
 | B | Open / Use |
 | X | Crouch |
 | Y | Toggle map |
-| Right stick click | Crouch |
+| **Right stick click (hold)** | **Weapon wheel** |
 | **Left stick click** | **Alt Weapon** |
 | Right stick up/down | Next / previous weapon |
-| Dominant thumbrest | Quick kick |
+| Dominant thumbrest | Quick kick (Duke, NAM, Redneck) |
 
 Alt Weapon matters in Shadow Warrior — it re-selects the weapon already in your hand,
 which is how you reach the quad shotgun and the nuke. In Duke and Blood it picks the
 alternate weapon in a shared slot.
+
+### The weapon wheel
+
+Hold your gun hand's stick click and the weapons you are carrying hang in a ring in
+front of you, as the same 3D models you hold. Move your hand towards one - it lights up
+and grows - and let go of the stick to switch to it. Let go with your hand still in the
+middle and nothing changes.
+
+Time slows while the wheel is open, so choosing is not a gamble. **Options → VR Options
+→ Wheel Slow Motion** sets how much: 0.3 is a third of normal speed, 1 is none.
+
+Crouch is on X. The stick click used to crouch as well; the wheel took that button.
+Turn the wheel off (**Options → VR Options → Weapon Wheel**) and the stick click
+crouches again. A weapon only shows on the wheel if it has a VR model; the rare one
+without is still reached with the stick up and down.
+
+### Valve Index controllers
+
+The Index has no menu button, so it gets a layout of its own:
+
+| Index | Action |
+|---|---|
+| Left trackpad press | Pause menu |
+| Right trackpad press | Quick kick |
+| Left A / left B | X / Y |
+| Right A / right B | A / B |
+
+Press, not touch - resting a thumb on a trackpad does nothing. Everything else matches
+the table above.
 
 ## Music
 
