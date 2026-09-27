@@ -1281,6 +1281,18 @@ void TBXR_FrameSetup(void)
 	if (gAppState.FrameSetup)
 		return;
 
+	/*
+		No session at all - -novr, no runtime, or a runtime with no headset
+		behind it - means the game is playing flat, and there is nothing to
+		wait for. The loop below waited anyway: it only ever leaves once a
+		session is active, so the first frame of a flat game never came and
+		the window stopped responding with the startup console still up.
+		A session that exists but is not active yet (headset asleep) still
+		waits, as before.
+	*/
+	if (gAppState.Session == XR_NULL_HANDLE)
+		return;
+
 	for (;;)
 	{
 		if (ovrApp_HandleXrEvents(&gAppState))
