@@ -621,6 +621,7 @@ OptionMenu "VROptionsMenu" protected
     StaticText ""
     Option "Keep Running When Alt-Tabbed",	"vr_draw_unfocused", "OnOff"
     Option "Fix Double Vision (Pimax)",	"vr_declare_eye_positions", "OnOff"
+    Option "Index Controller Buttons (restart)",	"vr_index_bindings", "OnOff"
 
     StaticText ""
     StaticText "Pause Menu"

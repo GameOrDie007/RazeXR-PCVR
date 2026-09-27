@@ -192,6 +192,20 @@ static char vr_earlylog[8192];
 static bool vr_consoleready = false;
 
 static void VR_Log(const char *fmt, ...);
+/*
+	The same log, for the other VR files. Bindings are suggested in
+	OpenXrInput.cpp, and whether the runtime accepted them belongs in the file
+	players are asked to send, not only in the engine's own log.
+*/
+void TBXR_Log(const char *fmt, ...)
+{
+	va_list argptr;
+	char msg[1024];
+	va_start(argptr, fmt);
+	vsnprintf(msg, sizeof(msg), fmt, argptr);
+	va_end(argptr);
+	VR_Log("%s", msg);
+}
 static void VR_Log(const char *fmt, ...)
 {
 	va_list argptr;

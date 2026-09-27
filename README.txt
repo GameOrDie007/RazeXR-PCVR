@@ -98,6 +98,7 @@ have ever wondered how to take the steroids, this is it.
     Grip + dominant stick down   Next inventory item
     Grip + dominant stick up     Previous inventory item
     Grip + A                     Use the selected item
+    Grip + trigger               Quick kick   (Duke, NAM, Redneck)
     Grip + off-hand A            Fly down    (jetpack, or swimming)
     Grip + off-hand B            Fly up
     Grip + off-hand stick click  Land
@@ -108,6 +109,27 @@ you want, press A, and let go.
 
 There is no button that takes steroids directly. Select them first, then use
 them - the same as every other item.
+
+
+Valve Index controllers
+-----------------------
+
+The Index has no menu button, so out of the box the pause menu cannot be
+reached from the controllers. Turn on its own layout:
+
+    1. Press Escape on the keyboard to open the menu.
+    2. Options - VR Options - Troubleshooting - Index Controller Buttons.
+    3. Restart the game.
+
+Then:
+
+    Left trackpad press     Pause menu
+    Right trackpad press    Quick kick
+    Left A / left B         X / Y
+    Right A / right B       A / B
+
+Press, not touch - resting a thumb on a trackpad does nothing. Everything else
+matches the table above.
 
 
 The pause menu

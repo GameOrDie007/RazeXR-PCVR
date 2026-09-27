@@ -1,5 +1,9 @@
 #include "VrInput.h"
 
+void TBXR_Log(const char *fmt, ...);	// TBXR_PC.cpp, writes razexr_vr.log
+bool VR_IndexBindings();				// hw_vrmodes.cpp
+static XrPath gIndexProfilePath = XR_NULL_PATH;
+
 extern ovrApp gAppState;
 
 XrResult CheckXrResult(XrResult res, const char* originator) {
@@ -387,6 +391,79 @@ void TBXR_InitActions( void )
         result = xrSuggestInteractionProfileBindings(gAppState.Instance, &suggestedBindings);
     }
 
+    // PC branch: say what the runtime made of Team Beef's own suggestions.
+    TBXR_Log("VR: Pico / Quest Touch controller bindings %s (result %d)\n",
+             result == XR_SUCCESS ? "accepted" : "REFUSED", (int)result);
+
+    /*
+        PC branch: the Valve Index controller, suggested on its own.
+
+        Not in Team Beef's chain above, which stops at the first profile the
+        runtime accepts and so can only ever suggest one. OpenXR lets an app
+        suggest bindings for every profile it knows and the runtime uses the
+        one matching the hands it has; this is a separate call, so it cannot
+        change what a Quest or Pico player gets.
+
+        Laid out to match the Quest controls: Index A and B stand in for X
+        and Y on the left hand, A and B on the right. The Index has no menu
+        button and no thumbrest, so the two things a player could not reach -
+        the pause menu and Duke's quick kick - go on the trackpads, which were
+        unused. Pressing counts, not touching: force, thresholded by the
+        runtime, so resting a thumb there does nothing.
+
+            left trackpad press    pause menu
+            right trackpad press   quick kick
+
+        Refused by a runtime that does not know the profile, which is logged
+        and changes nothing - SteamVR's remap of the Quest layout carries on.
+    */
+    if (VR_IndexBindings())
+    {
+        auto P = [](const char *s) { XrPath x = XR_NULL_PATH; xrStringToPath(gAppState.Instance, s, &x); return x; };
+        gIndexProfilePath = P("/interaction_profiles/valve/index_controller");
+
+        XrActionSuggestedBinding b[64];
+        int n = 0;
+        const char *hand[2] = { "/user/hand/left", "/user/hand/right" };
+        char path[128];
+        for (int side = 0; side < SIDE_COUNT; side++)
+        {
+            auto H = [&](const char *c) { snprintf(path, sizeof(path), "%s%s", hand[side], c); return P(path); };
+            b[n++] = ActionSuggestedBinding(touchpadAction,        H("/input/thumbstick/click"));
+            b[n++] = ActionSuggestedBinding(joystickAction,        H("/input/thumbstick"));
+            b[n++] = ActionSuggestedBinding(thumbstickTouchAction, H("/input/thumbstick/touch"));
+            b[n++] = ActionSuggestedBinding(triggerAction,         H("/input/trigger/value"));
+            b[n++] = ActionSuggestedBinding(TriggerTouchAction,    H("/input/trigger/touch"));
+            b[n++] = ActionSuggestedBinding(GripAction,            H("/input/squeeze/value"));
+            b[n++] = ActionSuggestedBinding(poseAction,            H("/input/grip/pose"));
+            b[n++] = ActionSuggestedBinding(aimAction,             H("/input/aim/pose"));
+            b[n++] = ActionSuggestedBinding(vibrateAction,         H("/output/haptic"));
+        }
+        b[n++] = ActionSuggestedBinding(backAction,           P("/user/hand/left/input/trackpad/force"));
+        b[n++] = ActionSuggestedBinding(ThumbrestTouchAction, P("/user/hand/right/input/trackpad/force"));
+        b[n++] = ActionSuggestedBinding(XAction,      P("/user/hand/left/input/a/click"));
+        b[n++] = ActionSuggestedBinding(XTouchAction, P("/user/hand/left/input/a/touch"));
+        b[n++] = ActionSuggestedBinding(YAction,      P("/user/hand/left/input/b/click"));
+        b[n++] = ActionSuggestedBinding(YTouchAction, P("/user/hand/left/input/b/touch"));
+        b[n++] = ActionSuggestedBinding(AAction,      P("/user/hand/right/input/a/click"));
+        b[n++] = ActionSuggestedBinding(ATouchAction, P("/user/hand/right/input/a/touch"));
+        b[n++] = ActionSuggestedBinding(BAction,      P("/user/hand/right/input/b/click"));
+        b[n++] = ActionSuggestedBinding(BTouchAction, P("/user/hand/right/input/b/touch"));
+
+        XrInteractionProfileSuggestedBinding sb = {};
+        sb.type = XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING;
+        sb.interactionProfile = gIndexProfilePath;
+        sb.suggestedBindings = b;
+        sb.countSuggestedBindings = n;
+        const XrResult ir = xrSuggestInteractionProfileBindings(gAppState.Instance, &sb);
+        TBXR_Log("VR: vr_index_bindings ON - Valve Index controller bindings %s (result %d, %d bindings)\n",
+                 ir == XR_SUCCESS ? "accepted" : "REFUSED", (int)ir, n);
+    }
+    else
+    {
+        TBXR_Log("VR: vr_index_bindings off - Index controllers get SteamVR's remap of the Quest layout\n");
+    }
+
     XrActionSpaceCreateInfo actionSpaceInfo = {};
     actionSpaceInfo.type = XR_TYPE_ACTION_SPACE_CREATE_INFO;
     actionSpaceInfo.action = poseAction;
@@ -409,6 +486,22 @@ void TBXR_InitActions( void )
     attachInfo.actionSets = &actionSet;
     attachInfo.next = NULL;
     CHECK_XRCMD(xrAttachSessionActionSets(gAppState.Session, &attachInfo));
+}
+
+/*
+    PC branch: true while the runtime is driving our Index bindings for the
+    right hand. The quick kick on the thumbrest is gated to Quest headsets,
+    because on other controllers resting a thumb would fire it; on an Index
+    it is bound to a trackpad PRESS, which is deliberate, so it may fire.
+*/
+bool TBXR_IndexControllersActive()
+{
+    if (gIndexProfilePath == XR_NULL_PATH || gAppState.Session == XR_NULL_HANDLE) return false;
+    XrPath right = XR_NULL_PATH;
+    xrStringToPath(gAppState.Instance, "/user/hand/right", &right);
+    XrInteractionProfileState st = { XR_TYPE_INTERACTION_PROFILE_STATE };
+    if (xrGetCurrentInteractionProfile(gAppState.Session, right, &st) != XR_SUCCESS) return false;
+    return st.interactionProfile == gIndexProfilePath;
 }
 
 void TBXR_SyncActions( void )

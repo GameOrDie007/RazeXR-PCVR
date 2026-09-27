@@ -507,6 +507,18 @@ float VR_MenuDepth()    { return vr_menu_depth; }
 */
 CVAR(Bool, vr_declare_eye_positions, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 bool VR_DeclareEyePositions() { return vr_declare_eye_positions; }
+
+/*
+	PC branch: native bindings for the Valve Index controller.
+
+	Only Pico and Quest profiles were ever suggested, so an Index player got
+	whatever SteamVR's remap of the Quest layout gave them - and the Quest's
+	left menu button has no Index equivalent, so the pause menu could not be
+	opened at all without editing bindings by hand. Read once, when the
+	bindings are suggested at session start, so a change needs a restart.
+*/
+CVAR(Bool, vr_index_bindings, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+bool VR_IndexBindings() { return vr_index_bindings; }
 float VR_IPDMetres()          { return vr_ipd; }
 
 // See hw_vrmodes.h. Recorded once a frame by the 2D pass, read by the quads.

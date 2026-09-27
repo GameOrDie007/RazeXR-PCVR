@@ -19,6 +19,7 @@ Authors		:	Simon Brown
 
 // hw_vrmodes.cpp - the pause menu as a panel in the world, and hiding it.
 bool VR_MenuInWorld();
+bool TBXR_IndexControllersActive();	// OpenXrInput.cpp
 bool VR_MenuHidden();
 void VR_MenuSetHidden(bool hidden);
 
@@ -449,7 +450,7 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
                     1, KEY_LCTRL);
 
             //Just reserve this for the Quest which has a clearly defined thumbrest location
-            if (strstr(gAppState.OpenXRHMD, "meta") != NULL)
+            if (strstr(gAppState.OpenXRHMD, "meta") != NULL || TBXR_IndexControllersActive())
             {
                 //(Duke) Quick Kick
                 Joy_GenerateButtonEvents(
