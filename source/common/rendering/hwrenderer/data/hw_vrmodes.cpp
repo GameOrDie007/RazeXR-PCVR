@@ -516,8 +516,13 @@ bool VR_DeclareEyePositions() { return vr_declare_eye_positions; }
 	left menu button has no Index equivalent, so the pause menu could not be
 	opened at all without editing bindings by hand. Read once, when the
 	bindings are suggested at session start, so a change needs a restart.
+
+	ON by default, at his decision on 26 Sep 2026. Off could not be switched on
+	by the players it exists for: without it an Index has no way to open the
+	menu the switch lives in. It is a separate suggestion, so a Quest or Pico
+	player is untouched either way.
 */
-CVAR(Bool, vr_index_bindings, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Bool, vr_index_bindings, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 bool VR_IndexBindings() { return vr_index_bindings; }
 float VR_IPDMetres()          { return vr_ipd; }
 

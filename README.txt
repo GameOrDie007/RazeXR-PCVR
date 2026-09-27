@@ -72,7 +72,7 @@ Controls worth knowing
     Dominant trigger        Fire
     Off-hand trigger        Alt fire
     Off-hand stick click    Alt Weapon
-    Dominant stick click    Crouch
+    Dominant stick click    Weapon wheel (hold)
     A                       Jump
     B                       Open / Use
     X                       Crouch
@@ -111,17 +111,30 @@ There is no button that takes steroids directly. Select them first, then use
 them - the same as every other item.
 
 
+The weapon wheel
+----------------
+
+Hold your gun hand's stick click and the weapons you are carrying hang in a
+ring in front of you, as the same 3D models you hold. Move your hand towards
+one - it lights up and grows - and let go of the stick to switch to it. Let go
+with your hand still in the middle and nothing changes.
+
+Time slows while the wheel is open, so choosing is not a gamble. Options - VR
+Options - Wheel Slow Motion sets how much: 0.3 is a third of normal speed, 1 is
+no slow motion.
+
+Crouch is on X. It used to be on the stick click as well; the wheel took that
+button. Turn the wheel off - Options - VR Options - Weapon Wheel - and the
+stick click crouches again.
+
+A weapon only shows on the wheel if it has a VR model. The rare one without is
+still reached with the stick up and down.
+
+
 Valve Index controllers
 -----------------------
 
-The Index has no menu button, so out of the box the pause menu cannot be
-reached from the controllers. Turn on its own layout:
-
-    1. Press Escape on the keyboard to open the menu.
-    2. Options - VR Options - Troubleshooting - Index Controller Buttons.
-    3. Restart the game.
-
-Then:
+The Index has no menu button, so the Index gets a layout of its own:
 
     Left trackpad press     Pause menu
     Right trackpad press    Quick kick
