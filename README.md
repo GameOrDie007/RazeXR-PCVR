@@ -314,7 +314,8 @@ CD, any of those formats will do.
 
 - Some weapons stay as flat sprites because no voxel model exists for them anywhere:
   Shadow Warrior's fists and sword, Exhumed's sword and mummified hands, Duke's mighty
-  foot, Redneck's crowbar and bowling ball.
+  foot, Redneck's crowbar and bowling ball. With no model they are not on the weapon
+  wheel either; stick up and down still reaches them.
 - WWII GI's mauser and Redneck's blaster and thrown dynamite carry model names that
   differ from the ones VRaze's placements are written against (`alienblaster` and
   `throwingdynamite`). This port defines both spellings, using the same standard
@@ -325,11 +326,11 @@ CD, any of those formats will do.
   VRaze's data has no animation frames for them. The frames that do exist - Duke's
   pistol slide, Blood's napalm launcher, Shadow Warrior's railgun - are bundled and
   work out of the box.
-- The pause-menu panel covers about 73 degrees of view at the default size. A flat
-  surface pinned in the world genuinely changes shape as you turn to look along it, the
-  way a cinema screen does from a side seat, so at that width a little of that is
-  visible. **Menu Depth** and **Menu Size** under *VR Options* both reduce it; the menu
-  keeps its apparent size as you change the depth.
+- The pause-menu panel is about 62 degrees wide at the default size. A flat surface
+  pinned in the world genuinely changes shape as you turn to look along it, the way a
+  cinema screen does from a side seat, so a little of that is visible at its edges.
+  **Menu Size** under *VR Options* makes it smaller; the menu keeps its apparent size as
+  you change **Menu Depth**.
 - Alien World Order - World Tour's fifth episode - needs a **Duke Nukem 3D: 20th
   Anniversary World Tour** install for setup to build it from; its scripts, maps and
   voice-overs are loose files, not part of `DUKE3D.GRP`. With one, setup adds them and
