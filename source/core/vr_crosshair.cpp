@@ -16,8 +16,22 @@
 #include "printf.h"
 #include "coreactor.h"
 #include "maptypes.h"
+#include "gamefuncs.h"
+#include "hw_drawinfo.h"
 
 float vr_hunits_per_meter();
+void get_weapon_pos_and_angle(float& x, float& y, float& z, float& pitch, float& yaw);
+bool TBXR_VREnabled();
+EXTERN_CVAR(Bool, vr_6dof_weapons)
+EXTERN_CVAR(Bool, vr_6dof_crosshair)
+
+// What the last tic's aim was made of, for VRCrosshair_Frame. The actors are
+// compared, never dereferenced, from there: the one dereferenced at draw time
+// is the frame's own camera actor, and only once it is known to be this player.
+static DCoreActor* AimPlayer = nullptr;
+static DCoreActor* AimCrosshair = nullptr;
+static int AimCrosshairStat = -1;	// its status list, checked on the live sprite
+static DVector3 AimExtra;		// the part of the origin that is neither hand nor actor
 
 /*
 	How far to back the crosshair off the surface it hit, in metres.
@@ -59,6 +73,8 @@ DVector3 VRCrosshair_Place(const DVector3& start, const DVector3& hitpos)
 void VRCrosshair_SetFlags(DCoreActor* actor)
 {
 	if (actor == nullptr) return;
+	AimCrosshair = actor;	// the one VRCrosshair_Frame re-aims
+	AimCrosshairStat = actor->spr.statnum;
 
 	// Centred on the impact point, not standing on it.
 	actor->spr.cstat |= CSTAT_SPRITE_YCENTER;
@@ -73,6 +89,95 @@ void VRCrosshair_SetFlags(DCoreActor* actor)
 	*/
 	actor->spr.cstat2 |= CSTAT2_SPRITE_NOFIND;
 	actor->spr.cstat &= ~CSTAT_SPRITE_BLOCK_ALL;
+}
+
+//==========================================================================
+//
+// Per frame. See vr_crosshair.h.
+//
+//==========================================================================
+
+CVAR(Bool, vr_crosshair_per_frame, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+
+
+/*
+	Every game builds the shot's origin the same way:
+
+	    spos = actor + (0, 0, -z * hupm) - rotate(x, y, yaw - 90) * hupm - extra
+
+	x, y, z being the controller from get_weapon_pos_and_angle. Blood alone
+	has an "extra", a height of its own (viewzoffset against the posture's
+	weapon height). Rather than know each game's, take it as whatever is left
+	of the origin once the hand and the actor are accounted for.
+*/
+static DVector3 HandPart(double yawDeg, float x, float y, float z)
+{
+	const double hupm = vr_hunits_per_meter();
+	DVector2 xy(x * hupm, y * hupm);
+	xy = xy.Rotated(-DAngle90 + DAngle::fromDeg(yawDeg));
+	return DVector3(-xy.X, -xy.Y, -(z * hupm));
+}
+
+void VRCrosshair_Aim(DCoreActor* player, const DVector3& spos)
+{
+	if (player == nullptr) return;
+	float x, y, z, pitch, yaw;
+	get_weapon_pos_and_angle(x, y, z, pitch, yaw);
+	AimPlayer = player;
+	AimExtra = spos - player->spr.pos - HandPart(player->spr.Angles.Yaw.Degrees(), x, y, z);
+}
+
+void VRCrosshair_Frame(tspriteArray& tsprites, const FRenderViewpoint& vp)
+{
+	if (!vr_crosshair_per_frame || !vr_6dof_weapons || !vr_6dof_crosshair) return;
+	if (!TBXR_VREnabled()) return;
+	if (AimCrosshair == nullptr || AimPlayer == nullptr) return;
+
+	// Only the player's own view: a camera or a viewscreen shows the world
+	// from somewhere else, and the crosshair belongs to the hand.
+	DCoreActor* player = vp.CameraActor;
+	if (player == nullptr || player != AimPlayer) return;
+
+	tspritetype* tspr = nullptr;
+	for (unsigned i = 0; i < tsprites.Size(); i++)
+	{
+		if (tsprites.get(i)->ownerActor == AimCrosshair) { tspr = tsprites.get(i); break; }
+	}
+	if (tspr == nullptr) return;					// not drawn this frame
+	/*
+		The remembered pointer can outlive its actor - a level change frees it
+		before the game spawns a new crosshair - and the memory can come back
+		as some other actor. The sprite found here is live, so its status list
+		can be read: only the game's crosshair list is the crosshair.
+	*/
+	if (tspr->ownerActor->spr.statnum != AimCrosshairStat) return;
+	if (tspr->scale.X <= 0 || tspr->scale.Y <= 0) return;	// the game has hidden it
+
+	float x, y, z, wpitch, wyaw;
+	get_weapon_pos_and_angle(x, y, z, wpitch, wyaw);
+
+	// The view's yaw, as the weapon in the hand is drawn - see
+	// VRWeapons_AddSprite for why that and not the actor's.
+	const DAngle viewYaw = DAngle::fromBam(vp.RotAngle);
+	const DVector3 start = player->interpolatedpos(vp.TicFrac) + AimExtra + HandPart(viewYaw.Degrees(), x, y, z);
+	const DAngle aimYaw = viewYaw + DAngle::fromDeg(wyaw);
+
+	double vel = 1024, zvel = 0;
+	setFreeAimVelocity(vel, zvel, player->spr.Angles.Pitch - DAngle::fromDeg(wpitch), 16.);
+
+	auto sectp = player->sector();
+	updatesector(start.XY(), &sectp);
+	if (sectp == nullptr) return;
+
+	HitInfoBase hit{};
+	const auto savedCstat = player->spr.cstat;
+	player->spr.cstat &= ~CSTAT_SPRITE_BLOCK_ALL;
+	hitscan(start, sectp, DVector3(aimYaw.ToVector() * vel, zvel * 64), hit, CLIPMASK1);
+	player->spr.cstat = savedCstat;
+	if (hit.hitSector == nullptr) return;
+
+	tspr->pos = VRCrosshair_Place(start, hit.hitpos);
+	tspr->sectp = hit.hitSector;
 }
 
 //==========================================================================

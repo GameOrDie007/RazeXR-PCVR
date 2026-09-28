@@ -71,4 +71,33 @@ DVector3 VRCrosshair_Place(const DVector3& start, const DVector3& hitpos);
 */
 void VRCrosshair_SetFlags(DCoreActor* actor);
 
+/*
+	The crosshair, re-aimed every frame.
+
+	Each game places its crosshair once per game tic, from the player actor's
+	yaw - 30 times a second in Duke, while the view and the weapon in your
+	hand are drawn every frame from the view's yaw. Turning, the crosshair
+	trailed; after a snap turn it hung where you had been facing for up to a
+	tic. Domyoji's cluster B, 2026.
+
+	The fix keeps each game's own aim - so the crosshair still marks where its
+	shots go - and only re-runs it at draw time with this frame's numbers:
+
+	  VRCrosshair_Aim    called by each game where it builds the shot's
+	                     origin, before it moves the actor for the shot.
+	                     Records what that origin was made of.
+	  VRCrosshair_Frame  called while the frame's sprites are gathered.
+	                     Rebuilds the origin from the view's yaw, the actor's
+	                     interpolated position and the controller as it is
+	                     now, hitscans again, and moves the crosshair's
+	                     sprite - the sprite drawn this frame, never the
+	                     actor, so nothing the game simulates is touched.
+
+	vr_crosshair_per_frame 0 puts it back to once a tic, for comparison.
+*/
+class tspriteArray;
+struct FRenderViewpoint;
+void VRCrosshair_Aim(DCoreActor* player, const DVector3& spos);
+void VRCrosshair_Frame(tspriteArray& tsprites, const FRenderViewpoint& vp);
+
 #endif

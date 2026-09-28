@@ -1546,6 +1546,7 @@ void ProcessInput(PLAYER* pPlayer)
 		posXY = DVector2(px * vr_hunits_per_meter(), py * vr_hunits_per_meter()).Rotated(-DAngle90 + actor->spr.Angles.Yaw);
 		spos.X -= posXY.X;
 		spos.Y -= posXY.Y;
+		VRCrosshair_Aim(actor, spos);	// PC branch: re-aimed per frame, vr_crosshair.h
 
 		//Update player angles and position for shooting
 		actor->spr.pos.X -= posXY.X;

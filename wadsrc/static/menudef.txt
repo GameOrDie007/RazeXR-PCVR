@@ -624,6 +624,7 @@ OptionMenu "VROptionsMenu" protected
     Option "Keep Running When Alt-Tabbed",	"vr_draw_unfocused", "OnOff"
     Option "Fix Double Vision (Pimax)",	"vr_declare_eye_positions", "OnOff"
     Option "Index Controller Buttons (restart)",	"vr_index_bindings", "OnOff"
+    Option "Crosshair Updates Every Frame",	"vr_crosshair_per_frame", "OnOff"
 
     StaticText ""
     StaticText "Pause Menu"
