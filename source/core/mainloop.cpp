@@ -413,7 +413,7 @@ CVAR(String, drawtile, "", 0)	// debug stuff. Draws the tile with the given numb
 
 void TBXR_FrameSetup();
 bool TBXR_VREnabled();
-CVAR(Bool, vr_draw_unfocused, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Bool, vr_draw_unfocused, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 bool VR_DrawUnfocused() { return vr_draw_unfocused; }
 void Display()
 {
@@ -431,10 +431,9 @@ void Display()
 		The headset is the display, and it is still being looked at. Only the
 		flat path keeps the old rule; VR draws regardless of desktop focus.
 
-		Behind vr_draw_unfocused, default OFF, until it has been seen working
-		in a headset: the mechanism is certain from the code, but no session
-		could be brought up on the development machine to watch it happen.
-		See never-ship-an-unverified-change-enabled.
+		Behind vr_draw_unfocused. It shipped in the test build off, until it
+		could be seen working; on 27 Sep 2026 it was, in a headset, and it is
+		now on by default.
 	*/
 	const bool drawingToHeadset = vr_draw_unfocused && TBXR_VREnabled();
 	if (screen == nullptr || (!AppActive && !drawingToHeadset && (screen->IsFullscreen() || !vid_activeinbackground)))

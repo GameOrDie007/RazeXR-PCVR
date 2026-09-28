@@ -41,10 +41,16 @@ CVAR(Bool, vr_weapon_wheel, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 // Game speed while the wheel is open. 1 is no slow motion.
 CVAR(Float, vr_wheel_slowmo, 0.3f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
-// The ring's radius in metres, and each model's size as a fraction of the
-// held weapon's. Both are his to tune at the end.
-CVAR(Float, vr_wheel_radius, 0.17f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-CVAR(Float, vr_wheel_item_scale, 0.8f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+/*
+	The ring's radius in metres, and each model's size as a fraction of the
+	held weapon's. First tried at 0.17 m and 0.8: in the headset the pistol and
+	the rocket launcher alone filled most of the view. Smaller models on a
+	wider ring. New names rather than new defaults for the old ones, because
+	the test config already holds the old numbers and a saved value beats a
+	new default; the old names never shipped.
+*/
+CVAR(Float, vr_wheel_ring_radius, 0.22f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Float, vr_wheel_model_scale, 0.35f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 /*
 	Desk only, and never saved: opens the ring with no headset, in front of
@@ -317,7 +323,7 @@ void VRWheel_AddSprites(tspriteArray& tsprites, const FRenderViewpoint& vp)
 		its own - exact, and it leaves the headset-validated held weapon alone.
 	*/
 	const float heldYaw = VRWeapons_ModelYaw();
-	const double radius = vr_wheel_radius;
+	const double radius = vr_wheel_ring_radius;
 
 	for (unsigned i = 0; i < Items.Size(); i++)
 	{
@@ -330,7 +336,7 @@ void VRWheel_AddSprites(tspriteArray& tsprites, const FRenderViewpoint& vp)
 		if (sectp == nullptr) sectp = owner->sector();
 
 		const bool lit = (int)i == Highlight;
-		const double size = vr_weapon_scale * vr_wheel_item_scale * (lit ? 1.35 : 1.0);
+		const double size = vr_weapon_scale * vr_wheel_model_scale * (lit ? 1.35 : 1.0);
 
 		auto tspr = tsprites.newTSprite();
 		*tspr = {};

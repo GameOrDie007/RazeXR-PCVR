@@ -281,17 +281,20 @@ in order. Between them they say how far it got. razexr_vr.log, beside raze.exe,
 records what your headset and runtime reported - include it with any report.
 
 The game stops responding when I alt-tab
-    Options - VR Options - Troubleshooting - Keep Running When Alt-Tabbed.
-    On a monitor the game rightly stops drawing when its window loses focus.
-    In a headset that stops the VR picture too, and SteamVR reads it as a
-    hang. New in 1.1, and off until it has been confirmed on more headsets.
+    Fixed in 1.1. On a monitor the game rightly stops drawing when its window
+    loses focus; in a headset that stopped the VR picture too, and SteamVR
+    read it as a hang. It now keeps drawing to the headset. The switch is
+    Options - VR Options - Troubleshooting - Keep Running When Alt-Tabbed,
+    on by default.
 
 Double vision, or crossed eyes, on a Pimax
-    Options - VR Options - Troubleshooting - Fix Double Vision (Pimax).
-    Seen under Pimax Play; the sboys3 SteamVR driver does not show it, and the
-    menus look right either way - only the game world is affected. New in 1.1
-    and off by default. Whether it helps or not, please say so and send
-    razexr_vr.log: it now records exactly what your headset reports per eye.
+    1.1 tells the headset where each eye's picture was drawn, which should
+    fix it; it also makes menu text a little sharper on a Quest. It is on by
+    default: Options - VR Options - Troubleshooting - Fix Double Vision
+    (Pimax). Seen under Pimax Play; the sboys3 SteamVR driver does not show
+    it. If the world swims or shears with it on, turn it off and please say
+    so, with razexr_vr.log - it records exactly what your headset reports
+    per eye.
 
 Changing the render resolution
     Set it in SteamVR (Settings - Video - Per-application video settings) or

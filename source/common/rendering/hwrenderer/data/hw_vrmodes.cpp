@@ -499,13 +499,17 @@ float VR_MenuDepth()    { return vr_menu_depth; }
 	compositing over; and a correct menu throughout, because the menu is a quad
 	layer that already declares a true pose.
 
-	OFF by default because it is unverified - nobody here has a Pimax - and
-	because Team Beef's own comment on that line warns that feeding the
-	compositor "anything else" shears the world. This changes only the declared
-	position, never the orientation, and matches exactly the offset the engine
-	renders. The state is written to razexr_vr.log at startup.
+	Team Beef's own comment on that line warns that feeding the compositor
+	"anything else" shears the world. This changes only the declared position,
+	never the orientation, and matches exactly the offset the engine renders.
+
+	ON by default since 27 Sep 2026. It shipped in the test build off, and on a
+	Quest 3 turning it on changed nothing in the world and made menu text
+	visibly clearer - the compositor's correction now agrees with where each
+	eye was drawn. It has still not been seen on a Pimax. The state is written
+	to razexr_vr.log at startup.
 */
-CVAR(Bool, vr_declare_eye_positions, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Bool, vr_declare_eye_positions, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 bool VR_DeclareEyePositions() { return vr_declare_eye_positions; }
 
 /*
