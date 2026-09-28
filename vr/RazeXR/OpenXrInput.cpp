@@ -162,26 +162,36 @@ void TBXR_InitActions( void )
         CreateAction(actionSet, XR_ACTION_TYPE_VIBRATION_OUTPUT, "vibrate_hand", "Vibrate Hand", SIDE_COUNT, handSubactionPath, &vibrateAction);
 
         //All remaining actions (not necessarily supported by all controllers)
+        /*
+            PC branch: the second name of each action is what SteamVR's
+            controller binding screen shows. Theirs were the button names
+            ("Akey", "Touchpad" for the stick click, "Backkey" for the
+            menu), and a player rebinding an Index asked for what each one
+            does. They now name the default game action. Only that name
+            changed: the first one is the key bindings are saved under.
+            OpenXR refuses two actions with the same localized name, so each
+            stays unique.
+        */
         CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "quit_session", "Quit Session", SIDE_COUNT, handSubactionPath, &quitAction);
-        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "touchpad", "Touchpad", SIDE_COUNT, handSubactionPath, &touchpadAction);
+        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "touchpad", "Stick click - weapon wheel, alt weapon", SIDE_COUNT, handSubactionPath, &touchpadAction);
         CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "axkey", "AXkey", SIDE_COUNT, handSubactionPath, &AXAction);
         CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "homekey", "Homekey", SIDE_COUNT, handSubactionPath, &homeAction);
         CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "bykey", "BYkey", SIDE_COUNT, handSubactionPath, &BYAction);
-        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "backkey", "Backkey", SIDE_COUNT, handSubactionPath, &backAction);
-        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "sidekey", "Sidekey", SIDE_COUNT, handSubactionPath, &sideAction);
-        CreateAction(actionSet, XR_ACTION_TYPE_FLOAT_INPUT, "trigger", "Trigger", SIDE_COUNT, handSubactionPath, &triggerAction);
-        CreateAction(actionSet, XR_ACTION_TYPE_VECTOR2F_INPUT, "joystick", "Joystick", SIDE_COUNT, handSubactionPath, &joystickAction);
+        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "backkey", "Menu", SIDE_COUNT, handSubactionPath, &backAction);
+        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "sidekey", "Grip click", SIDE_COUNT, handSubactionPath, &sideAction);
+        CreateAction(actionSet, XR_ACTION_TYPE_FLOAT_INPUT, "trigger", "Trigger - fire, alt fire", SIDE_COUNT, handSubactionPath, &triggerAction);
+        CreateAction(actionSet, XR_ACTION_TYPE_VECTOR2F_INPUT, "joystick", "Stick - move, turn, weapon up and down", SIDE_COUNT, handSubactionPath, &joystickAction);
         CreateAction(actionSet, XR_ACTION_TYPE_FLOAT_INPUT, "battery", "battery", SIDE_COUNT, handSubactionPath, &batteryAction);
         CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "axtouch", "AXtouch", SIDE_COUNT, handSubactionPath, &AXTouchAction);
         CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "bytouch", "BYtouch", SIDE_COUNT, handSubactionPath, &BYTouchAction);
         CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "rockertouch", "Rockertouch", SIDE_COUNT, handSubactionPath, &thumbstickTouchAction);
         CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "triggertouch", "Triggertouch", SIDE_COUNT, handSubactionPath, &TriggerTouchAction);
-        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "thumbresttouch", "Thumbresttouch", SIDE_COUNT, handSubactionPath, &ThumbrestTouchAction);
-        CreateAction(actionSet, XR_ACTION_TYPE_FLOAT_INPUT, "gripvalue", "GripValue", SIDE_COUNT, handSubactionPath, &GripAction);
-        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "akey", "Akey", SIDE_COUNT, handSubactionPath, &AAction);
-        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "bkey", "Bkey", SIDE_COUNT, handSubactionPath, &BAction);
-        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "xkey", "Xkey", SIDE_COUNT, handSubactionPath, &XAction);
-        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "ykey", "Ykey", SIDE_COUNT, handSubactionPath, &YAction);
+        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "thumbresttouch", "Thumbrest - quick kick", SIDE_COUNT, handSubactionPath, &ThumbrestTouchAction);
+        CreateAction(actionSet, XR_ACTION_TYPE_FLOAT_INPUT, "gripvalue", "Grip - second set of controls", SIDE_COUNT, handSubactionPath, &GripAction);
+        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "akey", "A - jump", SIDE_COUNT, handSubactionPath, &AAction);
+        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "bkey", "B - open, use", SIDE_COUNT, handSubactionPath, &BAction);
+        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "xkey", "X - crouch", SIDE_COUNT, handSubactionPath, &XAction);
+        CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "ykey", "Y - automap", SIDE_COUNT, handSubactionPath, &YAction);
         CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "atouch", "Atouch", SIDE_COUNT, handSubactionPath, &ATouchAction);
         CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "btouch", "Btouch", SIDE_COUNT, handSubactionPath, &BTouchAction);
         CreateAction(actionSet, XR_ACTION_TYPE_BOOLEAN_INPUT, "xtouch", "Xtouch", SIDE_COUNT, handSubactionPath, &XTouchAction);
