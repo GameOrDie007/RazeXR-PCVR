@@ -68,6 +68,31 @@ float vr_hunits_per_meter();
 void VR_GetWorldEyePos(float* x, float* y, float* z);
 
 /*
+	How wide a menu panel is, in metres, at a given distance.
+
+	Both panels - the pause menu in the world and the virtual screen that
+	carries the main menu and the splash - are sized by the angle they
+	span, and it is the WIDTH that is set: Doom VR's panel, 2.4 m wide at
+	2 m, about 62 degrees, which is the size he asked for on 27 Sep 2026.
+	The height then follows from the picture's own aspect, so the menu
+	comes out the shape it was laid out in.
+
+	It was the height that was set before, from a square panel. When the
+	pause panel was given its true 16:9 shape that height was kept and the
+	width grew 1.8 times, to about 106 degrees - the whole view, and it
+	read as the menu being in his face.
+
+	vr_menu_scale still sizes it: 0.75, the default and what every saved
+	config holds, gives the 62 degrees. The rule is in the code rather than
+	a new default because a saved config never sees a new default.
+*/
+static float MenuPanelWidth(float dist)
+{
+	const float ref = VR_MenuDistance() > 0.01f ? VR_MenuDistance() : 1.0f;
+	return 1.6f * VR_MenuScale() * dist / ref;
+}
+
+/*
 	The pause menu as a layer of its own.
 
 	Painting the menu into the eye texture cannot hold it still. That texture
@@ -1671,9 +1696,8 @@ void TBXR_submitFrame(void)
 							menuPeakHeadV > 0.001f ? menuPeakWorldV / menuPeakHeadV : 0.0f,
 							menuPeakGapV, slipDegV);
 					VR_Log("VR: pause panel %.2f m away, %.2f m wide = %.1f deg across\n",
-							VR_MenuDepth(), 2.0f * VR_MenuScale() * VR_MenuDepth()
-									/ (VR_MenuDistance() > 0.01f ? VR_MenuDistance() : 1.0f),
-							2.0 * RAD2DEG(atan2((double)(VR_MenuScale() / (VR_MenuDistance() > 0.01f ? VR_MenuDistance() : 1.0f)), 1.0)));
+							VR_MenuDepth(), MenuPanelWidth(VR_MenuDepth()),
+							2.0 * RAD2DEG(atan2((double)(MenuPanelWidth(VR_MenuDepth()) * 0.5f / VR_MenuDepth()), 1.0)));
 				}
 			}
 		}
@@ -1830,8 +1854,29 @@ void TBXR_submitFrame(void)
 				gAppState.xfStageFromHead.position.y,
 				gAppState.xfStageFromHead.position.z - cos(DEG2RAD(playerYaw)) * VR_GetScreenLayerDistance()
 		};
-		const float screenHeight = 4.5f;
-		XrExtent2Df size = {screenHeight * (float)width / (float)height, screenHeight};
+		/*
+			Shaped like the picture, not the buffer. The 2D canvas is laid out
+			for the desktop screen - 16:9 - and Draw2D fills the whole eye
+			buffer with it, 3072x3264 on a Quest 3, nearly square. Shown on a
+			quad the buffer's shape, the menu and splash were squeezed sideways
+			into tall, thin text: his report on 27 Sep 2026, and Welz's before
+			it on an ultrawide. The pause panel had the same squeeze and the
+			same repair - the quad takes the canvas aspect.
+
+			His log from that session: canvas 2560x1440 and viewport 2560x1440
+			inside a 3072x3264 buffer, on a 4.24 x 4.50 m quad. A 2D picture that
+			only covered that corner of the buffer would have looked small and
+			off to one side, the right shape; what he saw was the whole screen
+			stretched tall. So the canvas is scaled to fill the buffer on its
+			way to the swapchain, and the canvas's shape is the picture's shape.
+			The buffer's shape is kept only until a first 2D frame reports one.
+		*/
+		int canvasW = 0, canvasH = 0;
+		VR_Get2DMetrics(&canvasW, &canvasH, nullptr, nullptr);
+		const bool fillsBuffer = canvasW > 0 && canvasH > 0;
+		const float shape = fillsBuffer ? (float)canvasW / (float)canvasH : (float)width / (float)height;
+		const float screenWidth = MenuPanelWidth(VR_GetScreenLayerDistance());
+		XrExtent2Df size = {screenWidth, screenWidth / shape};
 
 		/*
 			One line, once per change of shape, to settle the virtual screen's
@@ -1861,10 +1906,10 @@ void TBXR_submitFrame(void)
 			if (lastW != width || lastH != height || lastCW != cw)
 			{
 				lastW = width; lastH = height; lastCW = cw;
-				VR_Log("VR: virtual screen - canvas %dx%d (%.2f), viewport %dx%d, buffer %dx%d (%.2f), quad %.2f x %.2f m\n",
+				VR_Log("VR: virtual screen - canvas %dx%d (%.2f), viewport %dx%d, buffer %dx%d (%.2f), quad %.2f x %.2f m, shaped by the %s\n",
 						cw, ch, ch > 0 ? (float)cw / (float)ch : 0.f,
 						vw, vh, width, height, height > 0 ? (float)width / (float)height : 0.f,
-						size.width, size.height);
+						size.width, size.height, fillsBuffer ? "canvas" : "buffer");
 			}
 		}
 
@@ -1905,18 +1950,14 @@ void TBXR_submitFrame(void)
 			did at one metre, where its size was approved.
 		*/
 		const float dist = VR_MenuDepth();
-		// Grown with the distance so it subtends the angle the approved panel
-		// did at vr_menu_distance.
-		const float ref = VR_MenuDistance() > 0.01f ? VR_MenuDistance() : 1.0f;
-		const float height = 2.0f * VR_MenuScale() * dist / ref;
 		/*
-			Height is the size that was signed off, so height is what is kept.
-			The width carries the screen's aspect, which is the squeeze the paint
-			put into the square texture - see VR_MenuAspect. Square until a paint
-			reports one, which is what this always did.
+			Width from MenuPanelWidth; the height carries the screen's aspect,
+			which is the squeeze the paint put into the square texture - see
+			VR_MenuAspect. Square until a paint reports one.
 		*/
 		const float aspect = VR_MenuAspect() > 0.01f ? VR_MenuAspect() : 1.0f;
-		const float width = height * aspect;
+		const float width = MenuPanelWidth(dist);
+		const float height = width / aspect;
 		const float yaw = DEG2RAD(gMenuAnchorYawDeg);
 		const XrVector3f axis = {0.0f, 1.0f, 0.0f};
 
