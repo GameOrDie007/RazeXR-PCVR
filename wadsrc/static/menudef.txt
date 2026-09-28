@@ -544,6 +544,7 @@ OptionValue "DirectionMode"
 {
 	0, "Head"
 	1, "Off-hand controller"
+	2, "Off"
 }
 
 OptionValue "ControlScheme"
@@ -585,7 +586,7 @@ OptionMenu "VROptionsMenu" protected
 	Option "Switch Sticks",	"vr_switch_sticks", "YesNo"
 	StaticText 	""
 	Option "Turning Mode",	"vr_snapTurn", "TurningMode"
-	Option "Direction Mode",	"vr_move_use_offhand", "DirectionMode"
+	Option "Direction Mode",	"vr_move_direction", "DirectionMode"
 	StaticText 	""
 	Command "Recenter Height",	"vr_recenter"
 	Slider "Height Adjust",	"vr_height_adjust", -0.5, 1.0, 0.05, 2

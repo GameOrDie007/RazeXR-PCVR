@@ -7,6 +7,7 @@
 
 EXTERN_CVAR(Int, vr_control_scheme)
 EXTERN_CVAR(Bool, vr_move_use_offhand)
+EXTERN_CVAR(Int, vr_move_direction)
 EXTERN_CVAR(Float, vr_snapTurn);
 EXTERN_CVAR(Float, vr_ipd);
 EXTERN_CVAR(Float, vr_weaponPitchAdjust);

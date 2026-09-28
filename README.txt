@@ -311,6 +311,11 @@ Changing the render resolution
 Walking goes where I look, and I want it to go where I point
     Options - VR Options - Direction Mode - Off-hand controller.
 
+I want walking to ignore both my head and my hand
+    Options - VR Options - Direction Mode - Off. The stick then walks the way
+    your body faces in the game, which only turning with the stick changes.
+    Looking around and pointing leave it alone. Recenter if forward drifts.
+
 Redneck Rampage has no music unless you have its soundtrack. GOG ships it in a
 separate free bonus download that comes with the game rather than inside it.
 Leave that zip in your Downloads folder and run SETUP.bat again, or unpack it

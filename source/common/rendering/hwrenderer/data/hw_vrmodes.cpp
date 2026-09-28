@@ -78,7 +78,16 @@ CVAR(Float, vr_units_per_meter, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG) // METER
 
 CVAR(Float, vr_height_adjust, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG) // METERS
 CVAR(Int, vr_control_scheme, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCALL)
-CVAR(Bool, vr_move_use_offhand, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Bool, vr_move_use_offhand, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// the old switch - see vr_move_direction
+/*
+	PC branch: which way the stick walks you. 0 the head, 1 the off-hand
+	controller, 2 neither - the way the body faces, which only turning with
+	the stick changes. Asked for by a player in September 2026 ("anyway to
+	turn off direction mode?"). vr_move_use_offhand was a yes/no and is in
+	every saved config, so it stays as the way in: set, it moves this to 1
+	and clears itself (VrInputDefault.cpp).
+*/
+CVAR(Int, vr_move_direction, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, vr_weaponPitchAdjust, 20.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, vr_weaponYawAdjust, 6.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, vr_allowPitchOverride, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)

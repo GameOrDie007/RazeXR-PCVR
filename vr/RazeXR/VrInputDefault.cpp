@@ -229,8 +229,25 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
             vec3_t rotation = {0};
             QuatToYawPitchRoll(pOffTracking->Pose.orientation, rotation, offhandangles);
 
+            // The old yes/no switch, from a saved config or the console,
+            // becomes "off-hand controller" once and hands over.
             if (vr_move_use_offhand) {
+                vr_move_direction = 1;
+                vr_move_use_offhand = false;
+            }
+
+            if (vr_move_direction == 1) {
                 controllerYawHeading = offhandangles[YAW] - hmdorientation[YAW];
+            } else if (vr_move_direction == 2) {
+                /*
+                    PC branch: "Off" - the stick walks the way the body faces.
+                    Head direction is the baseline here (a heading of 0), so
+                    taking the head's own yaw back out leaves the tracking
+                    space's forward, which recenter sets and stick turning
+                    turns: the same thing the off-hand line does with the
+                    controller's yaw in place of zero.
+                */
+                controllerYawHeading = -hmdorientation[YAW];
             } else {
                 controllerYawHeading = 0.0f;
             }
