@@ -98,6 +98,9 @@ void VRCrosshair_SetFlags(DCoreActor* actor);
 class tspriteArray;
 struct FRenderViewpoint;
 void VRCrosshair_Aim(DCoreActor* player, const DVector3& spos);
+// Once a frame, before any scene pass, from the head's viewpoint (render_drawrooms).
+void VRCrosshair_Update(const FRenderViewpoint& vp);
+// Every scene pass: applies what VRCrosshair_Update worked out.
 void VRCrosshair_Frame(tspriteArray& tsprites, const FRenderViewpoint& vp);
 
 #endif

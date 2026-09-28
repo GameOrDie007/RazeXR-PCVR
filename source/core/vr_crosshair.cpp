@@ -128,8 +128,20 @@ void VRCrosshair_Aim(DCoreActor* player, const DVector3& spos)
 	AimExtra = spos - player->spr.pos - HandPart(player->spr.Angles.Yaw.Degrees(), x, y, z);
 }
 
-void VRCrosshair_Frame(tspriteArray& tsprites, const FRenderViewpoint& vp)
+// This frame's placement, worked out once by VRCrosshair_Update.
+static bool FrameValid = false;
+static DVector3 FramePos;
+static sectortype* FrameSect = nullptr;
+
+/*
+	Once a frame, from the head's viewpoint, before any scene pass. The
+	placement is worked out here and only applied per pass, because each eye
+	and each mirror or portal pass has a camera of its own - aiming from those
+	put the crosshair somewhere else in every one of them.
+*/
+void VRCrosshair_Update(const FRenderViewpoint& vp)
 {
+	FrameValid = false;
 	if (!vr_crosshair_per_frame || !vr_6dof_weapons || !vr_6dof_crosshair) return;
 	if (!TBXR_VREnabled()) return;
 	if (AimCrosshair == nullptr || AimPlayer == nullptr) return;
@@ -138,21 +150,6 @@ void VRCrosshair_Frame(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	// from somewhere else, and the crosshair belongs to the hand.
 	DCoreActor* player = vp.CameraActor;
 	if (player == nullptr || player != AimPlayer) return;
-
-	tspritetype* tspr = nullptr;
-	for (unsigned i = 0; i < tsprites.Size(); i++)
-	{
-		if (tsprites.get(i)->ownerActor == AimCrosshair) { tspr = tsprites.get(i); break; }
-	}
-	if (tspr == nullptr) return;					// not drawn this frame
-	/*
-		The remembered pointer can outlive its actor - a level change frees it
-		before the game spawns a new crosshair - and the memory can come back
-		as some other actor. The sprite found here is live, so its status list
-		can be read: only the game's crosshair list is the crosshair.
-	*/
-	if (tspr->ownerActor->spr.statnum != AimCrosshairStat) return;
-	if (tspr->scale.X <= 0 || tspr->scale.Y <= 0) return;	// the game has hidden it
 
 	float x, y, z, wpitch, wyaw;
 	get_weapon_pos_and_angle(x, y, z, wpitch, wyaw);
@@ -177,8 +174,33 @@ void VRCrosshair_Frame(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	player->spr.cstat = savedCstat;
 	if (hit.hitSector == nullptr) return;
 
-	tspr->pos = VRCrosshair_Place(start, hit.hitpos);
-	tspr->sectp = hit.hitSector;
+	FramePos = VRCrosshair_Place(start, hit.hitpos);
+	FrameSect = hit.hitSector;
+	FrameValid = true;
+}
+
+// Every scene pass: move the crosshair's sprite to this frame's placement.
+void VRCrosshair_Frame(tspriteArray& tsprites, const FRenderViewpoint& vp)
+{
+	if (!FrameValid) return;
+
+	tspritetype* tspr = nullptr;
+	for (unsigned i = 0; i < tsprites.Size(); i++)
+	{
+		if (tsprites.get(i)->ownerActor == AimCrosshair) { tspr = tsprites.get(i); break; }
+	}
+	if (tspr == nullptr) return;					// not drawn in this pass
+	/*
+		The remembered pointer can outlive its actor - a level change frees it
+		before the game spawns a new crosshair - and the memory can come back
+		as some other actor. The sprite found here is live, so its status list
+		can be read: only the game's crosshair list is the crosshair.
+	*/
+	if (tspr->ownerActor->spr.statnum != AimCrosshairStat) return;
+	if (tspr->scale.X <= 0 || tspr->scale.Y <= 0) return;	// the game has hidden it
+
+	tspr->pos = FramePos;
+	tspr->sectp = FrameSect;
 }
 
 //==========================================================================

@@ -251,7 +251,19 @@ static double ItemAngle(int i)
 
 static void RunSelfTestStep();
 static int SelfTest = -1;
-void VRWheel_AddSprites(tspriteArray& tsprites, const FRenderViewpoint& vp)
+static DAngle WheelYaw;		// the frame's drawn yaw, for the models' facing
+
+/*
+	Once a frame, from the frame's own head viewpoint - see vr_wheel.h.
+
+	This used to run from VRWheel_AddSprites, which is called once for every
+	scene pass: each eye, and each mirror, water or sky portal. Each eye's
+	camera sits half an IPD to one side and each portal's somewhere else
+	entirely, and the hand was read against whichever pass came last. In
+	Blood, full of portals, the highlight was decided from a viewpoint that
+	was not the head, and it would not leave the first weapon (27 Sep 2026).
+*/
+void VRWheel_Update(const FRenderViewpoint& vp)
 {
 	if (SelfTest >= 0) RunSelfTestStep();
 
@@ -265,10 +277,10 @@ void VRWheel_AddSprites(tspriteArray& tsprites, const FRenderViewpoint& vp)
 		return;
 	}
 
-	auto owner = vp.CameraActor;
-	if (owner == nullptr) return;
+	if (vp.CameraActor == nullptr) return;
 
 	const double hupm = vr_hunits_per_meter();
+	WheelYaw = VRWeapons_DrawnYaw(vp);
 
 	if (!Open)
 	{
@@ -312,9 +324,19 @@ void VRWheel_AddSprites(tspriteArray& tsprites, const FRenderViewpoint& vp)
 		}
 		Highlight = want_highlight;
 	}
+}
+
+// Every scene pass: draws what VRWheel_Update decided, at its fixed place in
+// the world, so every eye and every portal sees the same ring.
+void VRWheel_AddSprites(tspriteArray& tsprites, const FRenderViewpoint& vp)
+{
+	if (!Open) return;
+	auto owner = vp.CameraActor;
+	if (owner == nullptr) return;
+	const double hupm = vr_hunits_per_meter();
 
 	// The models.
-	const DAngle viewYaw = VRWeapons_DrawnYaw(vp);
+	const DAngle viewYaw = WheelYaw;
 	/*
 		The renderer gives every one of our tiles the HELD weapon's facing
 		correction (VRWeapons_ModelYaw, applied in HWSprite::ProcessVoxel after

@@ -53,6 +53,8 @@
 #include "render.h"
 #include "gamestruct.h"
 #include "gamehud.h"
+#include "vr_wheel.h"
+#include "vr_crosshair.h"
 
 EXTERN_CVAR(Bool, cl_capfps)
 EXTERN_CVAR(Bool, vr_allowPitchOverride);
@@ -483,6 +485,14 @@ void render_drawrooms(DCoreActor* playersprite, const DVector3& position, sector
 	// Shader start time does not need to be handled per level. Just use the one from the camera to render from.
 	auto RenderState = screen->RenderState();
 	CheckTimer(*RenderState, 0/*ShaderStartTime*/);
+
+	/*
+		PC branch: the hand is read once a frame, here, from the head's own
+		viewpoint - before the camera textures, the eyes and the portals, each
+		of which renders from a camera of its own. See vr_wheel.h.
+	*/
+	VRWheel_Update(r_viewpoint);
+	VRCrosshair_Update(r_viewpoint);
 
 	// prepare all camera textures that have been used in the last frame.
 	gi->UpdateCameras(r_viewpoint.TicFrac);

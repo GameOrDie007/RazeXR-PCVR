@@ -49,6 +49,10 @@ bool VRWheel_IsOpen();
 
 // Once per frame from the scene setup, right after the held weapon: opens,
 // tracks the hand, selects on release, and adds the ring's models.
+// Once a frame, before any scene pass, from the head's viewpoint: opening,
+// closing, reading the hand and choosing. render_drawrooms calls it.
+void VRWheel_Update(const FRenderViewpoint& vp);
+// Every scene pass: draws the ring VRWheel_Update placed.
 void VRWheel_AddSprites(tspriteArray& tsprites, const FRenderViewpoint& vp);
 
 #endif
