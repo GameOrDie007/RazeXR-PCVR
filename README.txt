@@ -238,7 +238,14 @@ Fan campaigns
 -------------
 
 Death Wish and MARROW, Blood's two big fan episodes, are recognised the same way
-the official add-ons are. Put the .zip in  games\blood\  and run SETUP.bat.
+the official add-ons are.
+
+Own Blood: Refreshed Supply? Then there is nothing to do: it includes both, and
+SETUP.bat brings them across with the rest of Blood. If you have more than one
+Blood installed, setup picks the one that has them.
+
+Otherwise get them free from ModDB, put the .zip in  games\blood\  and run
+SETUP.bat again.
 
 Hand Raze the zip, and do not unpack it into the Blood folder. Both ship
 tiles007.art and tiles008.art, which are names Blood's own art already uses, so

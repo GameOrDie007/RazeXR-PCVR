@@ -84,8 +84,13 @@ GRP.
 
 **Death Wish** and **MARROW**, the two big Blood fan episodes - both good enough that
 Nightdive later made them official expansions in Blood: Refreshed Supply - are recognised
-here the same way the official add-ons are. Put the `.zip` in `games\blood\` and run
-`SETUP.bat`.
+here the same way the official add-ons are.
+
+**Own Blood: Refreshed Supply? There is nothing to do** - it includes both, and
+`SETUP.bat` brings them across with the rest of Blood. If you have more than one Blood
+installed, setup picks the one that has them.
+
+Otherwise, put the `.zip` in `games\blood\` and run `SETUP.bat` again.
 
 Get them from their authors, free: [Death Wish](https://www.moddb.com/mods/death-wish-for-blood)
 by Dustin "Bloatoid" Twilley and [MARROW](https://www.moddb.com/mods/marrow) by Nickolas

@@ -204,10 +204,30 @@ foreach ($r in $roots) {
     if ($c) { $wtDir = $c.DirectoryName; break }
 }
 
+<#
+    Blood: prefer the install that carries Death Wish and MARROW.
+
+    Blood: Refreshed Supply ships both fan campaigns - now official - as
+    addons\Death Wish\ and addons\MARROW\ beside BLOOD.RFF, and the whole
+    folder comes across, so they become games of their own with no download.
+    But the search stops at its first Blood, and One Unit Whole Blood, Fresh
+    Supply and the DOS copies inside Refreshed Supply itself all answer to
+    BLOOD.RFF with no campaigns beside them. Anyone with two installs could
+    get the one without. So a Blood with neither is set aside, as an older
+    Duke is, and used only if no better one turns up.
+#>
+function BloodHasCampaigns($dir) {
+    foreach ($c in @("Death Wish", "MARROW")) {
+        if (Test-Path -LiteralPath (Join-Path (Join-Path $dir "addons") $c)) { return $true }
+    }
+    return $false
+}
+
 foreach ($g in $games) {
     $hit = $null
     $wtFallback = $null
     $smallDuke = $null
+    $plainBlood = $null
     foreach ($r in $roots) {
         foreach ($fn in $g.Files) {
             $c = Get-ChildItem -Path $r -Filter $fn -Recurse -File -Depth 4 -ErrorAction SilentlyContinue |
@@ -216,6 +236,10 @@ foreach ($g in $games) {
                 if ($g.Folder -eq "ridesagain" -and $cand.Length -ne $RIDESAGAIN_SIZE) { continue }
                 if ($g.Folder -eq "rampage"    -and $cand.Length -eq $RIDESAGAIN_SIZE) { continue }
                 if ($g.Folder -eq "exhumed"    -and $cand.Length -lt $EXHUMED_MIN) { continue }
+                if ($g.Folder -eq "blood" -and -not (BloodHasCampaigns $cand.DirectoryName)) {
+                    if (-not $plainBlood) { $plainBlood = $cand }
+                    continue
+                }
                 if ($g.Folder -eq "duke" -and $cand.Length -lt $DUKE_ATOMIC_MIN) {
                     if (-not $smallDuke) { $smallDuke = $cand }
                     continue
@@ -251,6 +275,10 @@ foreach ($g in $games) {
 
     # No Atomic anywhere, so an older Duke is better than none.
     if (-not $hit -and $smallDuke) { $hit = $smallDuke }
+
+    # No Refreshed Supply, so Blood without the campaigns. They can still be
+    # added by hand - README, "Blood's fan campaigns".
+    if (-not $hit -and $plainBlood) { $hit = $plainBlood }
 
     if (-not $hit) {
         Info ("{0,-24} not found" -f $g.Name)
@@ -310,6 +338,9 @@ foreach ($g in $games) {
         if (-not $seedPath) { $seedPath = $hit.FullName }
         $n = CopyGameFolder $hit.DirectoryName $g.Folder
         Ok ("{0,-24} {1} files from {2}" -f $g.Name, $n, $hit.DirectoryName)
+        if ($g.Folder -eq "blood" -and (BloodHasCampaigns $hit.DirectoryName)) {
+            Info "  with Death Wish and MARROW, from Blood: Refreshed Supply"
+        }
     }
 }
 
