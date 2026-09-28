@@ -449,8 +449,17 @@ void TBXR_InitActions( void )
             b[n++] = ActionSuggestedBinding(aimAction,             H("/input/aim/pose"));
             b[n++] = ActionSuggestedBinding(vibrateAction,         H("/output/haptic"));
         }
-        b[n++] = ActionSuggestedBinding(backAction,           P("/user/hand/left/input/trackpad/force"));
-        b[n++] = ActionSuggestedBinding(ThumbrestTouchAction, P("/user/hand/right/input/trackpad/force"));
+        /*
+            The menu on the off hand's trackpad, the kick on the gun hand's: the
+            kick is read from the dominant hand's thumbrest (VrInputDefault.cpp),
+            and left-handed play makes the left hand dominant. Mirrored for it,
+            or a left-handed Index player had no kick at all. The menu is read
+            from either hand, so it may go wherever the kick is not. Restart
+            only, like the rest of this block.
+        */
+        const bool leftHanded = vr_control_scheme == LEFT_HANDED_DEFAULT || vr_control_scheme == LEFT_HANDED_ALT;
+        b[n++] = ActionSuggestedBinding(backAction,           P(leftHanded ? "/user/hand/right/input/trackpad/force" : "/user/hand/left/input/trackpad/force"));
+        b[n++] = ActionSuggestedBinding(ThumbrestTouchAction, P(leftHanded ? "/user/hand/left/input/trackpad/force" : "/user/hand/right/input/trackpad/force"));
         b[n++] = ActionSuggestedBinding(XAction,      P("/user/hand/left/input/a/click"));
         b[n++] = ActionSuggestedBinding(XTouchAction, P("/user/hand/left/input/a/touch"));
         b[n++] = ActionSuggestedBinding(YAction,      P("/user/hand/left/input/b/click"));

@@ -1932,9 +1932,9 @@ void TBXR_submitFrame(void)
 	}
 
 	/*
-		After the world, so it composites on top of it. Its height is taken
-		from vr_menu_scale so the existing slider still sizes it, and its
-		width from the aspect of the screen that was painted into the square
+		After the world, so it composites on top of it. Its width is
+		MenuPanelWidth - vr_menu_scale still sizes it - and its height comes
+		from the aspect of the screen that was painted into the square
 		texture, so the picture comes out the shape it went in.
 	*/
 	if (gMenuLayerDrawn && VR_MenuInWorld() && gAppState.LayerCount < ovrMaxLayerCount)

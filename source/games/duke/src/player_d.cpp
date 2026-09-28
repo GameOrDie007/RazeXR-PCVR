@@ -2580,7 +2580,7 @@ static void processweapon(int snum, ESyncBits actions)
 				posXY = posXY.Rotated(-DAngle90 + pact->spr.Angles.Yaw);
 				spos.X -= posXY.X;
 				spos.Y -= posXY.Y;
-				VRCrosshair_Aim(pact, spos);	// PC branch: re-aimed per frame, vr_crosshair.h
+				if (snum == myconnectindex) VRCrosshair_Aim(pact, spos);	// PC branch: re-aimed per frame, vr_crosshair.h
 
 				HitInfo hit{};
 

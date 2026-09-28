@@ -86,12 +86,14 @@ void VRCrosshair_SetFlags(DCoreActor* actor);
 	  VRCrosshair_Aim    called by each game where it builds the shot's
 	                     origin, before it moves the actor for the shot.
 	                     Records what that origin was made of.
-	  VRCrosshair_Frame  called while the frame's sprites are gathered.
-	                     Rebuilds the origin from the view's yaw, the actor's
-	                     interpolated position and the controller as it is
-	                     now, hitscans again, and moves the crosshair's
-	                     sprite - the sprite drawn this frame, never the
-	                     actor, so nothing the game simulates is touched.
+	  VRCrosshair_Update once a frame, from render_drawrooms, before any scene
+	                     pass. Rebuilds the origin from the drawn yaw, the
+	                     actor's interpolated position and the controller as
+	                     it is now, and hitscans again.
+	  VRCrosshair_Frame  every scene pass, while its sprites are gathered.
+	                     Moves the crosshair's sprite to that placement - the
+	                     sprite drawn this frame, never the actor, so nothing
+	                     the game simulates is touched.
 
 	vr_crosshair_per_frame 0 puts it back to once a tic, for comparison.
 */

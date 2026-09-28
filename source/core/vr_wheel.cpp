@@ -25,6 +25,7 @@
 #include "c_dispatch.h"
 #include "i_net.h"
 #include "i_time.h"
+#include "automap.h"
 
 #include <math.h>
 #include <chrono>
@@ -146,6 +147,9 @@ static bool CanOpen()
 	if (!vr_weapon_wheel) return false;
 	if (gamestate != GS_LEVEL) return false;
 	if (menuactive != MENU_Off || paused) return false;
+	// The full map draws no 3D view, so VRWheel_Update would not run to
+	// close the wheel - it stayed up, slowed, for as long as the map did.
+	if (automapMode == am_full) return false;
 	if (vr_wheel_debug > 0) return true;
 	return TBXR_VREnabled();
 }
@@ -187,7 +191,13 @@ static void Close(bool select)
 	Open = false;
 	SetSlowMotion(false);
 
-	if (select && Highlight >= 0 && Highlight < (int)Items.Size())
+	/*
+		Choosing the weapon already in hand keeps it. Every game treats "slot N"
+		for the slot you hold as a toggle - Duke's shrinker to expander, Shadow
+		Warrior's modes, Blood's alternates - so sending it would switch away
+		from the one weapon the player just chose.
+	*/
+	if (select && Highlight >= 0 && Highlight < (int)Items.Size() && !Items[Highlight].current)
 	{
 		/*
 			The engine's own "slot N". Every game already turns that into the
@@ -206,6 +216,14 @@ void VRWheel_SetHeld(bool held)
 {
 	// Let go - including by a menu opening - never leaves the game slowed.
 	if (Open && !CanOpen()) Close(false);
+	/*
+		Letting go chooses here, on the input frame, as well as in
+		VRWheel_Update: that one runs only when the 3D view is drawn, and a
+		game can skip the view - Duke's security cameras, a player outside
+		any sector. Only a real release: the desk debug mode opens the wheel
+		with nothing held, and must not be closed by not holding.
+	*/
+	if (Open && Held && !held) Close(CanOpen());
 	Held = held;
 }
 
@@ -278,6 +296,10 @@ void VRWheel_Update(const FRenderViewpoint& vp)
 	}
 
 	if (vp.CameraActor == nullptr) return;
+	// Duke's security cameras draw the world from the camera, with the viewer
+	// hidden while they do (SetupViewpoint's renderingRemoteCamera test). That
+	// is not where the hand is, so the ring is neither placed nor read from it.
+	if (vp.CameraActor->spr.cstat & CSTAT_SPRITE_INVISIBLE) return;
 
 	const double hupm = vr_hunits_per_meter();
 	WheelYaw = VRWeapons_DrawnYaw(vp);

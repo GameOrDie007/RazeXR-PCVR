@@ -79,9 +79,10 @@ float VR_MenuDepth();
 
 	This is the aspect of the pixels that went in, recorded during the paint,
 	so making the quad this shape undoes precisely the squeeze and nothing
-	else. The quad keeps the height it has always had - the size signed off in
-	the headset - and grows sideways, because a panel that keeps its text size
-	is easier to read than one that shrinks to fit a fixed width.
+	else. The quad's width is set by the angle it should span (Doom VR's,
+	about 62 degrees - MenuPanelWidth in TBXR_PC.cpp) and its height follows
+	from this aspect. Keeping the old square panel's height instead grew the
+	width 1.8 times, to most of the view.
 
 	Zero until the first paint, and the caller falls back to square.
 */
