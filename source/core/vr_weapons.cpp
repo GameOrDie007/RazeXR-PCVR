@@ -562,6 +562,13 @@ static void VRWeapons_NotDrawn(const char* why)
 	DPrintf(DMSG_NOTIFY, "VR weapon: %s NOT DRAWN - %s\n", CurrentWeapon.GetChars(), why);
 }
 
+DAngle VRWeapons_DrawnYaw(const FRenderViewpoint& vp)
+{
+	// HWAngles.Yaw is the game's yaw less 90 degrees, as SetupViewpoint and
+	// the portal code both build it.
+	return DAngle::fromDeg(vp.HWAngles.Yaw.Degrees() + 90.);
+}
+
 void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 {
 	// Not logged: these are the ordinary "no VR" and "no weapon" cases.
@@ -611,7 +618,7 @@ void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp)
 		ghosting under smooth turn, and settling the moment the stick is
 		released and the two converge again.
 	*/
-	DAngle playerYaw = DAngle::fromBam(vp.RotAngle);
+	DAngle playerYaw = VRWeapons_DrawnYaw(vp);	// the drawn yaw - see vr_weapons.h
 	/*
 		Two different yaws, and conflating them was the bug.
 

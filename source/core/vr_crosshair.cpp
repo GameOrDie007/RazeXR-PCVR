@@ -18,6 +18,7 @@
 #include "maptypes.h"
 #include "gamefuncs.h"
 #include "hw_drawinfo.h"
+#include "vr_weapons.h"
 
 float vr_hunits_per_meter();
 void get_weapon_pos_and_angle(float& x, float& y, float& z, float& pitch, float& yaw);
@@ -156,9 +157,9 @@ void VRCrosshair_Frame(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	float x, y, z, wpitch, wyaw;
 	get_weapon_pos_and_angle(x, y, z, wpitch, wyaw);
 
-	// The view's yaw, as the weapon in the hand is drawn - see
-	// VRWeapons_AddSprite for why that and not the actor's.
-	const DAngle viewYaw = DAngle::fromBam(vp.RotAngle);
+	// The yaw the frame is drawn with, as the weapon in the hand is placed -
+	// see VRWeapons_DrawnYaw. The actor's would trail every turn.
+	const DAngle viewYaw = VRWeapons_DrawnYaw(vp);
 	const DVector3 start = player->interpolatedpos(vp.TicFrac) + AimExtra + HandPart(viewYaw.Degrees(), x, y, z);
 	const DAngle aimYaw = viewYaw + DAngle::fromDeg(wyaw);
 

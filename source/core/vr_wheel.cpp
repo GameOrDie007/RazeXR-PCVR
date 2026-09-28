@@ -106,7 +106,7 @@ bool VRWheel_IsOpen()  { return Open; }
 static DVector3 HandToWorld(const FRenderViewpoint& vp, double across, double forward, double up)
 {
 	const double hupm = vr_hunits_per_meter();
-	const DAngle yaw = DAngle::fromBam(vp.RotAngle);
+	const DAngle yaw = VRWeapons_DrawnYaw(vp);	// as the held weapon is placed
 
 	DVector3 pos(vp.Pos.X, -vp.Pos.Y, -vp.Pos.Z);	// render space back to Build
 	DVector2 xy(across * hupm, forward * hupm);
@@ -314,7 +314,7 @@ void VRWheel_AddSprites(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	}
 
 	// The models.
-	const DAngle viewYaw = DAngle::fromBam(vp.RotAngle);
+	const DAngle viewYaw = VRWeapons_DrawnYaw(vp);
 	/*
 		The renderer gives every one of our tiles the HELD weapon's facing
 		correction (VRWeapons_ModelYaw, applied in HWSprite::ProcessVoxel after

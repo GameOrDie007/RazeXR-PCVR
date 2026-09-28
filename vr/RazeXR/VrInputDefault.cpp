@@ -17,6 +17,8 @@ Authors		:	Simon Brown
 #include "keydef.h"
 #include "menustate.h"
 
+#include <chrono>
+
 // hw_vrmodes.cpp - the pause menu as a panel in the world, and hiding it.
 bool VR_MenuInWorld();
 bool TBXR_IndexControllersActive();	// OpenXrInput.cpp
@@ -269,6 +271,25 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
                   remote_movementForward);
 
 
+            /*
+                PC branch: smooth turning by time, not by frame.
+
+                Theirs adds vr_snapTurn degrees every frame the stick is over,
+                which on the Quest's fixed refresh was a speed; on PC it is
+                3 degrees a frame at "Medium" - 270 a second at 90 Hz, 360 at
+                120 - and it read as too fast (27 Sep 2026). Each smooth
+                setting now turns vr_snapTurn x 40 degrees a SECOND: Slow 40,
+                Medium 120 (every Game Or Die port's speed), Fast 240, Very
+                Fast 360, at any refresh rate. Snap settings are unchanged.
+            */
+            static auto lastTurnTime = std::chrono::steady_clock::now();
+            const auto turnNow = std::chrono::steady_clock::now();
+            float turnSeconds = std::chrono::duration<float>(turnNow - lastTurnTime).count();
+            lastTurnTime = turnNow;
+            if (turnSeconds > 0.05f) turnSeconds = 0.05f;	// a hitch is not a lurch
+            const bool smoothTurning = vr_snapTurn <= 10.0f;
+            const float turnStep = smoothTurning ? vr_snapTurn * 40.0f * turnSeconds : (float)vr_snapTurn;
+
             // Not while a menu is up: the stick is working the menu, and
             // snap turn resets the origin the panel is anchored to.
             if (!dominantGripPushedNew && menuactive == MENU_Off)
@@ -278,7 +299,7 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
                 if (pPrimaryTrackedRemoteNew->Joystick.x > 0.6f) {
                     if (increaseSnap) {
                         VectorCopy(hmdPosition, hmdOrigin);
-                        snapTurn -= vr_snapTurn;
+                        snapTurn -= turnStep;
                         if (vr_snapTurn > 10.0f) {
                             increaseSnap = false;
                         }
@@ -295,7 +316,7 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
                 if (pPrimaryTrackedRemoteNew->Joystick.x < -0.6f) {
                     if (decreaseSnap) {
                         VectorCopy(hmdPosition, hmdOrigin);
-                        snapTurn += vr_snapTurn;
+                        snapTurn += turnStep;
 
                         //If snap turn configured for less than 10 degrees
                         if (vr_snapTurn > 10.0f) {

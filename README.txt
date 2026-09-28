@@ -84,8 +84,9 @@ Alt Weapon matters in Shadow Warrior: it re-selects the weapon already in your
 hand, which is how you reach the akimbo uzis, the quad shotgun and the nuke.
 In Duke and Blood it picks the alternate weapon in a shared slot.
 
-Turning is smooth by default. Snap is still there, under Options - VR Options -
-Turning Mode.
+Turning is smooth by default, at 120 degrees a second on "Medium" whatever
+your headset's refresh rate. Slow, Fast, Very Fast and snap turning are under
+Options - VR Options - Turning Mode.
 
 
 Hold the grip for a second set of controls

@@ -338,10 +338,6 @@ CD, any of those formats will do.
   Tour art inside it is absent.
 - Voxel Duke 3D covers the first three episodes. Its author left the episode-four set
   out because it is unfinished, so The Birth uses sprites.
-- Turning voxels off in Options → Display Options also turns off the weapons in your
-  hands, since those are voxels too.
-- Turn speed is degrees per rendered frame, so it is faster on a 120 Hz headset than a
-  90 Hz one. Options → VR Options → Turning Mode.
 
 ### Hold the grip for a second set of controls
 

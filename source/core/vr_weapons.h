@@ -135,4 +135,18 @@ void VRWeapons_ClearCurrent();
 // their crosshair lag a snap turn.
 void VRWeapons_AddSprite(tspriteArray& tsprites, const FRenderViewpoint& vp);
 
+/*
+	The yaw the frame is DRAWN with, in the game's convention - the one
+	everything held in the hand must be placed from.
+
+	The viewpoint carries two yaws. HWAngles.Yaw is the one the eyes are drawn
+	with: the headset's yaw, snap and smooth turning included, applied the
+	moment the stick moves. RotAngle is the game's yaw, which only catches up
+	on the game's next tic. Placing the gun from RotAngle put it, for the one
+	frame after a snap turn, where the snap had just turned away from: a gun on
+	the left for a frame, then back in the hand - reported 27 Sep 2026, the
+	same thing Quake had. At rest the two are equal, so nothing else moves.
+*/
+DAngle VRWeapons_DrawnYaw(const FRenderViewpoint& vp);
+
 #endif
