@@ -339,7 +339,23 @@ foreach ($g in $games) {
         $n = CopyGameFolder $hit.DirectoryName $g.Folder
         Ok ("{0,-24} {1} files from {2}" -f $g.Name, $n, $hit.DirectoryName)
         if ($g.Folder -eq "blood" -and (BloodHasCampaigns $hit.DirectoryName)) {
-            Info "  with Death Wish and MARROW, from Blood: Refreshed Supply"
+            $bloodAddons = Join-Path $hit.DirectoryName "addons"
+            $hasDW = Test-Path -LiteralPath (Join-Path $bloodAddons "Death Wish")
+            $hasMRW = Test-Path -LiteralPath (Join-Path $bloodAddons "MARROW")
+            if ($hasDW -and $hasMRW) {
+                Info "  with Death Wish and MARROW, from Blood: Refreshed Supply"
+            } elseif ($hasMRW) {
+                <#
+                    Death Wish came to Refreshed Supply in its patch 3.0, free.
+                    An install that has not updated has MARROW and nothing else
+                    - found on a test PC on 28 Sep 2026 - so say how to get it
+                    rather than leave it silently missing.
+                #>
+                Info "  with MARROW, from Blood: Refreshed Supply"
+                Warn "  no Death Wish: update Blood: Refreshed Supply (patch 3.0 added it, free) and run SETUP.bat again"
+            } else {
+                Info "  with Death Wish, from Blood: Refreshed Supply"
+            }
         }
     }
 }

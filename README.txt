@@ -242,7 +242,9 @@ the official add-ons are.
 
 Own Blood: Refreshed Supply? Then there is nothing to do: it includes both, and
 SETUP.bat brings them across with the rest of Blood. If you have more than one
-Blood installed, setup picks the one that has them.
+Blood installed, setup picks the one that has them. Death Wish arrived in
+Refreshed Supply's patch 3.0, so if only MARROW appears, update the game and run
+SETUP.bat again.
 
 Otherwise get them free from ModDB, put the .zip in  games\blood\  and run
 SETUP.bat again.
