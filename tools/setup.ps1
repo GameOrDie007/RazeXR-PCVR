@@ -66,12 +66,22 @@ foreach ($k in @("HKLM:\SOFTWARE\WOW6432Node\Valve\Steam",
         if ($v.SteamPath)   { $steam = $v.SteamPath;   break }
     } catch {}
 }
+<#
+    [System.IO.Path]::Combine, not Join-Path, for every path read from Steam.
+
+    Join-Path checks that the drive exists and throws when it does not, and
+    libraryfolders.vdf lists every library Steam has ever had - including
+    external drives that are switched off. One such drive stopped setup dead
+    before it had looked at anything ("Cannot find drive. A drive with the name
+    'S' does not exist", a player, 29 Sep 2026). Combine only joins strings;
+    AddRoot's Test-Path then skips a library that is not there.
+#>
 if ($steam) {
-    AddRoot (Join-Path $steam "steamapps\common")
-    $vdf = Join-Path $steam "steamapps\libraryfolders.vdf"
+    AddRoot ([System.IO.Path]::Combine($steam, "steamapps\common"))
+    $vdf = [System.IO.Path]::Combine($steam, "steamapps\libraryfolders.vdf")
     if (Test-Path $vdf) {
         foreach ($m in [regex]::Matches((Get-Content $vdf -Raw), '"path"\s+"([^"]+)"')) {
-            AddRoot (Join-Path ($m.Groups[1].Value -replace '\\\\', '\') "steamapps\common")
+            AddRoot ([System.IO.Path]::Combine(($m.Groups[1].Value -replace '\\\\', '\'), "steamapps\common"))
         }
     }
 }
