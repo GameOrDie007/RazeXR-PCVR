@@ -87,7 +87,12 @@ dpaddown invuse
 dpadup togglemap
 pad_start pause
 pad_back menu_main
-lthumb crouch 
+// PC branch: "+crouch", held for as long as the button is. This line came
+// from GZDoom's pad bindings as a bare "crouch", which fires once per press:
+// the VR X button sends this key, so X crouched for an instant and could not
+// hold you swimming down (a player, 29 Sep 2026). FGameConfigFile::DoKeySetup
+// repairs configs that saved the old line.
+lthumb +crouch
 // PC branch: the off-hand stick click. Their VR layer routes it here and
 // leaves it unbound - "No Default Binding" in VrInputDefault.cpp - and it is
 // the only way to reach Shadow Warrior's quad shotgun and nuke, which toggle

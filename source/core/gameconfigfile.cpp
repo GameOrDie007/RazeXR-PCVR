@@ -405,6 +405,21 @@ void FGameConfigFile::DoKeySetup(const char *gamename)
 			}
 		}
 	}
+
+	/*
+		PC branch: the pad's left thumb key - the VR X button, crouch - was bound
+		by default to a bare "crouch", which fires once per press instead of
+		holding, so X could not hold you swimming down. The default is now
+		"+crouch" (commonbinds.txt), but bindings are saved in the config, so
+		every player who has run the game keeps the old line. Repaired only when
+		it is exactly that old default: anything a player bound themselves stays.
+	*/
+	{
+		FString lthumb = Bindings.GetBinding(KEY_PAD_LTHUMB);
+		lthumb.StripLeftRight();
+		if (lthumb.CompareNoCase("crouch") == 0)
+			Bindings.SetBind(KEY_PAD_LTHUMB, "+crouch");
+	}
 	OkayToWrite = true;
 }
 
