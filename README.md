@@ -394,3 +394,7 @@ regenerates `raze.pk3`, which is needed whenever anything under `wadsrc/` change
 
 `PROGRESS.md` is the long-form record of how the port was made and why each decision
 went the way it did.
+
+---
+
+**Get an email when the next port ships:** follow [Game Or Die on Patreon](https://www.patreon.com/cw/GameOrDie) for free. Ports are never paywalled.
