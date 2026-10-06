@@ -26,6 +26,7 @@
 #include "i_net.h"
 #include "i_time.h"
 #include "automap.h"
+#include "buildtiles.h"
 
 #include <math.h>
 #include <chrono>
@@ -38,6 +39,8 @@ EXTERN_CVAR(Float, i_timescale)
 EXTERN_CVAR(Float, vr_weapon_scale)
 
 CVAR(Bool, vr_weapon_wheel, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+// The item wheel: the inventory on the same ring, grip + the same stick click.
+CVAR(Bool, vr_item_wheel, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 // Game speed while the wheel is open. 1 is no slow motion.
 CVAR(Float, vr_wheel_slowmo, 0.3f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
@@ -66,13 +69,19 @@ static constexpr double kDeadzoneMetres = 0.06;
 struct WheelItem
 {
 	int slot;
-	int tile;			// voxel tile of the model
+	int tile;			// voxel tile of the model, or the item's icon
 	float modelYaw;		// the model's own facing correction
 	bool current;
+	bool icon = false;	// tile is a flat HUD icon, not a model (the item wheel)
+	bool usable = true;
 	FString name;
 };
 
-static bool Held = false;
+enum { kWeapons, kItems };
+
+static bool Held = false;		// the gun hand's stick click, no grip: weapons
+static bool ItemHeld = false;	// the same with the grip held: items
+static int Mode = kWeapons;		// what the open ring holds
 static bool Open = false;
 static bool TimescaleChanged = false;
 static float SavedTimescale = 1.0f;
@@ -86,6 +95,7 @@ static DVector3 AcrossW;
 static DVector3 UpW;
 
 bool VRWheel_Enabled() { return vr_weapon_wheel; }
+bool VRWheel_ItemsEnabled() { return vr_item_wheel; }
 bool VRWheel_IsOpen()  { return Open; }
 
 //==========================================================================
@@ -142,9 +152,10 @@ static void HandNow(double& across, double& forward, double& up)
 //
 //==========================================================================
 
-static bool CanOpen()
+static bool CanOpen(int mode)
 {
-	if (!vr_weapon_wheel) return false;
+	if (mode == kWeapons && !vr_weapon_wheel) return false;
+	if (mode == kItems && !vr_item_wheel) return false;
 	if (gamestate != GS_LEVEL) return false;
 	if (menuactive != MENU_Off || paused) return false;
 	// The full map draws no 3D view, so VRWheel_Update would not run to
@@ -197,7 +208,20 @@ static void Close(bool select)
 		Warrior's modes, Blood's alternates - so sending it would switch away
 		from the one weapon the player just chose.
 	*/
-	if (select && Highlight >= 0 && Highlight < (int)Items.Size() && !Items[Highlight].current)
+	if (select && Mode == kItems && Highlight >= 0 && Highlight < (int)Items.Size() && Items[Highlight].usable)
+	{
+		/*
+			The item wheel uses what it shows, through the engine's own
+			"useitem N" - the same command the keyboard's item keys send, which
+			every game turns into its own item. Using the item already selected
+			is still using it, so there is no exception here.
+		*/
+		FString cmd;
+		cmd.Format("useitem %d", Items[Highlight].slot);
+		DPrintf(DMSG_NOTIFY, "VR wheel: %s\n", cmd.GetChars());
+		C_DoCommand(cmd.GetChars());
+	}
+	else if (select && Mode == kWeapons && Highlight >= 0 && Highlight < (int)Items.Size() && !Items[Highlight].current)
 	{
 		/*
 			The engine's own "slot N". Every game already turns that into the
@@ -215,7 +239,7 @@ static void Close(bool select)
 void VRWheel_SetHeld(bool held)
 {
 	// Let go - including by a menu opening - never leaves the game slowed.
-	if (Open && !CanOpen()) Close(false);
+	if (Open && !CanOpen(Mode)) Close(false);
 	/*
 		Letting go chooses here, on the input frame, as well as in
 		VRWheel_Update: that one runs only when the 3D view is drawn, and a
@@ -223,8 +247,16 @@ void VRWheel_SetHeld(bool held)
 		any sector. Only a real release: the desk debug mode opens the wheel
 		with nothing held, and must not be closed by not holding.
 	*/
-	if (Open && Held && !held) Close(CanOpen());
+	if (Open && Mode == kWeapons && Held && !held) Close(CanOpen(Mode));
 	Held = held;
+}
+
+// The same for the item wheel, on the grip + the stick click.
+void VRWheel_SetItemHeld(bool held)
+{
+	if (Open && !CanOpen(Mode)) Close(false);
+	if (Open && Mode == kItems && ItemHeld && !held) Close(CanOpen(Mode));
+	ItemHeld = held;
 }
 
 //==========================================================================
@@ -233,8 +265,31 @@ void VRWheel_SetHeld(bool held)
 //
 //==========================================================================
 
+static bool GatherItems()
+{
+	Items.Clear();
+	VRWheelEntry raw[kMaxEntries];
+	const int n = gi ? gi->VRItemEntries(raw, kMaxEntries) : 0;
+	for (int i = 0; i < n; i++)
+	{
+		if (raw[i].tile <= 0) continue;		// no icon to show; the inventory keys still reach it
+		WheelItem it;
+		it.slot = raw[i].slot;
+		it.tile = raw[i].tile;
+		it.modelYaw = 0;
+		it.current = raw[i].current;
+		it.icon = true;
+		it.usable = raw[i].usable;
+		it.name.Format("item %d", raw[i].slot);
+		Items.Push(it);
+	}
+	DPrintf(DMSG_NOTIFY, "VR wheel: %d items, %d on the wheel\n", n, Items.Size());
+	return Items.Size() > 0;
+}
+
 static bool Gather()
 {
+	if (Mode == kItems) return GatherItems();
 	Items.Clear();
 	VRWheelEntry raw[kMaxEntries];
 	const int n = gi ? gi->VRWheelEntries(raw, kMaxEntries) : 0;
@@ -285,15 +340,20 @@ void VRWheel_Update(const FRenderViewpoint& vp)
 {
 	if (SelfTest >= 0) RunSelfTestStep();
 
-	const bool want = CanOpen() && (Held || vr_wheel_debug > 0);
+	// Which ring is wanted: the open one while its button is held; otherwise
+	// the items if the grip is down with the click, the weapons if not.
+	const int mode = Open ? Mode : (ItemHeld ? kItems : kWeapons);
+	const bool holding = mode == kItems ? ItemHeld : (Held || vr_wheel_debug > 0);
+	const bool want = CanOpen(mode) && holding;
 
 	if (!want)
 	{
 		// Released with the wheel up: that is the choice. Closed for any other
 		// reason - a menu, a level change - chooses nothing.
-		Close(Open && !Held && CanOpen());
+		Close(Open && !holding && CanOpen(mode));
 		return;
 	}
+	if (!Open) Mode = mode;
 
 	if (vp.CameraActor == nullptr) return;
 	// Duke's security cameras draw the world from the camera, with the viewer
@@ -348,6 +408,139 @@ void VRWheel_Update(const FRenderViewpoint& vp)
 	}
 }
 
+//==========================================================================
+//
+// The look: a disc behind the ring, one slice per entry, the chosen slice lit
+// in the game's own colour, and a symbol at the hub.
+//
+// The disc is drawn from wedges (tools/make-wheel-art.py, tiles from
+// engine/vr_wheel.def): one wedge picture per slice count, pointing up, each
+// turned to its slice by the renderer (HWSprite::CalculateVertices). They
+// are billboards, square to the eye, and the ring was square to the eye when
+// it opened, so the two stay together for the small head moves of a choice.
+//
+//==========================================================================
+
+static constexpr int kPlainWedge = 30400;	// + slice count
+static constexpr int kLitWedge = 30420;		// + 16 * colour + slice count
+static int CentreTile = -1;					// this game's hub symbol, or none
+
+// Which colour and hub symbol: by game, as the art script lists them.
+static int WheelColour()
+{
+	if (isRR()) return 1;
+	if (isNamWW2GI()) return 2;
+	if (isBlood()) return 3;
+	if (isSWALL()) return 4;
+	if (isExhumed()) return 5;
+	return 0;	// Duke
+}
+
+static int WheelCentreTile()
+{
+	// Duke's own spinning nuke symbol, read from the player's game data.
+	if (!isRR() && !isNamWW2GI() && !isBlood() && !isSWALL() && !isExhumed())
+		return tileForName("ATOMICHEALTH");
+	return -1;
+}
+
+bool VRWheel_IsDiscTile(int tile)
+{
+	if (tile > kPlainWedge && tile < kLitWedge + 16 * 6) return true;
+	return Open && tile >= 0 && tile == CentreTile;	// the hub symbol spins the same way
+}
+
+// A billboard sprite of ours, centred on pos.
+static tspritetype* WheelSprite(tspriteArray& tsprites, DCoreActor* owner, const DVector3& pos, int tile, double sizeMetres, int shade)
+{
+	const double hupm = vr_hunits_per_meter();
+	const int w = tileWidth(tile);
+	if (w <= 0) return nullptr;
+	auto sectp = owner->sector();
+	updatesector(pos.XY(), &sectp);
+	if (sectp == nullptr) sectp = owner->sector();
+	const double scale = sizeMetres * hupm / w;
+
+	auto tspr = tsprites.newTSprite();
+	*tspr = {};
+	tspr->ownerActor = owner;
+	tspr->pos = pos;
+	tspr->sectp = sectp;
+	tspr->picnum = tile;
+	tspr->shade = shade;
+	tspr->pal = 0;
+	tspr->scale = DVector2(scale, scale);
+	tspr->Angles.Yaw = nullAngle;
+	tspr->Angles.Pitch = nullAngle;
+	tspr->Angles.Roll = nullAngle;
+	tspr->statnum = MAXSTATUS;
+	tspr->cstat2 = CSTAT2_SPRITE_NOANIMATE;
+	tspr->cstat = CSTAT_SPRITE_YCENTER;
+	return tspr;
+}
+
+/*
+	The angle that turns an upright wedge to point along d, in the plane of
+	this pass's billboards. The renderer turns a wedge from straight up
+	towards x1->x2, the billboard's own horizontal, which it builds from
+	vp.ViewVector as (-vy, vx) in render space - (-vy, -vx) in Build's, whose
+	Y runs the other way. Computed here from the same vector, so the slice and
+	the model it belongs to cannot end up on different sides.
+*/
+static DAngle WedgeRoll(const FRenderViewpoint& vp, const DVector3& d)
+{
+	const double vx = vp.ViewVector.X, vy = vp.ViewVector.Y;
+	DVector3 right(-vy, -vx, 0);
+	const double rl = right.Length();
+	if (rl <= 0) return nullAngle;
+	right /= rl;
+	const double along = d.X * right.X + d.Y * right.Y;
+	const double upward = -d.Z;		// Build Z runs downwards
+	return DAngle::fromRad(atan2(along, upward));
+}
+
+static void AddDisc(tspriteArray& tsprites, const FRenderViewpoint& vp, DCoreActor* owner)
+{
+	const int n = Items.Size();
+	if (n < 1 || n > 12) return;
+	const double hupm = vr_hunits_per_meter();
+	const double radius = vr_wheel_ring_radius;
+	const double outer = radius + 0.07;					// metres, to the disc's edge
+	const double size = 2.0 * outer / 0.98;				// the art's disc fills 98% of it
+
+	// A little further from the eye than the ring, so the models sit on it.
+	const DVector3 eye(vp.Pos.X, -vp.Pos.Y, -vp.Pos.Z);
+	DVector3 away = CentreW - eye;
+	away.Z = 0;
+	const double al = away.Length();
+	if (al > 0) away /= al;
+	const DVector3 discPos = CentreW + away * (0.03 * hupm);
+
+	const int colour = WheelColour();
+	for (int i = 0; i < n; i++)
+	{
+		const bool lit = i == Highlight;
+		const int tile = lit ? kLitWedge + 16 * colour + n : kPlainWedge + n;
+		auto tspr = WheelSprite(tsprites, owner, discPos, tile, size, lit ? -8 : 0);
+		if (!tspr) continue;
+		const double rad = ItemAngle(i) * (M_PI / 180.0);
+		tspr->Angles.Roll = WedgeRoll(vp, AcrossW * cos(rad) + UpW * sin(rad));
+		if (!lit) tspr->cstat |= CSTAT_SPRITE_TRANSLUCENT;	// the world shows through the rest
+	}
+
+	// The hub symbol, turning slowly, just in front of the disc.
+	CentreTile = WheelCentreTile();
+	if (CentreTile > 0)
+	{
+		auto tspr = WheelSprite(tsprites, owner, CentreW - away * (0.005 * hupm), CentreTile, 0.07, -8);
+		if (tspr)
+		{
+			const double secs = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+			tspr->Angles.Roll = DAngle::fromDeg(fmod(secs * 90.0, 360.0));
+		}
+	}
+}
+
 // Every scene pass: draws what VRWheel_Update decided, at its fixed place in
 // the world, so every eye and every portal sees the same ring.
 void VRWheel_AddSprites(tspriteArray& tsprites, const FRenderViewpoint& vp)
@@ -356,6 +549,8 @@ void VRWheel_AddSprites(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	auto owner = vp.CameraActor;
 	if (owner == nullptr) return;
 	const double hupm = vr_hunits_per_meter();
+
+	AddDisc(tsprites, vp, owner);
 
 	// The models.
 	const DAngle viewYaw = WheelYaw;
@@ -380,6 +575,17 @@ void VRWheel_AddSprites(tspriteArray& tsprites, const FRenderViewpoint& vp)
 		if (sectp == nullptr) sectp = owner->sector();
 
 		const bool lit = (int)i == Highlight;
+
+		if (it.icon)
+		{
+			// An item: its own HUD icon, flat, a little in front of the disc.
+			const double iconSize = 0.075 * (lit ? 1.35 : 1.0);
+			auto tspr = WheelSprite(tsprites, owner, pos, it.tile, iconSize,
+				lit ? -16 : (!it.usable ? 24 : (it.current ? 0 : 8)));
+			if (tspr && !it.usable) tspr->cstat |= CSTAT_SPRITE_TRANSLUCENT;
+			continue;
+		}
+
 		const double size = vr_weapon_scale * vr_wheel_model_scale * (lit ? 1.35 : 1.0);
 
 		auto tspr = tsprites.newTSprite();

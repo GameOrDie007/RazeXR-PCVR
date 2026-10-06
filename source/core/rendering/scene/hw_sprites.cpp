@@ -192,6 +192,8 @@ void HWSprite::DrawSprite(HWDrawInfo* di, FRenderState& state, bool translucent)
 //
 //==========================================================================
 
+bool VRWheel_IsDiscTile(int tile);	// PC branch, vr_wheel.cpp
+
 void HWSprite::CalculateVertices(HWDrawInfo* di, FVector3* v, DVector3* vp)
 {
 	const auto& HWAngles = di->Viewpoint.HWAngles;
@@ -255,6 +257,37 @@ void HWSprite::CalculateVertices(HWDrawInfo* di, FVector3* v, DVector3* vp)
 		v[1] = FVector3(x2, z1, y2);
 		v[2] = FVector3(x1, z2, y1);
 		v[3] = FVector3(x2, z2, y2);
+
+		/*
+			PC branch: the weapon wheel's disc wedges turn in their own plane.
+
+			A billboard has no roll in this renderer, and the wheel draws its
+			disc from one wedge per slice count, each turned to its slice. Only
+			those tiles, so no game sprite is touched. Roll 0 points the wedge
+			straight up; a positive roll turns it towards x1->x2, the sprite's
+			own horizontal - the axis vr_wheel.cpp computes from the same
+			ViewVector, so the two can only agree.
+		*/
+		if (Sprite && VRWheel_IsDiscTile(Sprite->picnum) && Sprite->Angles.Roll != nullAngle)
+		{
+			const FVector3 c = (v[0] + v[3]) * 0.5f;
+			FVector3 r(x2 - x1, 0.f, y2 - y1);
+			const float rl = r.Length();
+			if (rl > 0.f)
+			{
+				r /= rl;
+				const FVector3 up(0.f, 1.f, 0.f);
+				const float cs = (float)Sprite->Angles.Roll.Cos();
+				const float sn = (float)Sprite->Angles.Roll.Sin();
+				for (int i = 0; i < 4; i++)
+				{
+					const FVector3 o = v[i] - c;
+					const float u = o | r;
+					const float w = o.Y;
+					v[i] = c + r * (u * cs + w * sn) + up * (-u * sn + w * cs);
+				}
+			}
+		}
 	}
 }
 

@@ -3094,4 +3094,34 @@ int GameInterface::VRWheelEntries(VRWheelEntry* out, int max)
 }
 
 
+//---------------------------------------------------------------------------
+//
+// PC branch: the VR item wheel's view of this game (vr_wheel.cpp).
+//
+// "useitem N" here (player.cpp, the Item_ enum): 1 doctor's bag (pack slot
+// 0), 2 crystal ball (slot 2), 3 beast vision (slot 3), 4 jump boots (slot 4).
+// The diving suit, slot 1, goes on by itself under water. Icons are the
+// status bar's PackIcon pictures, one per pack slot.
+//
+//---------------------------------------------------------------------------
+
+int GameInterface::VRItemEntries(VRWheelEntry* out, int max)
+{
+	PLAYER* p = &gPlayer[myconnectindex];
+	static const int packSlot[4] = { 0, 2, 3, 4 };
+	int n = 0;
+	for (int i = 0; i < 4 && n < max; i++)
+	{
+		const int k = packSlot[i];
+		if (p->packSlots[k].curAmount <= 0) continue;
+		FStringf icon("PackIcon%d", k + 1);
+		out[n].slot = i + 1;
+		out[n].tile = tileForName(icon.GetChars());
+		out[n].current = p->packItemId == k;
+		n++;
+	}
+	return n;
+}
+
+
 END_BLD_NS

@@ -625,4 +625,35 @@ void PlayerUpdateInventory(PLAYER* pp, short InventoryNum)
 
 }
 
+//---------------------------------------------------------------------------
+//
+// PC branch: the VR item wheel's view of this game (vr_wheel.cpp).
+//
+// "useitem N" is inventory item N-1 (the loop over the item bits above).
+// The repair kit uses itself, so it is not on the wheel. The icons are the
+// status bar's own (zscript sbar.zs).
+//
+//---------------------------------------------------------------------------
+
+int GameInterface::VRItemEntries(VRWheelEntry* out, int max)
+{
+	static const char* const icons[7] = {
+		"PanelMedkit", "PanelRepairKit", "PanelCloak", "PanelNightVision",
+		"PanelChemBomb", "PanelFlashBomb", "PanelCaltrops"
+	};
+	PLAYER* pp = &Player[myconnectindex];
+	int n = 0;
+	for (int i = 0; i < 7 && n < max; i++)
+	{
+		if (InventoryData[i].Flags & INVF_AUTO_USE) continue;
+		if (pp->InventoryAmount[i] <= 0) continue;
+		out[n].slot = i + 1;
+		out[n].tile = tileForName(icons[i]);
+		out[n].current = pp->InventoryNum == i;
+		n++;
+	}
+	return n;
+}
+
+
 END_SW_NS

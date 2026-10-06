@@ -1196,4 +1196,37 @@ int GameInterface::VRWheelEntries(VRWheelEntry* out, int max)
 }
 
 
+//---------------------------------------------------------------------------
+//
+// PC branch: the VR item wheel's view of this game (vr_wheel.cpp).
+//
+// "useitem N" is item N-1 (exhumed.cpp). An item costs magic to use; one the
+// player has but cannot pay for is shown dimmed and does nothing. The icon is
+// the first frame of the status bar's sequence for that item, as sbar.zs's
+// SetItemSeq picks it.
+//
+//---------------------------------------------------------------------------
+
+extern int nStatusSeqOffset;
+int seq_GetSeqPicnum2(int16_t nSeq, int16_t nFrame);
+
+int GameInterface::VRItemEntries(VRWheelEntry* out, int max)
+{
+	static const int nItemSeqOffset[6] = { 91, 72, 76, 79, 68, 87 };
+	static const int nItemMagic[6] = { 500, 1000, 100, 500, 400, 200 };
+	auto& pl = PlayerList[nLocalPlayer];
+	int n = 0;
+	for (int i = 0; i < 6 && n < max; i++)
+	{
+		if (pl.items[i] <= 0) continue;
+		out[n].slot = i + 1;
+		out[n].tile = seq_GetSeqPicnum2(nStatusSeqOffset + nItemSeqOffset[i], 0);
+		out[n].current = pl.nItem == i;
+		out[n].usable = nItemMagic[i] <= pl.nMagic;
+		n++;
+	}
+	return n;
+}
+
+
 END_PS_NS

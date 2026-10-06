@@ -47,6 +47,14 @@ void VRWheel_SetHeld(bool held);
 // even with voxel weapons or world voxels switched off.
 bool VRWheel_IsOpen();
 
+// The item wheel: the same ring, holding the inventory, on the grip + the
+// same stick click. Its own switch, vr_item_wheel.
+bool VRWheel_ItemsEnabled();
+void VRWheel_SetItemHeld(bool held);
+
+// The wheel's own disc tiles, which the renderer may turn in their plane.
+bool VRWheel_IsDiscTile(int tile);
+
 // Once a frame, before any scene pass, from the head's viewpoint: opening,
 // closing, reading the hand and choosing. render_drawrooms calls it.
 void VRWheel_Update(const FRenderViewpoint& vp);

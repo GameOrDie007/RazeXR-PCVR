@@ -1169,4 +1169,37 @@ int GameInterface::VRWheelEntries(VRWheelEntry* out, int max)
 }
 
 
+//---------------------------------------------------------------------------
+//
+// PC branch: the VR item wheel's view of this game (vr_wheel.cpp).
+//
+// "useitem N" uses the item whose icon number is N (PlayerSetItemUsed /
+// PlayerUseItem in inlines.h): 1 first aid, 2 steroids, 3 HoloDuke,
+// 4 jetpack, 5 night vision. Redneck Rampage keeps its own items in the same
+// five places. Scuba gear and boots switch on by themselves, so they are not
+// on the wheel. The icons are the status bar's own.
+//
+//---------------------------------------------------------------------------
+
+int GameInterface::VRItemEntries(VRWheelEntry* out, int max)
+{
+	auto p = &ps[myconnectindex];
+	const int amounts[5] = { p->firstaid_amount, p->steroids_amount, p->holoduke_amount, p->jetpack_amount, p->heat_amount };
+	const int dicons[5] = { DTILE_FIRSTAID_ICON, DTILE_STEROIDS_ICON, DTILE_HOLODUKE_ICON, DTILE_JETPACK_ICON, DTILE_HEAT_ICON };
+	// Redneck's are RTILE_FIRSTAID_ICON and so on (namelist_r.h), which this
+	// unit cannot see - it is compiled with Duke's names only.
+	const int ricons[5] = { 1645, 1654, 1655, 1652, 1646 };
+	int n = 0;
+	for (int i = 0; i < 5 && n < max; i++)
+	{
+		if (amounts[i] <= 0) continue;
+		out[n].slot = i + 1;
+		out[n].tile = isRR() ? ricons[i] : dicons[i];
+		out[n].current = p->inven_icon == i + 1;
+		n++;
+	}
+	return n;
+}
+
+
 END_DUKE_NS

@@ -263,9 +263,14 @@ alternate weapon in a shared slot.
 ### The weapon wheel
 
 Hold your gun hand's stick click and the weapons you are carrying hang in a ring in
-front of you, as the same 3D models you hold. Move your hand towards one - it lights up
-and grows - and let go of the stick to switch to it. Let go with your hand still in the
-middle and nothing changes.
+front of you, as the same 3D models you hold, on a disc of slices. Move your hand
+towards one (its slice lights up in the game's colour and the model grows) and let go of
+the stick to switch to it. Let go with your hand still in the middle and nothing changes.
+
+**Hold the grip as well and the same ring holds your inventory**: the medkit, steroids,
+jetpack and the rest, as their status bar icons. Let go on one to use it. Items that
+switch themselves on (Duke's scuba gear and boots, Blood's diving suit) are not on it.
+**Options → VR Options → Item Wheel** turns it off.
 
 Time slows while the wheel is open, so choosing is not a gamble. **Options → VR Options
 → Wheel Slow Motion** sets how much: 0.3 is a third of normal speed, 1 is none.
@@ -357,6 +362,7 @@ answer.
 | Grip + dominant stick down | Next inventory item |
 | Grip + dominant stick up | Previous inventory item |
 | Grip + **A** | Use the selected item |
+| Grip + dominant stick click (hold) | Item wheel |
 | Grip + off-hand **A** / **B** | Fly down / up |
 | Grip + off-hand stick click | Land |
 

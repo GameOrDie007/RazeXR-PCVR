@@ -99,6 +99,7 @@ have ever wondered how to take the steroids, this is it.
     Grip + dominant stick down   Next inventory item
     Grip + dominant stick up     Previous inventory item
     Grip + A                     Use the selected item
+    Grip + dominant stick click  Item wheel (hold)
     Grip + trigger               Quick kick   (Duke, NAM, Redneck)
     Grip + off-hand A            Fly down    (jetpack, or swimming)
     Grip + off-hand B            Fly up
@@ -109,16 +110,23 @@ Nothing else on the controller changes, so you can hold the grip, flick to what
 you want, press A, and let go.
 
 There is no button that takes steroids directly. Select them first, then use
-them - the same as every other item.
+them - the same as every other item. Or use the item wheel, below.
 
 
 The weapon wheel
 ----------------
 
 Hold your gun hand's stick click and the weapons you are carrying hang in a
-ring in front of you, as the same 3D models you hold. Move your hand towards
-one - it lights up and grows - and let go of the stick to switch to it. Let go
-with your hand still in the middle and nothing changes.
+ring in front of you, as the same 3D models you hold, on a disc of slices.
+Move your hand towards one - its slice lights up in the game's colour and the
+model grows - and let go of the stick to switch to it. Let go with your hand
+still in the middle and nothing changes.
+
+Hold the grip as well and the same ring holds your inventory instead: the
+medkit, steroids, jetpack and the rest, as their status bar icons. Let go on
+one to use it. An item that switches itself on (Duke's scuba gear and boots,
+Blood's diving suit) is not on it. Options - VR Options - Item Wheel turns it
+off, and grip + stick click then does nothing, as before.
 
 Time slows while the wheel is open, so choosing is not a gamble. Options - VR
 Options - Wheel Slow Motion sets how much: 0.3 is a third of normal speed, 1 is

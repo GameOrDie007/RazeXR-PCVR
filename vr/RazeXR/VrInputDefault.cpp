@@ -24,6 +24,8 @@ bool VR_MenuInWorld();
 bool TBXR_IndexControllersActive();	// OpenXrInput.cpp
 bool VRWheel_Enabled();				// source/core/vr_wheel.cpp
 void VRWheel_SetHeld(bool held);
+bool VRWheel_ItemsEnabled();
+void VRWheel_SetItemHeld(bool held);
 bool VR_MenuHidden();
 void VR_MenuSetHidden(bool hidden);
 
@@ -540,13 +542,26 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
                     ((primaryButtonsNew & primaryButton2) != 0) && dominantGripPushedNew ? 1 : 0,
                     1, KEY_BACKSPACE);
 
-            //No Binding
-            Joy_GenerateButtonEvents(
-                    ((pDominantTrackedRemoteOld->Buttons & xrButton_Joystick) != 0) &&
-                    dominantGripPushedOld ? 1 : 0,
-                    ((pDominantTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
-                    dominantGripPushedNew ? 1 : 0,
-                    1, KEY_PAD_LSHOULDER);
+            /*
+                PC branch: grip + the gun hand's stick click opens the item
+                wheel. The key it sent before had no binding in any game.
+            */
+            if (VRWheel_ItemsEnabled())
+            {
+                VRWheel_SetItemHeld(((pDominantTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
+                                    dominantGripPushedNew);
+            }
+            else
+            {
+                VRWheel_SetItemHeld(false);
+                //No Binding
+                Joy_GenerateButtonEvents(
+                        ((pDominantTrackedRemoteOld->Buttons & xrButton_Joystick) != 0) &&
+                        dominantGripPushedOld ? 1 : 0,
+                        ((pDominantTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
+                        dominantGripPushedNew ? 1 : 0,
+                        1, KEY_PAD_LSHOULDER);
+            }
 
             //No Default Binding
             Joy_GenerateButtonEvents(

@@ -68,12 +68,19 @@ struct GeoEffect
 	slot is what the engine's "slot N" command takes; model is the VR weapon
 	model's name, the same name the held weapon uses; current is true for the
 	slot whose weapon is in hand.
+
+	The item wheel uses the same struct: slot is then what "useitem N" takes,
+	model is unused, tile is the item's own icon from the game's HUD, current
+	marks the selected inventory item, and usable is false for an item the
+	player has but cannot use right now (Exhumed's, short of magic).
 */
 struct VRWheelEntry
 {
-	int slot;
-	const char* model;
-	bool current;
+	int slot = 0;
+	const char* model = nullptr;
+	bool current = false;
+	int tile = -1;
+	bool usable = true;
 };
 
 struct GameInterface
@@ -126,6 +133,8 @@ struct GameInterface
 	virtual void ToggleShowWeapon() { Printf("Unsupported command\n"); }
 	// PC branch: the slots the local player owns, for the VR weapon wheel.
 	virtual int VRWheelEntries(VRWheelEntry* out, int max) { return 0; }
+	// PC branch: the inventory items the local player has, for the item wheel.
+	virtual int VRItemEntries(VRWheelEntry* out, int max) { return 0; }
 	virtual void processSprites(tspriteArray& tsprites, const DVector3& view, DAngle viewang, double interpfrac) = 0;
 	virtual void UpdateCameras(double smoothratio) {}
 	virtual void EnterPortal(DCoreActor* viewer, int type) {}

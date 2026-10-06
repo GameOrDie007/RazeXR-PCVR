@@ -137,6 +137,7 @@ struct GameInterface : public ::GameInterface
 	void ToggleShowWeapon() override;
 	void processSprites(tspriteArray& tsprites, const DVector3& view, DAngle viewang, double interpfrac) override;
 	int VRWheelEntries(VRWheelEntry* out, int max) override;	// PC branch, vr_wheel.cpp
+	int VRItemEntries(VRWheelEntry* out, int max) override;	// PC branch, vr_wheel.cpp
 	void EnterPortal(DCoreActor* viewer, int type) override;
 	void LeavePortal(DCoreActor* viewer, int type) override;
 	void LoadTextureInfo(TilesetBuildInfo& info) override;

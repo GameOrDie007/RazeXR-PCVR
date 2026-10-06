@@ -153,6 +153,11 @@ static void LoadDefinitions(TilesetBuildInfo& info)
 	{
 		loaddefinitionsfile(info, "engine/vr_weapons.def");
 	}
+	// PC branch: the weapon wheel's disc, from raze.pk3 (tools/make-wheel-art.py).
+	if (fileSystem.FindFile("engine/vr_wheel.def") >= 0)
+	{
+		loaddefinitionsfile(info, "engine/vr_wheel.def");
+	}
 
 	// load the widescreen replacements last. This ensures that mods still get the correct CRCs for their own tile replacements.
 	if (fileSystem.FindFile("engine/widescreen.def") >= 0 && !Args->CheckParm("-nowidescreen"))
