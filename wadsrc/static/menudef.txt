@@ -598,6 +598,7 @@ OptionMenu "VROptionsMenu" protected
 	Option "Weapon Wheel (hold stick click)",	"vr_weapon_wheel", "OnOff"
 	Option "Item Wheel (grip + stick click)",	"vr_item_wheel", "OnOff"
 	Slider "Wheel Slow Motion",	"vr_wheel_slowmo", 0.1, 1.0, 0.05, 2
+	Slider "Wheel Size",	"vr_wheel_size", 0.5, 1.5, 0.05, 2
 	Slider "Weapon Pitch Adjust",	"vr_weaponPitchAdjust", 0.0, 90.0, 5
 	Slider "Weapon Yaw Adjust",	"vr_weaponYawAdjust", -10.0, 10.0, 1
 	Option "VR Crosshair",	"vr_6dof_crosshair", "YesNo"

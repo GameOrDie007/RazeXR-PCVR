@@ -414,11 +414,24 @@ void FGameConfigFile::DoKeySetup(const char *gamename)
 		every player who has run the game keeps the old line. Repaired only when
 		it is exactly that old default: anything a player bound themselves stays.
 	*/
+	/*
+		The same for the two triggers: GZDoom's "+attack" and "+altattack",
+		which Raze does not have. The left trigger is the VR off-hand trigger,
+		so alt fire never worked from it.
+	*/
 	{
-		FString lthumb = Bindings.GetBinding(KEY_PAD_LTHUMB);
-		lthumb.StripLeftRight();
-		if (lthumb.CompareNoCase("crouch") == 0)
-			Bindings.SetBind(KEY_PAD_LTHUMB, "+crouch");
+		static const struct { int key; const char* was; const char* now; } fix[] =
+		{
+			{ KEY_PAD_LTHUMB,   "crouch",     "+crouch" },
+			{ KEY_PAD_LTRIGGER, "+altattack", "+Alt_Fire" },
+			{ KEY_PAD_RTRIGGER, "+attack",    "+Fire" },
+		};
+		for (auto& f : fix)
+		{
+			FString b = Bindings.GetBinding(f.key);
+			b.StripLeftRight();
+			if (b.CompareNoCase(f.was) == 0) Bindings.SetBind(f.key, f.now);
+		}
 	}
 	OkayToWrite = true;
 }

@@ -46,15 +46,27 @@ CVAR(Bool, vr_item_wheel, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, vr_wheel_slowmo, 0.3f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 /*
-	The ring's radius in metres, and each model's size as a fraction of the
-	held weapon's. First tried at 0.17 m and 0.8: in the headset the pistol and
-	the rocket launcher alone filled most of the view. Smaller models on a
-	wider ring. New names rather than new defaults for the old ones, because
-	the test config already holds the old numbers and a saved value beats a
-	new default; the old names never shipped.
+	The wheel's size, one dial for all of it: 1 is the sizes below. A ring of
+	0.22 m with the disc around it was "big and high up, hard to select" in
+	the headset; these are smaller. One new setting rather than new defaults
+	for the old radius and model-scale settings, which v1.1 configs hold - a
+	saved value beats a new default.
 */
-CVAR(Float, vr_wheel_ring_radius, 0.22f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-CVAR(Float, vr_wheel_model_scale, 0.35f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Float, vr_wheel_size, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+static constexpr double kRingRadius = 0.15;		// metres, to the models
+static constexpr double kModelScale = 0.25;		// of the held weapon's size
+static constexpr double kIconSize = 0.06;		// metres, an item's icon
+static constexpr double kDiscMargin = 0.045;	// metres, disc edge beyond the ring
+static double RingRadius() { return kRingRadius * clamp((float)vr_wheel_size, 0.3f, 2.0f); }
+static double WheelScale() { return clamp((float)vr_wheel_size, 0.3f, 2.0f); }
+/*
+	Never higher than this below the eyes. The ring opens where the hand is,
+	and a hand raised to click the stick put it at face height.
+*/
+static constexpr double kMaxRingUp = -0.25;
+// How far the ring was lowered from the hand when it opened; the hand is read
+// lowered by the same, so it starts at the centre either way.
+static double RingDrop = 0;
 
 /*
 	Desk only, and never saved: opens the ring with no headset, in front of
@@ -356,10 +368,15 @@ void VRWheel_Update(const FRenderViewpoint& vp)
 	if (!Open) Mode = mode;
 
 	if (vp.CameraActor == nullptr) return;
-	// Duke's security cameras draw the world from the camera, with the viewer
-	// hidden while they do (SetupViewpoint's renderingRemoteCamera test). That
-	// is not where the hand is, so the ring is neither placed nor read from it.
-	if (vp.CameraActor->spr.cstat & CSTAT_SPRITE_INVISIBLE) return;
+	/*
+		Duke's security cameras draw the world from the camera, with the viewer
+		hidden while they do. That is not where the hand is, so the ring is
+		neither placed nor read from it. Exactly SetupViewpoint's
+		renderingRemoteCamera test, isDuke() included: Blood hides the
+		player's own sprite for every first-person frame (view.cpp), and
+		without the game check the wheel never opened in Blood at all.
+	*/
+	if (isDuke() && (vp.CameraActor->spr.cstat & CSTAT_SPRITE_INVISIBLE)) return;
 
 	const double hupm = vr_hunits_per_meter();
 	WheelYaw = VRWeapons_DrawnYaw(vp);
@@ -370,6 +387,8 @@ void VRWheel_Update(const FRenderViewpoint& vp)
 
 		double a, f, u;
 		HandNow(a, f, u);
+		RingDrop = u > kMaxRingUp ? u - kMaxRingUp : 0;
+		u -= RingDrop;
 		CentreW = HandToWorld(vp, a, f, u);
 		AcrossW = HandToWorld(vp, a + 1.0, f, u) - CentreW;
 		AcrossW.MakeUnit();
@@ -390,6 +409,7 @@ void VRWheel_Update(const FRenderViewpoint& vp)
 		{
 			double a, f, u;
 			HandNow(a, f, u);
+			u -= RingDrop;
 			const DVector3 d = HandToWorld(vp, a, f, u) - CentreW;
 			const double x = (d.X * AcrossW.X + d.Y * AcrossW.Y + d.Z * AcrossW.Z) / hupm;
 			const double y = (d.X * UpW.X + d.Y * UpW.Y + d.Z * UpW.Z) / hupm;
@@ -504,8 +524,8 @@ static void AddDisc(tspriteArray& tsprites, const FRenderViewpoint& vp, DCoreAct
 	const int n = Items.Size();
 	if (n < 1 || n > 12) return;
 	const double hupm = vr_hunits_per_meter();
-	const double radius = vr_wheel_ring_radius;
-	const double outer = radius + 0.07;					// metres, to the disc's edge
+	const double radius = RingRadius();
+	const double outer = radius + kDiscMargin * WheelScale();	// metres, to the disc's edge
 	const double size = 2.0 * outer / 0.98;				// the art's disc fills 98% of it
 
 	// A little further from the eye than the ring, so the models sit on it.
@@ -562,7 +582,7 @@ void VRWheel_AddSprites(tspriteArray& tsprites, const FRenderViewpoint& vp)
 		its own - exact, and it leaves the headset-validated held weapon alone.
 	*/
 	const float heldYaw = VRWeapons_ModelYaw();
-	const double radius = vr_wheel_ring_radius;
+	const double radius = RingRadius();
 
 	for (unsigned i = 0; i < Items.Size(); i++)
 	{
@@ -579,14 +599,14 @@ void VRWheel_AddSprites(tspriteArray& tsprites, const FRenderViewpoint& vp)
 		if (it.icon)
 		{
 			// An item: its own HUD icon, flat, a little in front of the disc.
-			const double iconSize = 0.075 * (lit ? 1.35 : 1.0);
+			const double iconSize = kIconSize * WheelScale() * (lit ? 1.35 : 1.0);
 			auto tspr = WheelSprite(tsprites, owner, pos, it.tile, iconSize,
 				lit ? -16 : (!it.usable ? 24 : (it.current ? 0 : 8)));
 			if (tspr && !it.usable) tspr->cstat |= CSTAT_SPRITE_TRANSLUCENT;
 			continue;
 		}
 
-		const double size = vr_weapon_scale * vr_wheel_model_scale * (lit ? 1.35 : 1.0);
+		const double size = vr_weapon_scale * kModelScale * WheelScale() * (lit ? 1.35 : 1.0);
 
 		auto tspr = tsprites.newTSprite();
 		*tspr = {};

@@ -79,8 +79,12 @@ KP-Enter "invuse"
 // Xbox 360 / PS2 controllers
 pad_a +open
 pad_y +jump
-rtrigger +attack
-ltrigger +altattack
+// PC branch: Raze's names. These two came from GZDoom's pad bindings as
+// "+attack" and "+altattack", which Raze does not have - every press printed
+// "Unknown command". ltrigger is the VR off-hand trigger, so alt fire never
+// worked from it. FGameConfigFile::DoKeySetup repairs saved configs.
+rtrigger +Fire
+ltrigger +Alt_Fire
 dpadleft invprev
 dpadright invnext
 dpaddown invuse
