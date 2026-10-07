@@ -130,7 +130,8 @@ off, and grip + stick click then does nothing, as before.
 
 Time slows while the wheel is open, so choosing is not a gamble. Options - VR
 Options - Wheel Slow Motion sets how much: 0.3 is a third of normal speed, 1 is
-no slow motion.
+no slow motion. Options - VR Options - Wheel Size makes the whole wheel bigger
+or smaller.
 
 Crouch is on X. It used to be on the stick click as well; the wheel took that
 button. Turn the wheel off - Options - VR Options - Weapon Wheel - and the

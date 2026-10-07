@@ -274,6 +274,7 @@ switch themselves on (Duke's scuba gear and boots, Blood's diving suit) are not 
 
 Time slows while the wheel is open, so choosing is not a gamble. **Options → VR Options
 → Wheel Slow Motion** sets how much: 0.3 is a third of normal speed, 1 is none.
+**Wheel Size** makes the whole wheel bigger or smaller.
 
 Crouch is on X. The stick click used to crouch as well; the wheel took that button.
 Turn the wheel off (**Options → VR Options → Weapon Wheel**) and the stick click
