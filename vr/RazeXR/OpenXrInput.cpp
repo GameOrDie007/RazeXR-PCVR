@@ -444,7 +444,15 @@ void TBXR_InitActions( void )
             b[n++] = ActionSuggestedBinding(thumbstickTouchAction, H("/input/thumbstick/touch"));
             b[n++] = ActionSuggestedBinding(triggerAction,         H("/input/trigger/value"));
             b[n++] = ActionSuggestedBinding(TriggerTouchAction,    H("/input/trigger/touch"));
-            b[n++] = ActionSuggestedBinding(GripAction,            H("/input/squeeze/value"));
+            /*
+                The grip is the Index's squeeze FORCE, not its squeeze value. The
+                value follows how far the fingers curl round the handle, so just
+                holding the controller read as the grip held: grip + B sent the
+                180-degree turn, and the right stick switched to the inventory
+                and stopped turning (a player, 9 Oct 2026). Force is how hard
+                the hand actually squeezes.
+            */
+            b[n++] = ActionSuggestedBinding(GripAction,            H("/input/squeeze/force"));
             b[n++] = ActionSuggestedBinding(poseAction,            H("/input/grip/pose"));
             b[n++] = ActionSuggestedBinding(aimAction,             H("/input/aim/pose"));
             b[n++] = ActionSuggestedBinding(vibrateAction,         H("/output/haptic"));

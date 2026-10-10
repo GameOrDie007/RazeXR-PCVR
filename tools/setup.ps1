@@ -96,6 +96,20 @@ foreach ($base in @("HKLM:\SOFTWARE\WOW6432Node\GOG.com\Games",
     }
 }
 
+<#
+    3D Realms Anthology bought from 3D Realms itself, not Steam, installs
+    outside every Steam library and registers here, as Raze's own search list
+    (searchpaths.cpp) records. The games sit a folder or two below it, which
+    the search below reaches. A missing key adds nothing.
+#>
+foreach ($k in @("HKLM:\SOFTWARE\WOW6432Node\3DRealms\Anthology",
+                 "HKLM:\SOFTWARE\3DRealms\Anthology",
+                 "HKCU:\Software\3DRealms\Anthology")) {
+    try { AddRoot (Get-ItemProperty -Path $k -ErrorAction Stop).'(default)' } catch {}
+}
+foreach ($d in @("C:\Program Files (x86)\3D Realms", "C:\Program Files\3D Realms",
+                 "C:\3D Realms", "C:\Games\3D Realms Anthology")) { AddRoot $d }
+
 # The usual manual spots
 foreach ($d in @("C:\GOG Games", "D:\GOG Games", "E:\GOG Games",
                  "C:\Games", "D:\Games", "E:\Games")) { AddRoot $d }
