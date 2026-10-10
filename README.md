@@ -285,6 +285,10 @@ the right stick turns. **Switch Sticks**, under *Turning and Moving*, swaps them
 up and you stand. The view stays with your head. X still crouches too. **VR Options →
 Your Body → Crouch For Real** turns it off.
 
+**Lean your head into a wall and the view darkens** rather than showing the inside of the
+map: the game's body stops at the wall, your head does not, and the view goes black over
+the next 15 cm. **VR Options → Your Body → Wall Fade.**
+
 ### The weapon wheel
 
 Hold your gun hand's stick click and the weapons you are carrying hang in a ring in

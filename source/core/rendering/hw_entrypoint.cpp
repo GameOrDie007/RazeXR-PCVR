@@ -58,6 +58,22 @@
 #include "vr_crouch.h"
 
 EXTERN_CVAR(Bool, cl_capfps)
+
+/*
+	PC branch: the wall fade. Walk your head into a wall and the body stops,
+	but the head carries on; without this the eye would see the inside of the
+	map. Each eye is traced from the game's own camera to where the head puts
+	it. If a wall, floor or ceiling is in between, the eye stays at that
+	surface and fades to black over the next 15 cm the head goes, so leaning
+	into a wall darkens the view instead of showing what is behind it.
+
+	Traced from the camera before anything of ours: crouching for real lifts
+	the view back up, and in a low passage that lifted eye would be in the
+	ceiling - traced from the crouched camera, it goes dark, as it should.
+*/
+CVAR(Bool, vr_wall_fade, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+float vr_hunits_per_meter();
+static F2DDrawer wallFade;
 EXTERN_CVAR(Bool, vr_allowPitchOverride);
 
 void VR_SetWorldEyePos(float x, float y, float z);	// hw_vrmodes.cpp
@@ -187,10 +203,28 @@ void RenderViewpoint(FRenderViewpoint& mainvp, IntRect* bounds, float fov, float
 
 
 		// Stereo mode specific viewpoint adjustment
+		float fade = 0.f;	// PC branch: the wall fade, 0 clear to 1 black
 		if (eye.mShiftFactor != 0)
 		{
 			DVector3 newpos = vp.Pos;
 			newpos += eye.GetViewShift(vp.HWAngles);
+			if (vr_wall_fade && mainview && toscreen && eyeCount == 2 && vp.SectCount >= 0)
+			{
+				// Render space is Build's with Y and Z negated.
+				const DVector3 from(vp.Pos.X, -vp.Pos.Y, -vp.Pos.Z);
+				const DVector3 to(newpos.X, -newpos.Y, -newpos.Z);
+				const DVector3 dir = to - from;
+				const double len = dir.Length();
+				HitInfoBase hit;
+				if (len > 1e-3 && hitscan(from, &sector[vp.SectCount], dir, hit, 0, len) == 0 && hit.hitSector != nullptr)
+				{
+					const double past = (to - hit.hitpos).Length();
+					fade = (float)clamp(past / (0.15 * vr_hunits_per_meter()), 0., 1.);
+					// The eye waits at the surface, a hair on the camera's side.
+					const DVector3 at = hit.hitpos - dir * (0.5 / len);
+					newpos = DVector3(at.X, -at.Y, -at.Z);
+				}
+			}
 			sectortype* sect = &sector[vp.SectCount];
 			updatesector(DVector2(newpos.X, -newpos.Y), &sect);
 			if (sect != nullptr)
@@ -218,10 +252,19 @@ void RenderViewpoint(FRenderViewpoint& mainvp, IntRect* bounds, float fov, float
 				RenderState.EnableDrawBuffers(1);
 			}
 
-			screen->PostProcessScene(false, CM_DEFAULT, flash, []() { 
+			screen->PostProcessScene(false, CM_DEFAULT, flash, [fade]() { 
 				hw_int_useindexedcolortextures = false;
 				PostProcess.Unclock();
 				Draw2D(&twodpsp, *screen->RenderState()); // draws the weapon sprites
+				// PC branch: the wall fade, over everything in this eye.
+				if (fade > 0.f)
+				{
+					wallFade.Clear();
+					wallFade.SetSize(screen->GetWidth(), screen->GetHeight());
+					wallFade.ClearClipRect();
+					wallFade.AddColorOnlyQuad(0, 0, screen->GetWidth(), screen->GetHeight(), PalEntry((uint8_t)(fade * 255.f), 0, 0, 0));
+					Draw2D(&wallFade, *screen->RenderState());
+				}
 				PostProcess.Clock();
 				});
 			PostProcess.Unclock();

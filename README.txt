@@ -107,6 +107,10 @@ Duck your head and you crouch in the game, so you fit wherever a crouch fits;
 stand up and you stand. The view stays with your head. X still crouches too.
 VR Options - Your Body - Crouch For Real turns it off.
 
+Lean your head into a wall and the view darkens rather than showing the inside
+of the map: the game's body stops at the wall, your head does not, and the
+view goes black over the next 15 cm. VR Options - Your Body - Wall Fade.
+
 
 Hold the grip for a second set of controls
 ------------------------------------------
