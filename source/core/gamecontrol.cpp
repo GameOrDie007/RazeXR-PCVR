@@ -580,6 +580,27 @@ void RazeXR_PC_StopVR();
 #endif
 
 /*
+	PC branch: the previous run's log survives this one. A player whose game
+	crashed starts it again to get back in, and that start used to overwrite
+	(or bury) the log of the crash. Before a log's first open in a process,
+	the file from the last run becomes <name>.prev.log, replacing the one
+	before it, so the crash is still there to send.
+*/
+void VR_KeepPreviousLog(const char* path)
+{
+	FString from = path;
+	FString to = from;
+	if (to.Len() > 4 && !stricmp(to.GetChars() + to.Len() - 4, ".log")) to.Truncate(to.Len() - 4);
+	to += ".prev.log";
+#ifdef _WIN32
+	MoveFileExA(from.GetChars(), to.GetChars(), MOVEFILE_REPLACE_EXISTING);
+#else
+	remove(to.GetChars());
+	rename(from.GetChars(), to.GetChars());
+#endif
+}
+
+/*
 	A breadcrumb file that outlives the process.
 
 	Everything the engine normally records goes through the log opened by
@@ -597,6 +618,13 @@ void RazeXR_PC_StopVR();
 void VR_Trace(const char* stage)
 {
 #ifdef _WIN32
+	static bool first = true;
+	if (first)
+	{
+		first = false;
+		VR_KeepPreviousLog("logs/startup.log");
+		VR_KeepPreviousLog("startup.log");
+	}
 	FILE* f = fopen("logs/startup.log", "a");
 	if (!f) f = fopen("startup.log", "a");
 	if (!f) return;
@@ -1167,6 +1195,7 @@ int RunGame()
 
 	if (logfile.IsNotEmpty())
 	{
+		VR_KeepPreviousLog(logfile.GetChars());
 		execLogfile(logfile);
 	}
 	VR_Trace(FStringf("logfile open: %s", logfile.GetChars()).GetChars());

@@ -224,6 +224,8 @@ static void VR_Log(const char *fmt, ...);
 	OpenXrInput.cpp, and whether the runtime accepted them belongs in the file
 	players are asked to send, not only in the engine's own log.
 */
+void VR_KeepPreviousLog(const char* path);
+
 void TBXR_Log(const char *fmt, ...)
 {
 	va_list argptr;
@@ -252,6 +254,13 @@ static void VR_Log(const char *fmt, ...)
 		round worth something.
 	*/
 	{
+		// The last run's lines go to razexr_vr.prev.log (gamecontrol.cpp).
+		static bool first = true;
+		if (first)
+		{
+			first = false;
+			VR_KeepPreviousLog("razexr_vr.log");
+		}
 		FILE *f = fopen("razexr_vr.log", "a");
 		if (f)
 		{
