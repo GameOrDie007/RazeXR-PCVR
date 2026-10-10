@@ -155,6 +155,8 @@ void HWSprite::DrawSprite(HWDrawInfo* di, FRenderState& state, bool translucent)
 			state.EnableTexture(true);
 			model->BuildVertexBuffer(&mr);
 			bool mirrored = ((Sprite->cstat & CSTAT_SPRITE_XFLIP) != 0) ^ ((Sprite->cstat & CSTAT_SPRITE_YFLIP) != 0) ^ portalState.isMirrored();
+			// PC branch: the Leftorium's mirrored gun (ProcessVoxel) turns its faces inside out too.
+			if (VRWeapons_IsWeaponTile(Sprite->picnum) && VRWeapons_Mirrored()) mirrored = !mirrored;
 			mr.BeginDrawModel(RenderStyle, nullptr, rotmat, mirrored);
 			TArray<VSMatrix> a;
 			mr.SetupFrame(model, 0, 0, 0, a, 0);
@@ -594,6 +596,13 @@ bool HWSprite::ProcessVoxel(HWDrawInfo* di, voxmodel_t* vox, tspritetype* spr, s
 		// the model up. Roll needs no such flip.
 		rotmat.rotate(-spr->Angles.Pitch.Degrees(), 1, 0, 0);
 		rotmat.rotate(spr->Angles.Roll.Degrees(), 0, 0, 1);
+		/*
+			The Leftorium: the gun in the left hand is the right hand's mirror
+			image, flipped across the hand's left-right axis - X here, the one
+			pitch turns about - before the model's own facing correction, so
+			every game's model flips the same way.
+		*/
+		if (VRWeapons_Mirrored()) rotmat.scale(-1.f, 1.f, 1.f);
 		// The model's own facing correction goes last, so it cannot rotate the
 		// frame the two above are measured in.
 		rotmat.rotate(VRWeapons_ModelYaw(), 0, 1, 0);

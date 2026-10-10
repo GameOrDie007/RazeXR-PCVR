@@ -51,6 +51,10 @@ CVAR(Float, vr_weapon_rot_roll, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, vr_weapon_debug, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 EXTERN_CVAR(Bool, vr_6dof_weapons)
+EXTERN_CVAR(Int, vr_control_scheme)
+
+// Team Beef's value for left-handed is 10 (11 their alternative).
+bool VRWeapons_Mirrored() { return vr_control_scheme >= 10; }
 
 float vr_hunits_per_meter();
 void get_weapon_pos_and_angle(float& x, float& y, float& z, float& pitch, float& yaw);

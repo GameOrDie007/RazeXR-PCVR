@@ -160,7 +160,16 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
             (pDominantTrackedRemoteNew->Buttons & xrButton_GripTrigger) : false;
 
     ovrInputStateTrackedRemote *pPrimaryTrackedRemoteNew, *pPrimaryTrackedRemoteOld,  *pSecondaryTrackedRemoteNew, *pSecondaryTrackedRemoteOld;
-    if (vr_switch_sticks)
+    /*
+        PC branch: the Leftorium moves the gun to the left hand and leaves the
+        sticks where they were - the left stick walks, the right stick turns,
+        and their clicks go with them (the house way, asked of the left-handed
+        player it was made for). So it undoes the swap for the sticks, and
+        Switch Sticks, a row of its own, swaps them for anyone. "Primary" below
+        is the turning stick, "secondary" the walking one.
+    */
+    const bool leftorium = control_scheme >= 10;
+    if (vr_switch_sticks != leftorium)
     {
         pPrimaryTrackedRemoteNew = pOffTrackedRemoteNew;
         pPrimaryTrackedRemoteOld = pOffTrackedRemoteOld;
@@ -450,8 +459,8 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
         bool passToMenu = true;
         if (VR_MenuInWorld())
         {
-            const bool clickOld = (pOffTrackedRemoteOld->Buttons & xrButton_Joystick) != 0;
-            const bool clickNew = (pOffTrackedRemoteNew->Buttons & xrButton_Joystick) != 0;
+            const bool clickOld = (pSecondaryTrackedRemoteOld->Buttons & xrButton_Joystick) != 0;
+            const bool clickNew = (pSecondaryTrackedRemoteNew->Buttons & xrButton_Joystick) != 0;
             if (VR_MenuHidden())
             {
                 const uint32_t pressed =
@@ -584,7 +593,7 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
             */
             if (VRWheel_Enabled())
             {
-                VRWheel_SetHeld(((pDominantTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
+                VRWheel_SetHeld(((pPrimaryTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
                                 !dominantGripPushedNew);
             }
             else
@@ -592,9 +601,9 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
                 VRWheel_SetHeld(false);
                 //Crouch
                 Joy_GenerateButtonEvents(
-                        ((pDominantTrackedRemoteOld->Buttons & xrButton_Joystick) != 0) &&
+                        ((pPrimaryTrackedRemoteOld->Buttons & xrButton_Joystick) != 0) &&
                         !dominantGripPushedOld ? 1 : 0,
-                        ((pDominantTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
+                        ((pPrimaryTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
                         !dominantGripPushedNew ? 1 : 0,
                         1, KEY_LCTRL);
             }
@@ -641,7 +650,7 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
             */
             if (VRWheel_ItemsEnabled())
             {
-                VRWheel_SetItemHeld(((pDominantTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
+                VRWheel_SetItemHeld(((pPrimaryTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
                                     dominantGripPushedNew);
             }
             else
@@ -649,9 +658,9 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
                 VRWheel_SetItemHeld(false);
                 //No Binding
                 Joy_GenerateButtonEvents(
-                        ((pDominantTrackedRemoteOld->Buttons & xrButton_Joystick) != 0) &&
+                        ((pPrimaryTrackedRemoteOld->Buttons & xrButton_Joystick) != 0) &&
                         dominantGripPushedOld ? 1 : 0,
-                        ((pDominantTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
+                        ((pPrimaryTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
                         dominantGripPushedNew ? 1 : 0,
                         1, KEY_PAD_LSHOULDER);
             }
@@ -692,9 +701,9 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
 
             //No Default Binding
             Joy_GenerateButtonEvents(
-                    ((pOffTrackedRemoteOld->Buttons & xrButton_Joystick) != 0) &&
+                    ((pSecondaryTrackedRemoteOld->Buttons & xrButton_Joystick) != 0) &&
                     !dominantGripPushedOld ? 1 : 0,
-                    ((pOffTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
+                    ((pSecondaryTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
                     !dominantGripPushedNew ? 1 : 0,
                     1, KEY_PAD_RTHUMB);
 
@@ -743,9 +752,9 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
 
             //Land
             Joy_GenerateButtonEvents(
-                    ((pOffTrackedRemoteOld->Buttons & xrButton_Joystick) != 0) &&
+                    ((pSecondaryTrackedRemoteOld->Buttons & xrButton_Joystick) != 0) &&
                     dominantGripPushedOld ? 1 : 0,
-                    ((pOffTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
+                    ((pSecondaryTrackedRemoteNew->Buttons & xrButton_Joystick) != 0) &&
                     dominantGripPushedNew ? 1 : 0,
                     1, KEY_HOME);
 

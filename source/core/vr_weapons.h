@@ -89,6 +89,8 @@ void VRWeapons_EndWeapon();
 // only then the model's own yaw correction, so that a model authored facing a
 // different way does not change which axis is twist and which is tilt.
 bool VRWeapons_IsWeaponTile(int tile);
+// PC branch: the Leftorium - the gun is in the left hand, drawn as its mirror image.
+bool VRWeapons_Mirrored();
 float VRWeapons_ModelYaw();
 
 /*

@@ -549,8 +549,8 @@ OptionValue "DirectionMode"
 
 OptionValue "ControlScheme"
 {
-	0, "Right Handed"
-	10, "Left Handed"
+	0, "Off"
+	10, "On"
 }
 
 //-------------------------------------------------------------------------------------------
@@ -620,7 +620,7 @@ OptionMenu "VRHandsMenu" protected
 {
 	Title "Hands and Weapons"
 	StaticText 	""
-	Option "Control Scheme",		"vr_control_scheme", "ControlScheme"
+	Option "Leftorium (left-handed)",		"vr_control_scheme", "ControlScheme"
 	StaticText 	""
 	Option "6DoF Weapons",	"vr_6dof_weapons", "YesNo"
 	Option "Voxel Weapons",	"vr_voxel_weapons", "YesNo"

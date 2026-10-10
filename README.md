@@ -276,6 +276,11 @@ you face becomes forward, your head height becomes standing height, and an open 
 moves back in front of you. It works in the menus too. **VR Options → Recenter**, the
 first row, does the same.
 
+**Left-handed?** **VR Options → Hands and Weapons → Leftorium (left-handed)** puts the gun
+in your left hand, drawn as its mirror image, with the trigger, the grip and the face
+buttons swapped to match. The sticks stay where they are: the left stick still walks and
+the right stick turns. **Switch Sticks**, under *Turning and Moving*, swaps them for anyone.
+
 **Duck your head and you crouch in the game**, so you fit wherever a crouch fits; stand
 up and you stand. The view stays with your head. X still crouches too. **VR Options →
 Your Body → Crouch For Real** turns it off.
