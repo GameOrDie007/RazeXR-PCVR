@@ -389,6 +389,8 @@ static void GameTicker()
 }
 
 
+void VRPointer_Draw();	// vr_pointer.cpp
+
 void DrawOverlays()
 {
 	NetUpdate();			// send out any new accumulation
@@ -399,6 +401,7 @@ void DrawOverlays()
 		CT_Drawer();
 		C_DrawConsole();
 		M_Drawer();
+		VRPointer_Draw();	// PC branch: the menu pointer's dot, over the menu
 		FStat::PrintStat(twod);
 	}
 	DrawRateStuff();

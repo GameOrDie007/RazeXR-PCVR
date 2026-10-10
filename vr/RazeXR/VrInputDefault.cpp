@@ -43,6 +43,50 @@ extern float remote_movementUp;
 extern float positional_movementSideways;
 extern float positional_movementForward;
 extern float snapTurn;
+bool TBXR_MenuPanel(XrPosef* pose, float* width, float* height);	// TBXR_PC.cpp
+void VRPointer_Update(bool on, float u, float v, bool trigger);	// vr_pointer.cpp
+
+/*
+    PC branch: where the hand's aim meets the menu panel, as 0..1 across and
+    down from its top left. The panel is a quad turned only about the vertical
+    and seen from its +Z side; the aim looks down its own -Z.
+*/
+static bool MenuPointerHit(const XrPosef& aim, float* u, float* v)
+{
+    XrPosef panel;
+    float w, h;
+    if (!TBXR_MenuPanel(&panel, &w, &h)) return false;
+
+    const XrQuaternionf& a = aim.orientation;
+    const float dx = -2.0f * (a.x * a.z + a.w * a.y);
+    const float dy = -2.0f * (a.y * a.z - a.w * a.x);
+    const float dz = -(1.0f - 2.0f * (a.x * a.x + a.y * a.y));
+
+    const XrQuaternionf& q = panel.orientation;
+    const float nx = 2.0f * (q.x * q.z + q.w * q.y);			// its facing, +Z
+    const float ny = 2.0f * (q.y * q.z - q.w * q.x);
+    const float nz = 1.0f - 2.0f * (q.x * q.x + q.y * q.y);
+    const float rx = 1.0f - 2.0f * (q.y * q.y + q.z * q.z);		// across, +X
+    const float ry = 2.0f * (q.x * q.y + q.w * q.z);
+    const float rz = 2.0f * (q.x * q.z - q.w * q.y);
+    const float ux = 2.0f * (q.x * q.y - q.w * q.z);			// up, +Y
+    const float uy = 1.0f - 2.0f * (q.x * q.x + q.z * q.z);
+    const float uz = 2.0f * (q.y * q.z + q.w * q.x);
+
+    const float denom = dx * nx + dy * ny + dz * nz;
+    if (denom > -1e-4f) return false;							// pointing away from its face
+    const float px = panel.position.x - aim.position.x;
+    const float py = panel.position.y - aim.position.y;
+    const float pz = panel.position.z - aim.position.z;
+    const float t = (px * nx + py * ny + pz * nz) / denom;
+    if (t <= 0.0f) return false;
+    const float hx = aim.position.x + dx * t - panel.position.x;
+    const float hy = aim.position.y + dy * t - panel.position.y;
+    const float hz = aim.position.z + dz * t - panel.position.z;
+    *u = (hx * rx + hy * ry + hz * rz) / w + 0.5f;
+    *v = 0.5f - (hx * ux + hy * uy + hz * uz) / h;
+    return *u >= 0.0f && *u <= 1.0f && *v >= 0.0f && *v <= 1.0f;
+}
 extern float recenterYaw;
 void VR_RecenterAll();
 
@@ -424,6 +468,20 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
             }
         }
 
+        /*
+            PC branch: hold the gun hand's grip to point at the menu; the
+            trigger clicks (vr_pointer.cpp). The grip here has already waited
+            out the recenter chord, so squeezing both never points.
+        */
+        {
+            float u = 0.0f, v = 0.0f;
+            const bool pointing = passToMenu &&
+                (pDominantTrackedRemoteNew->Buttons & xrButton_GripTrigger) != 0 &&
+                MenuPointerHit(pDominantTracking->Pose, &u, &v);
+            VRPointer_Update(pointing, u, v,
+                pointing && (pDominantTrackedRemoteNew->Buttons & xrButton_Trigger) != 0);
+        }
+
         if (passToMenu)
         {
         ovrInputStateTrackedRemote* t[2][2] = { {pOffTrackedRemoteOld, pOffTrackedRemoteNew},
@@ -494,6 +552,8 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
     }
     else
     {
+        VRPointer_Update(false, 0.0f, 0.0f, false);	// no menu, no pointer
+
         //Dominant Hand - Primary keys (no grip pushed) - All keys are re-mappable, default bindngs are shown below
         {
             //Fire

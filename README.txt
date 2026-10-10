@@ -177,6 +177,10 @@ and weapon keep tracking.
 
     Off-hand stick click    hide the panel, for a clean screenshot
     Any button              bring it back
+    Gun hand's grip, held   point at the menu: a dot shows, the trigger clicks
+
+Pointing works in every menu, the main menu too. The sticks and buttons still
+work the menu as well.
 
 Under VR Options - Pause Menu:
 

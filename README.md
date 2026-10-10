@@ -263,6 +263,12 @@ Alt Weapon matters in Shadow Warrior — it re-selects the weapon already in you
 which is how you reach the quad shotgun and the nuke. In Duke and Blood it picks the
 alternate weapon in a shared slot.
 
+### Point at the menus
+
+**Hold your gun hand's grip in any menu** and your hand points at it: a dot shows where,
+and the trigger clicks. Let go of the grip and the dot goes. The sticks and buttons still
+work the menus as before.
+
 ### Recenter, and crouching for real
 
 **Squeeze both grips together to recenter**: where you stand becomes the middle, the way

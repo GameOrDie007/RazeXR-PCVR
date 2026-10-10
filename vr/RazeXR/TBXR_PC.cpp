@@ -120,6 +120,10 @@ static float gMenuAnchorWorld[3] = {0, 0, 0};	// eye-0 camera at pause, map unit
 static bool gMenuLayerAcquired = false;	// Begin succeeded; End owes a Release
 static bool gMenuStatsPending = false;	// one readback per menu opening
 static bool gMenuGeomPending = false;	// one geometry line per menu opening
+// PC branch: the panel the 2D canvas was last shown on, for the menu pointer.
+static XrPosef gPanelPose;
+static XrExtent2Df gPanelSize = {0.0f, 0.0f};
+static bool gPanelUp = false;
 // PC branch: the recenter chord puts an open menu back in front of the eyes.
 void TBXR_ReanchorMenu();
 
@@ -1786,6 +1790,7 @@ void TBXR_submitFrame(void)
 	}
 	else gMenuAnchored = false;
 
+	gPanelUp = false;
 	if (!VR_UseScreenLayer() || VR_MenuInWorld())
 	{
 		XrCompositionLayerProjection projection_layer = {};
@@ -1938,6 +1943,9 @@ void TBXR_submitFrame(void)
 		quad_layer.pose.orientation = XrQuaternionf_CreateFromVectorAngle(axis, DEG2RAD(playerYaw));
 		quad_layer.pose.position = pos;
 		quad_layer.size = size;
+		gPanelPose = quad_layer.pose;
+		gPanelSize = quad_layer.size;
+		gPanelUp = true;
 
 		gAppState.Layers[gAppState.LayerCount++].Quad = quad_layer;
 	}
@@ -2000,6 +2008,9 @@ void TBXR_submitFrame(void)
 					gAppState.LayerCount + 1, ovrMaxLayerCount);
 		}
 		gAppState.Layers[gAppState.LayerCount++].Quad = menu_layer;
+		gPanelPose = menu_layer.pose;
+		gPanelSize = menu_layer.size;
+		gPanelUp = true;
 	}
 	else if (gMenuGeomPending && VR_MenuInWorld())
 	{
@@ -2097,3 +2108,14 @@ bool TBXR_VREnabled()
 
 // The next frame captures the head again, as when the menu opened.
 void TBXR_ReanchorMenu() { gMenuAnchored = false; }
+
+// PC branch: where the 2D canvas hung last frame, for the menu pointer
+// (VrInputDefault.cpp). Same space as the controllers' poses.
+bool TBXR_MenuPanel(XrPosef* pose, float* width, float* height)
+{
+	if (!gPanelUp || gPanelSize.width <= 0.0f || gPanelSize.height <= 0.0f) return false;
+	*pose = gPanelPose;
+	*width = gPanelSize.width;
+	*height = gPanelSize.height;
+	return true;
+}
