@@ -1,6 +1,8 @@
 //
 R "useitem 2"
 RShoulder "+Quick_Kick"
+// PC branch: the VR thumbrest (Index: right trackpad press) sends Pad_B.
+Pad_B "+Quick_Kick"
 H "useitem 3"
 J "useitem 4"
 N "useitem 5"

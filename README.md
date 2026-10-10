@@ -363,9 +363,11 @@ answer.
 | Grip + dominant stick down | Next inventory item |
 | Grip + dominant stick up | Previous inventory item |
 | Grip + **A** | Use the selected item |
+| Grip + **B** | Turn around |
 | Grip + dominant stick click (hold) | Item wheel |
-| Grip + off-hand **A** / **B** | Fly down / up |
-| Grip + off-hand stick click | Land |
+| Grip + dominant trigger | Quick kick (Duke, NAM, Redneck) |
+
+On a jetpack or in water, Jump (**A**) goes up and Crouch (**X**) goes down.
 
 Without the grip, the dominant stick up and down changes weapon instead. No button
 takes steroids directly; select them first, like any other item.

@@ -433,6 +433,19 @@ void FGameConfigFile::DoKeySetup(const char *gamename)
 			if (b.CompareNoCase(f.was) == 0) Bindings.SetBind(f.key, f.now);
 		}
 	}
+	/*
+		The thumbrest quick kick (Index: the right trackpad press) sends Pad_B,
+		which no game bound, so it never kicked. The Duke games bind it now
+		(each game's defbinds.txt); a saved config gets it where the game
+		has the grip + trigger kick on its default key and Pad_B is empty.
+	*/
+	{
+		FString kick = Bindings.GetBinding(KEY_PAD_RSHOULDER);
+		kick.StripLeftRight();
+		FString b = Bindings.GetBinding(KEY_PAD_B);
+		b.StripLeftRight();
+		if (kick.CompareNoCase("+Quick_Kick") == 0 && b.IsEmpty()) Bindings.SetBind(KEY_PAD_B, "+Quick_Kick");
+	}
 	OkayToWrite = true;
 }
 

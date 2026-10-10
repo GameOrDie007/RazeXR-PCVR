@@ -78,6 +78,7 @@ Controls worth knowing
     X                       Crouch
     Y                       Toggle Map
     Dominant stick up/down  Next / previous weapon
+    Dominant thumbrest      Quick kick   (Duke, NAM, Redneck; touch it)
     Menu button             Pause menu
 
 Alt Weapon matters in Shadow Warrior: it re-selects the weapon already in your
@@ -99,11 +100,11 @@ have ever wondered how to take the steroids, this is it.
     Grip + dominant stick down   Next inventory item
     Grip + dominant stick up     Previous inventory item
     Grip + A                     Use the selected item
+    Grip + B                     Turn around
     Grip + dominant stick click  Item wheel (hold)
     Grip + trigger               Quick kick   (Duke, NAM, Redneck)
-    Grip + off-hand A            Fly down    (jetpack, or swimming)
-    Grip + off-hand B            Fly up
-    Grip + off-hand stick click  Land
+
+On a jetpack or in water, Jump (A) goes up and Crouch (X) goes down.
 
 Without the grip held, the dominant stick up and down changes weapon instead.
 Nothing else on the controller changes, so you can hold the grip, flick to what

@@ -6,5 +6,7 @@ Y "useitem 5"
 R "useitem 1"
 M "useitem 2"
 RShoulder "+Quick_Kick"
+// PC branch: the VR thumbrest (Index: right trackpad press) sends Pad_B.
+Pad_B "+Quick_Kick"
 Mouse2 "useitem 4"
 Mouse3 "useitem 1"
