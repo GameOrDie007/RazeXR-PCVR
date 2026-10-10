@@ -167,6 +167,7 @@ the individual scripts are in `launchers\`.
     assets\                the voxel packs, weapon models and cover art
     config\                one settings file per game
     logs\                  one log per game - this is what to send if something breaks
+                           (the run before each is kept as .prev.log, so a crash survives a restart)
 
 Afterwards the folder is self-contained: copy it to another PC and it runs there
 with nothing installed and no setup to repeat. The exception is `-InPlace`, which
@@ -262,6 +263,17 @@ Alt Weapon matters in Shadow Warrior — it re-selects the weapon already in you
 which is how you reach the quad shotgun and the nuke. In Duke and Blood it picks the
 alternate weapon in a shared slot.
 
+### Recenter, and crouching for real
+
+**Squeeze both grips together to recenter**: where you stand becomes the middle, the way
+you face becomes forward, your head height becomes standing height, and an open menu
+moves back in front of you. It works in the menus too. **VR Options → Recenter**, the
+first row, does the same.
+
+**Duck your head and you crouch in the game**, so you fit wherever a crouch fits; stand
+up and you stand. The view stays with your head. X still crouches too. **VR Options →
+Your Body → Crouch For Real** turns it off.
+
 ### The weapon wheel
 
 Hold your gun hand's stick click and the weapons you are carrying hang in a ring in
@@ -272,14 +284,14 @@ the stick to switch to it. Let go with your hand still in the middle and nothing
 **Hold the grip as well and the same ring holds your inventory**: the medkit, steroids,
 jetpack and the rest, as their status bar icons. Let go on one to use it. Items that
 switch themselves on (Duke's scuba gear and boots, Blood's diving suit) are not on it.
-**Options → VR Options → Item Wheel** turns it off.
+**VR Options → Hands and Weapons → Item Wheel** turns it off.
 
-Time slows while the wheel is open, so choosing is not a gamble. **Options → VR Options
-→ Wheel Slow Motion** sets how much: 0.3 is a third of normal speed, 1 is none.
+Time slows while the wheel is open, so choosing is not a gamble. **VR Options → Hands
+and Weapons → Wheel Slow Motion** sets how much: 0.3 is a third of normal speed, 1 is none.
 **Wheel Size** makes the whole wheel bigger or smaller.
 
 Crouch is on X. The stick click used to crouch as well; the wheel took that button.
-Turn the wheel off (**Options → VR Options → Weapon Wheel**) and the stick click
+Turn the wheel off (**VR Options → Hands and Weapons → Weapon Wheel**) and the stick click
 crouches again. A weapon only shows on the wheel if it has a VR model; the rare one
 without is still reached with the stick up and down.
 
@@ -343,7 +355,7 @@ CD, any of those formats will do.
 - The pause-menu panel is about 62 degrees wide at the default size. A flat surface
   pinned in the world genuinely changes shape as you turn to look along it, the way a
   cinema screen does from a side seat, so a little of that is visible at its edges.
-  **Menu Size** under *VR Options* makes it smaller; the menu keeps its apparent size as
+  **Menu Size** under *VR Options → Pause Menu* makes it smaller; the menu keeps its apparent size as
   you change **Menu Depth**.
 - Alien World Order - World Tour's fifth episode - needs a **Duke Nukem 3D: 20th
   Anniversary World Tour** install for setup to build it from; its scripts, maps and
@@ -376,7 +388,7 @@ takes steroids directly; select them first, like any other item.
 
 ## Playing seated
 
-**Options → VR Options → Recenter Height.** Sit the way you mean to play, select it, and
+**VR Options → Your Body → Recenter Height.** Sit the way you mean to play, select it, and
 that height becomes the one the game treats as standing — a chair stops reading as a
 permanent crouch. `vr_recenter` at the console does the same. It is a capture rather
 than a guessed number, and the **Height Adjust** slider below it shows what was taken.

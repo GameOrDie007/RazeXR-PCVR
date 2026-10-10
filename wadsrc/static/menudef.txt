@@ -578,69 +578,100 @@ OptionMenu "VRGameSelectMenu" protected
 
 OptionMenu "VROptionsMenu" protected
 {
+	// PC branch: the Game Or Die layout - a short first page, then one page
+	// per topic, each setting on exactly one of them.
 	Title "VR Options"
 	StaticText 	""
+	Command "Recenter",	"vr_recenter_all"
 	Submenu "Switch Game",	"VRGameSelectMenu"
 	StaticText 	""
-	Option "Control Scheme",		"vr_control_scheme", "ControlScheme"
-	Option "Switch Sticks",	"vr_switch_sticks", "YesNo"
+	Submenu "Turning and Moving",	"VRTurningMenu"
+	Submenu "Your Body",	"VRBodyMenu"
+	Submenu "Hands and Weapons",	"VRHandsMenu"
+	Submenu "Screen and Aim",	"VRScreenMenu"
+	Submenu "Pause Menu",	"VRPauseMenu"
+	Submenu "Controls",	"CustomizeControls"
+	Submenu "Troubleshooting",	"VRTroubleMenu"
+	StaticText 	""
+	SafeCommand "$OPTMNU_DEFAULTS", "resetcvar vr_voxel_weapons vr_hud_scale hud_scale vr_hud_stereo vr_hud_rotate vr_hud_fixed_pitch vr_hud_fixed_roll vr_menu_world vr_menu_lock vr_menu_scale vr_menu_distance vr_menu_depth vr_height_adjust"
+}
+
+OptionMenu "VRTurningMenu" protected
+{
+	Title "Turning and Moving"
 	StaticText 	""
 	Option "Turning Mode",	"vr_snapTurn", "TurningMode"
 	Option "Direction Mode",	"vr_move_direction", "DirectionMode"
+	Option "Switch Sticks",	"vr_switch_sticks", "YesNo"
+}
+
+OptionMenu "VRBodyMenu" protected
+{
+	Title "Your Body"
 	StaticText 	""
 	Command "Recenter Height",	"vr_recenter"
 	Slider "Height Adjust",	"vr_height_adjust", -0.5, 1.0, 0.05, 2
 	StaticText 	""
 	Option "Positional Tracking",	"vr_positional_tracking", "YesNo"
-	Option "Crouch For Real (duck your head)",	"vr_crouch_real", "OnOff"
-	Option "Allow Pitch Override*",	"vr_allowPitchOverride", "YesNo"
+	Option "Crouch For Real",	"vr_crouch_real", "OnOff"
+}
+
+OptionMenu "VRHandsMenu" protected
+{
+	Title "Hands and Weapons"
+	StaticText 	""
+	Option "Control Scheme",		"vr_control_scheme", "ControlScheme"
+	StaticText 	""
 	Option "6DoF Weapons",	"vr_6dof_weapons", "YesNo"
 	Option "Voxel Weapons",	"vr_voxel_weapons", "YesNo"
+	Slider "Weapon Pitch Adjust",	"vr_weaponPitchAdjust", 0.0, 90.0, 5
+	Slider "Weapon Yaw Adjust",	"vr_weaponYawAdjust", -10.0, 10.0, 1
+	StaticText 	""
 	Option "Weapon Wheel (hold stick click)",	"vr_weapon_wheel", "OnOff"
 	Option "Item Wheel (grip + stick click)",	"vr_item_wheel", "OnOff"
 	Slider "Wheel Slow Motion",	"vr_wheel_slowmo", 0.1, 1.0, 0.05, 2
 	Slider "Wheel Size",	"vr_wheel_size", 0.5, 1.5, 0.05, 2
-	Slider "Weapon Pitch Adjust",	"vr_weaponPitchAdjust", 0.0, 90.0, 5
-	Slider "Weapon Yaw Adjust",	"vr_weaponYawAdjust", -10.0, 10.0, 1
+}
+
+OptionMenu "VRScreenMenu" protected
+{
+	Title "Screen and Aim"
+	StaticText 	""
 	Option "VR Crosshair",	"vr_6dof_crosshair", "YesNo"
+	StaticText 	""
+	Slider "VR HUD Scale",		        "vr_hud_scale", 0.05, 1.0, 0.05, 2
+	Slider "VR HUD Stereo Effect",		"vr_hud_stereo", 0.0, 5.0, 0.1, 2
+	Slider "VR HUD Pitch Rotate",		"vr_hud_rotate", 0.0, 50.0, 1.0, 2
+	Option "VR HUD Fix Pitch",		    "vr_hud_fixed_pitch", "OnOff"
+	Option "VR HUD Fix Roll",		    "vr_hud_fixed_roll", "OnOff"
+	StaticText 	""
+	Option "Anti-Aliasing",			"gl_multisample", "Multisample"
+}
 
-    StaticText ""
-    StaticText "*Allows the game to override the pitch the user is looking at"
-    StaticText "in some scenarios"
+OptionMenu "VRPauseMenu" protected
+{
+	Title "Pause Menu"
+	StaticText 	""
+	Option "Menu In The World",		"vr_menu_world", "OnOff"
+	Option "Menu Stays Where Opened",	"vr_menu_lock", "OnOff"
+	Slider "Menu Size",				"vr_menu_scale", 0.2, 1.5, 0.05, 2
+	Slider "Menu Distance",			"vr_menu_distance", 0.5, 3.0, 0.1, 2
+	Slider "Menu Depth",			"vr_menu_depth", 1.0, 10.0, 0.5, 1
+}
 
-    StaticText ""
-    StaticText "HUD"
-    StaticText ""
-    Slider "VR HUD Scale",		        "vr_hud_scale", 0.05, 1.0, 0.05, 2
-    StaticText ""
-    Slider "VR HUD Stereo Effect",		"vr_hud_stereo", 0.0, 5.0, 0.1, 2
-    Slider "VR HUD Pitch Rotate",		"vr_hud_rotate", 0.0, 50.0, 1.0, 2
-    Option "VR HUD Fix Pitch",		    "vr_hud_fixed_pitch", "OnOff"
-    Option "VR HUD Fix Roll",		    "vr_hud_fixed_roll", "OnOff"
-
-    StaticText ""
-    StaticText "Picture"
-    StaticText ""
-    Option "Anti-Aliasing",			"gl_multisample", "Multisample"
-    StaticText ""
-    StaticText "Troubleshooting"
-    StaticText ""
-    Option "Keep Running When Alt-Tabbed",	"vr_draw_unfocused", "OnOff"
-    Option "Fix Double Vision (Pimax)",	"vr_declare_eye_positions", "OnOff"
-    Option "Index Controller Buttons (restart)",	"vr_index_bindings", "OnOff"
-    Option "Crosshair Updates Every Frame",	"vr_crosshair_per_frame", "OnOff"
-
-    StaticText ""
-    StaticText "Pause Menu"
-    StaticText ""
-    Option "Menu In The World",		"vr_menu_world", "OnOff"
-    Option "Menu Stays Where Opened",	"vr_menu_lock", "OnOff"
-    Slider "Menu Size",				"vr_menu_scale", 0.2, 1.5, 0.05, 2
-    Slider "Menu Distance",			"vr_menu_distance", 0.5, 3.0, 0.1, 2
-    Slider "Menu Depth",			"vr_menu_depth", 1.0, 10.0, 0.5, 1
-    StaticText ""
-    SafeCommand "$OPTMNU_DEFAULTS", "resetcvar vr_voxel_weapons vr_hud_scale hud_scale vr_hud_stereo vr_hud_rotate vr_hud_fixed_pitch vr_hud_fixed_roll vr_menu_world vr_menu_lock vr_menu_scale vr_menu_distance vr_menu_depth vr_height_adjust"
-
+OptionMenu "VRTroubleMenu" protected
+{
+	Title "Troubleshooting"
+	StaticText 	""
+	Option "Keep Running When Alt-Tabbed",	"vr_draw_unfocused", "OnOff"
+	Option "Fix Double Vision (Pimax)",	"vr_declare_eye_positions", "OnOff"
+	Option "Index Controller Buttons (restart)",	"vr_index_bindings", "OnOff"
+	Option "Crosshair Updates Every Frame",	"vr_crosshair_per_frame", "OnOff"
+	StaticText 	""
+	Option "Allow Pitch Override*",	"vr_allowPitchOverride", "YesNo"
+	StaticText ""
+	StaticText "*Allows the game to override the pitch the user is looking at"
+	StaticText "in some scenarios"
 }
 
 //-------------------------------------------------------------------------------------------

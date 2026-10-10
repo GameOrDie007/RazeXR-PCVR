@@ -340,6 +340,12 @@ float getHmdAdjustedHeightInMapUnit()
 	60, Shadow Warrior and Exhumed 58) against its own scale, so this lands
 	correctly per game without a table of heights here.
 */
+// PC branch: the menu's Recenter row - everything the both-grips chord does.
+CCMD(vr_recenter_all)
+{
+	VR_RecenterAll();
+}
+
 CCMD(vr_recenter)
 {
 	if (playerHeight == 0.f)

@@ -90,7 +90,16 @@ In Duke and Blood it picks the alternate weapon in a shared slot.
 
 Turning is smooth by default, at 120 degrees a second on "Medium" whatever
 your headset's refresh rate. Slow, Fast, Very Fast and snap turning are under
-Options - VR Options - Turning Mode.
+VR Options - Turning and Moving - Turning Mode.
+
+Squeeze both grips together to recenter: where you stand becomes the middle,
+the way you face becomes forward, your head height becomes standing height,
+and an open menu moves back in front of you. It works in the menus too.
+VR Options - Recenter, the first row, does the same.
+
+Duck your head and you crouch in the game, so you fit wherever a crouch fits;
+stand up and you stand. The view stays with your head. X still crouches too.
+VR Options - Your Body - Crouch For Real turns it off.
 
 
 Hold the grip for a second set of controls
@@ -129,16 +138,16 @@ still in the middle and nothing changes.
 Hold the grip as well and the same ring holds your inventory instead: the
 medkit, steroids, jetpack and the rest, as their status bar icons. Let go on
 one to use it. An item that switches itself on (Duke's scuba gear and boots,
-Blood's diving suit) is not on it. Options - VR Options - Item Wheel turns it
+Blood's diving suit) is not on it. VR Options - Hands and Weapons - Item Wheel turns it
 off, and grip + stick click then does nothing, as before.
 
-Time slows while the wheel is open, so choosing is not a gamble. Options - VR
-Options - Wheel Slow Motion sets how much: 0.3 is a third of normal speed, 1 is
-no slow motion. Options - VR Options - Wheel Size makes the whole wheel bigger
-or smaller.
+Time slows while the wheel is open, so choosing is not a gamble. VR Options -
+Hands and Weapons - Wheel Slow Motion sets how much: 0.3 is a third of normal
+speed, 1 is no slow motion. Wheel Size, on the same page, makes the whole wheel
+bigger or smaller.
 
 Crouch is on X. It used to be on the stick click as well; the wheel took that
-button. Turn the wheel off - Options - VR Options - Weapon Wheel - and the
+button. Turn the wheel off - VR Options - Hands and Weapons - Weapon Wheel - and the
 stick click crouches again.
 
 A weapon only shows on the wheel if it has a VR model. The rare one without is
@@ -169,7 +178,7 @@ and weapon keep tracking.
     Off-hand stick click    hide the panel, for a clean screenshot
     Any button              bring it back
 
-Under Options - VR Options:
+Under VR Options - Pause Menu:
 
     Menu In The World       off puts the menu back on a flat virtual screen
     Menu Stays Where Opened off lets it follow your gaze instead
@@ -184,7 +193,7 @@ turning your head; closer feels more immediate. 3.5 metres is the default.
 Playing seated
 --------------
 
-Options - VR Options - Recenter Height. Sit however you mean to play, select
+VR Options - Your Body - Recenter Height. Sit however you mean to play, select
 it, and that height becomes the one the game treats as standing, so a chair
 stops reading as a permanent crouch. Same command as the Quake and Quake II
 ports - vr_recenter at the console does the same thing.
@@ -207,7 +216,7 @@ VRaze declares them but ships no model:
 Type  vrweapons  at the console (~) to see what the running game resolved:
 every weapon, its model, and whether it has a placement.
 
-Voxel Weapons, under Options - VR Options, is separate from the Voxels setting
+Voxel Weapons, under VR Options - Hands and Weapons, is separate from the Voxels setting
 under Display. Voxels there is the world: enemies, pickups, decoration. Voxel
 Weapons is only the one in your hand. You can turn the world's voxels off and
 keep the weapon a model, which is what Duke's expansions want - their enemies
@@ -303,17 +312,21 @@ logs\ holds one log per game plus startup.log, which records each startup stage
 in order. Between them they say how far it got. razexr_vr.log, beside raze.exe,
 records what your headset and runtime reported - include it with any report.
 
+Each of them keeps the run before as .prev.log beside it (startup.prev.log,
+razexr_vr.prev.log, and one per game). Starting the game again after a crash
+does not lose the crash's log: send both.
+
 The game stops responding when I alt-tab
     Fixed in 1.1. On a monitor the game rightly stops drawing when its window
     loses focus; in a headset that stopped the VR picture too, and SteamVR
     read it as a hang. It now keeps drawing to the headset. The switch is
-    Options - VR Options - Troubleshooting - Keep Running When Alt-Tabbed,
+    VR Options - Troubleshooting - Keep Running When Alt-Tabbed,
     on by default.
 
 Double vision, or crossed eyes, on a Pimax
     1.1 tells the headset where each eye's picture was drawn, which should
     fix it; it also makes menu text a little sharper on a Quest. It is on by
-    default: Options - VR Options - Troubleshooting - Fix Double Vision
+    default: VR Options - Troubleshooting - Fix Double Vision
     (Pimax). Seen under Pimax Play; the sboys3 SteamVR driver does not show
     it. If the world swims or shears with it on, turn it off and please say
     so, with razexr_vr.log - it records exactly what your headset reports
@@ -324,10 +337,10 @@ Changing the render resolution
     in Pimax Play. The port renders at whatever size the runtime asks for.
 
 Walking goes where I look, and I want it to go where I point
-    Options - VR Options - Direction Mode - Off-hand controller.
+    VR Options - Turning and Moving - Direction Mode - Off-hand controller.
 
 I want walking to ignore both my head and my hand
-    Options - VR Options - Direction Mode - Off. The stick then walks the way
+    VR Options - Turning and Moving - Direction Mode - Off. The stick then walks the way
     your body faces in the game, which only turning with the stick changes.
     Looking around and pointing leave it alone. Recenter if forward drifts.
 
