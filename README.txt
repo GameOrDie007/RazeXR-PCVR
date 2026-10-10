@@ -69,6 +69,9 @@ machine that set it up after being moved.
 Controls worth knowing
 ----------------------
 
+Every button is labelled in the picture beside this file:
+    Controls - RazeXR PCVR - Meta Quest 3.png
+
     Dominant trigger        Fire
     Off-hand trigger        Alt fire
     Off-hand stick click    Alt Weapon

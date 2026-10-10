@@ -66,6 +66,9 @@ FROM_REPO = [
     # untracked, unreviewable, and three folder layouts out of date.
     ("README.txt", "README.txt"),
     ("THIRD-PARTY-PERMISSIONS.md", "THIRD-PARTY-PERMISSIONS.md"),
+    # Made by tools/controls-picture.py from the default bindings; remake it
+    # whenever a default changes.
+    ("docs/controls/Controls - RazeXR PCVR - Meta Quest 3.png", "Controls - RazeXR PCVR - Meta Quest 3.png"),
     ("AUTHORS.md", "AUTHORS.md"),
     ("package/common/gpl-2.0.txt", "gpl-2.0.txt"),
     # Ken Silverman's BUILD source terms. Raze contains BUILD engine code and

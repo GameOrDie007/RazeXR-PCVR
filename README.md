@@ -241,6 +241,8 @@ Redneck Rampage, NAM and WWII GI have no voxel pack that we know of.
 
 ## Controls
 
+![Every button on the controllers, labelled](docs/controls/Controls%20-%20RazeXR%20PCVR%20-%20Meta%20Quest%203.png)
+
 Right-handed default. Everything is rebindable in Options → Customize Controls.
 
 | Control | Action |
