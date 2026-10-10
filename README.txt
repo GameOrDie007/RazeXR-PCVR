@@ -194,6 +194,18 @@ as it moves. Further away is flatter in your view and easier to read while
 turning your head; closer feels more immediate. 3.5 metres is the default.
 
 
+The observer view
+-----------------
+
+The monitor shows what you see, for a stream or a recording: the game, its
+menus and the pause menu. In a level it is a steady cut-out of your view that
+follows your turns but not the small wobble of your head, with the horizon
+kept level when you lean. It fills the monitor with no border; Alt+Enter puts
+it in a window and back, and the game remembers which.
+
+VR Options - Screen and Aim - Steady Observer View off shows the plain view.
+
+
 Playing seated
 --------------
 

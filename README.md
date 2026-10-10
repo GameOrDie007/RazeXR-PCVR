@@ -315,6 +315,15 @@ The Index has no menu button, so it gets a layout of its own:
 Press, not touch - resting a thumb on a trackpad does nothing. Everything else matches
 the table above.
 
+## The observer view
+
+The monitor shows what you see, for a stream or a recording: the game, its menus and
+the pause menu. In a level it is a steady cut-out of your view that follows your turns
+but not the small wobble of your head, with the horizon kept level when you lean. It
+fills the monitor with no border; **Alt+Enter** puts it in a window and back, and the
+game remembers which. **VR Options → Screen and Aim → Steady Observer View** off shows
+the plain view.
+
 ## Music
 
 Most of these games keep their music inside their own data and it just plays. Three

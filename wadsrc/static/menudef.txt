@@ -646,6 +646,8 @@ OptionMenu "VRScreenMenu" protected
 	Option "VR HUD Fix Roll",		    "vr_hud_fixed_roll", "OnOff"
 	StaticText 	""
 	Option "Anti-Aliasing",			"gl_multisample", "Multisample"
+	StaticText 	""
+	Option "Steady Observer View",	"vr_observer_steady", "OnOff"
 }
 
 OptionMenu "VRPauseMenu" protected

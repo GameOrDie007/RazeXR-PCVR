@@ -410,6 +410,7 @@ set( RAZEXR_VR_SOURCES
 	${VR_DIR}/RazeXR/VrInputDefault.cpp
 	${VR_DIR}/RazeXR/RazeXR_OpenXR.cpp
 	${VR_DIR}/RazeXR/TBXR_PC.cpp
+	${VR_DIR}/RazeXR/ObserverView.cpp
 	${VR_DIR}/RazeXR/mathlib.c
 	${VR_DIR}/RazeXR/matrixlib.c
 )

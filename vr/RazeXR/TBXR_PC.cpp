@@ -1486,6 +1486,9 @@ static void TBXR_updateProjections(void)
 	is unpleasant to run, and because it is the only way to see what the
 	headset sees while debugging.
 */
+bool TBXR_ObserverDraw(const XrQuaternionf& orientation, const XrFovf& fov, bool screen,
+	ovrFramebuffer* eye, ovrFramebuffer* menu);	// ObserverView.cpp
+
 static void TBXR_MirrorToWindow(void)
 {
 	ovrFramebuffer *frameBuffer = &gAppState.Renderer.FrameBuffer[0];
@@ -1745,7 +1748,18 @@ void TBXR_submitFrame(void)
 		stageFromEye[eye] = XrPosef_Multiply(gAppState.xfStageFromHead, xfHeadFromEye);
 	}
 
-	TBXR_MirrorToWindow();
+	/*
+		PC branch: the observer view (ObserverView.cpp), with the pose and field
+		of view the left eye's picture is submitted with. The plain blit below
+		stays as the fallback should its shader not build on some driver.
+	*/
+	{
+		const bool screen = VR_UseScreenLayer() && !VR_MenuInWorld();
+		const bool menuOver = gMenuLayerDrawn && VR_MenuInWorld();
+		if (!TBXR_ObserverDraw(gAppState.xfStageFromHead.orientation, fov, screen,
+				&gAppState.Renderer.FrameBuffer[0], menuOver ? &gMenuBuffer : nullptr))
+			TBXR_MirrorToWindow();
+	}
 
 	gAppState.LayerCount = 0;
 	memset(gAppState.Layers, 0, sizeof(xrCompositorLayer_Union) * ovrMaxLayerCount);
