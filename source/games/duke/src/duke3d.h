@@ -59,6 +59,7 @@ struct GameInterface : public ::GameInterface
 	void processSprites(tspriteArray& tsprites, const DVector3& view, DAngle viewang, double interpfrac) override;
 	int VRWheelEntries(VRWheelEntry* out, int max) override;	// PC branch, vr_wheel.cpp
 	int VRItemEntries(VRWheelEntry* out, int max) override;	// PC branch, vr_wheel.cpp
+	bool VRStandingEyeZ(double interpfrac, double& z) override;	// PC branch, vr_crouch.cpp
 	void UpdateCameras(double smoothratio) override;
 	void EnterPortal(DCoreActor* viewer, int type) override;
 	void LeavePortal(DCoreActor* viewer, int type) override;

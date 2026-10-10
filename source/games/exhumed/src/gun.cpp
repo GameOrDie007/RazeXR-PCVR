@@ -1229,4 +1229,20 @@ int GameInterface::VRItemEntries(VRWheelEntry* out, int max)
 }
 
 
+//---------------------------------------------------------------------------
+//
+// PC branch: crouch for real (vr_crouch.cpp). The eye is an offset above the
+// player's feet, 55 standing (nActionEyeLevel, player.cpp).
+//
+//---------------------------------------------------------------------------
+
+bool GameInterface::VRStandingEyeZ(double interpfrac, double& z)
+{
+	auto& pl = PlayerList[nLocalPlayer];
+	auto act = pl.pActor;
+	if (!act || pl.nHealth <= 0 || !act->insector() || (act->sector()->Flag & kSectUnderwater)) return false;
+	z = act->interpolatedpos(interpfrac).Z - 55.0;
+	return true;
+}
+
 END_PS_NS

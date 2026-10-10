@@ -1202,4 +1202,24 @@ int GameInterface::VRItemEntries(VRWheelEntry* out, int max)
 }
 
 
+//---------------------------------------------------------------------------
+//
+// PC branch: crouch for real (vr_crouch.cpp). Standing, Duke's eye sits a
+// player height above the floor under him; his crouch pushes the whole player
+// down from there. Not shrunk, not in water, not in the air or on a camera.
+//
+//---------------------------------------------------------------------------
+
+bool GameInterface::VRStandingEyeZ(double interpfrac, double& z)
+{
+	auto p = &ps[myconnectindex];
+	auto pact = p->GetActor();
+	if (!pact || !p->insector() || !p->on_ground || p->newOwner != nullptr || p->jetpack_on) return false;
+	if (pact->spr.scale.Y < 0.5) return false;
+	const int lotag = p->cursector->lotag;
+	if (lotag == ST_1_ABOVE_WATER || lotag == ST_2_UNDERWATER) return false;
+	z = pact->floorz - gs.playerheight;
+	return true;
+}
+
 END_DUKE_NS

@@ -592,6 +592,7 @@ OptionMenu "VROptionsMenu" protected
 	Slider "Height Adjust",	"vr_height_adjust", -0.5, 1.0, 0.05, 2
 	StaticText 	""
 	Option "Positional Tracking",	"vr_positional_tracking", "YesNo"
+	Option "Crouch For Real (duck your head)",	"vr_crouch_real", "OnOff"
 	Option "Allow Pitch Override*",	"vr_allowPitchOverride", "YesNo"
 	Option "6DoF Weapons",	"vr_6dof_weapons", "YesNo"
 	Option "Voxel Weapons",	"vr_voxel_weapons", "YesNo"

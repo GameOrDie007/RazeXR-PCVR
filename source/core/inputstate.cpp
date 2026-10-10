@@ -44,6 +44,7 @@
 #include "d_net.h"
 #include "gamestate.h"
 #include "gameinput.h"
+#include "vr_crouch.h"
 
 static int WeaponToSend = 0;
 ESyncBits ActionsToSend = 0;
@@ -402,7 +403,9 @@ void ApplyGlobalInput(HIDInput* const hidInput, InputPacket* const inputBuffer)
 	if (buttonMap.ButtonDown(gamefunc_Jump))
 		inputBuffer->actions |= SB_JUMP;
 
-	if (buttonMap.ButtonDown(gamefunc_Crouch) || buttonMap.ButtonDown(gamefunc_Toggle_Crouch) || crouch_toggle)
+	// PC branch: or the head held low (vr_crouch.cpp).
+	const bool buttonCrouch = buttonMap.ButtonDown(gamefunc_Crouch) || buttonMap.ButtonDown(gamefunc_Toggle_Crouch) || crouch_toggle;
+	if (VRCrouch_Held(buttonCrouch) || buttonCrouch)
 		inputBuffer->actions |= SB_CROUCH;
 
 	if (buttonMap.ButtonDown(gamefunc_Toggle_Crouch))

@@ -656,4 +656,20 @@ int GameInterface::VRItemEntries(VRWheelEntry* out, int max)
 }
 
 
+//---------------------------------------------------------------------------
+//
+// PC branch: crouch for real (vr_crouch.cpp). Standing, Lo Wang's eye is a
+// player height above the floor under him; crawling holds it lower.
+//
+//---------------------------------------------------------------------------
+
+bool GameInterface::VRStandingEyeZ(double interpfrac, double& z)
+{
+	PLAYER* pp = &Player[myconnectindex];
+	if (!pp->actor || pp->sop || pp->sop_riding) return false;
+	if (pp->Flags & (PF_DEAD | PF_JUMPING | PF_FALLING | PF_FLYING | PF_CLIMBING | PF_SWIMMING | PF_DIVING)) return false;
+	z = pp->loz - PLAYER_HEIGHTF;
+	return true;
+}
+
 END_SW_NS

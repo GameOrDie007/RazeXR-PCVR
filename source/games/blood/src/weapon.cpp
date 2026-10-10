@@ -3124,4 +3124,20 @@ int GameInterface::VRItemEntries(VRWheelEntry* out, int max)
 }
 
 
+//---------------------------------------------------------------------------
+//
+// PC branch: crouch for real (vr_crouch.cpp). Blood's eye is its posture's
+// height above the player's feet; standing is the stand posture's.
+//
+//---------------------------------------------------------------------------
+
+bool GameInterface::VRStandingEyeZ(double interpfrac, double& z)
+{
+	PLAYER* p = &gPlayer[myconnectindex];
+	auto actor = p->actor;
+	if (!actor || actor->xspr.health <= 0 || p->posture == kPostureSwim) return false;
+	z = actor->interpolatedpos(interpfrac).Z - p->pPosture[p->lifeMode][kPostureStand].eyeAboveZ;
+	return true;
+}
+
 END_BLD_NS

@@ -135,6 +135,9 @@ struct GameInterface
 	virtual int VRWheelEntries(VRWheelEntry* out, int max) { return 0; }
 	// PC branch: the inventory items the local player has, for the item wheel.
 	virtual int VRItemEntries(VRWheelEntry* out, int max) { return 0; }
+	// PC branch: where the local player's eye would be standing, in Build Z,
+	// interpolated as the camera is; false when not on foot (vr_crouch.cpp).
+	virtual bool VRStandingEyeZ(double interpfrac, double& z) { return false; }
 	virtual void processSprites(tspriteArray& tsprites, const DVector3& view, DAngle viewang, double interpfrac) = 0;
 	virtual void UpdateCameras(double smoothratio) {}
 	virtual void EnterPortal(DCoreActor* viewer, int type) {}

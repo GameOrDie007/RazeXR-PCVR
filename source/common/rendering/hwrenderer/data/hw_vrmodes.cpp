@@ -48,6 +48,7 @@
 #include "gamestate.h"
 
 extern vec3_t hmdPosition;
+double VRCrouch_Lift();
 extern vec3_t hmdOrigin;
 extern vec3_t hmdorientation;
 extern vec3_t weaponangles;
@@ -855,6 +856,8 @@ DVector3 VREyeInfo::GetViewShift(FRotator viewAngles) const
 			eyeOffset[1] += -posforward * vr_hunits_per_meter();
 			eyeOffset[0] += posside * vr_hunits_per_meter();
 			eyeOffset[2] += getHmdAdjustedHeightInMapUnit();
+			// PC branch: crouching for real, the game's own drop is put back.
+			eyeOffset[2] += VRCrouch_Lift();
 		}
 
 		return {eyeOffset[1], eyeOffset[0], eyeOffset[2]};
