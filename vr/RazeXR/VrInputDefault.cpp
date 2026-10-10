@@ -43,6 +43,8 @@ extern float remote_movementUp;
 extern float positional_movementSideways;
 extern float positional_movementForward;
 extern float snapTurn;
+extern float recenterYaw;
+void VR_RecenterAll();
 
 extern bool weaponStabilised;
 
@@ -74,6 +76,37 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
     {
         handleTrackedControllerButton(&leftTrackedRemoteState_new, &leftTrackedRemoteState_old, xrButton_Enter, KEY_ESCAPE);
         handleTrackedControllerButton(&rightTrackedRemoteState_new, &rightTrackedRemoteState_old, xrButton_Enter, KEY_ESCAPE); // For users who have switched the buttons
+    }
+
+    /*
+        PC branch: the grips. Both pressed together is the Game Or Die
+        recenter, in play and in menus. A lone grip waits a few frames for the
+        other before it reaches the game, so a chord never leaks a grip's own
+        job (the gun hand's is the shift for the second set of controls, the
+        off hand's is Run). "Together" means within a fraction of a second: a
+        grip already held for longer - running, then the inventory - is a
+        combination, and both work as before.
+    */
+    {
+        static int domFrames = 0, offFrames = 0;
+        static bool chord = false;
+        const int kGripWait = 8;		// frames, about 90 ms
+        const int kTogether = 15;		// frames between the two presses
+        const bool dom = (pDominantTrackedRemoteNew->Buttons & xrButton_GripTrigger) != 0;
+        const bool off = (pOffTrackedRemoteNew->Buttons & xrButton_GripTrigger) != 0;
+        domFrames = dom ? domFrames + 1 : 0;
+        offFrames = off ? offFrames + 1 : 0;
+        if (dom && off && !chord && abs(domFrames - offFrames) <= kTogether &&
+            (domFrames < kGripWait + kTogether || offFrames < kGripWait + kTogether))
+        {
+            chord = true;
+            VR_RecenterAll();
+        }
+        else if (!dom && !off) chord = false;
+        const bool domOk = dom && !chord && (domFrames >= kGripWait || off);
+        const bool offOk = off && !chord && (offFrames >= kGripWait || dom);
+        if (!domOk) pDominantTrackedRemoteNew->Buttons &= ~xrButton_GripTrigger;
+        if (!offOk) pOffTrackedRemoteNew->Buttons &= ~xrButton_GripTrigger;
     }
 
     //Dominant Grip works like a shift key
@@ -249,7 +282,7 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
                     turns: the same thing the off-hand line does with the
                     controller's yaw in place of zero.
                 */
-                controllerYawHeading = -hmdorientation[YAW];
+                controllerYawHeading = recenterYaw - hmdorientation[YAW];
             } else {
                 controllerYawHeading = 0.0f;
             }

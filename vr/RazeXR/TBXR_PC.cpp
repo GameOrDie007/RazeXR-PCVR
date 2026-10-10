@@ -120,6 +120,8 @@ static float gMenuAnchorWorld[3] = {0, 0, 0};	// eye-0 camera at pause, map unit
 static bool gMenuLayerAcquired = false;	// Begin succeeded; End owes a Release
 static bool gMenuStatsPending = false;	// one readback per menu opening
 static bool gMenuGeomPending = false;	// one geometry line per menu opening
+// PC branch: the recenter chord puts an open menu back in front of the eyes.
+void TBXR_ReanchorMenu();
 
 // Square, and large enough that the menu is not the thing losing detail.
 // The 2D canvas is one eye wide, so this is a mild reduction, not a blur.
@@ -2083,3 +2085,6 @@ bool TBXR_VREnabled()
 {
 	return gAppState.Session != XR_NULL_HANDLE && gAppState.SessionActive;
 }
+
+// The next frame captures the head again, as when the menu opened.
+void TBXR_ReanchorMenu() { gMenuAnchored = false; }

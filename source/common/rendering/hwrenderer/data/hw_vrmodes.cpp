@@ -197,6 +197,31 @@ static float menuAnchorYaw = 0.f;
 static float menuAnchorPitch = 0.f;
 static vec3_t menuAnchorPos = { 0.f, 0.f, 0.f };
 
+// The recenter chord: capture the head again on the next frame.
+void VR_MenuReanchor() { menuAnchored = false; }
+
+/*
+	PC branch: recenter, everything at once - the Game Or Die chord, both
+	grips (VrInputDefault.cpp).
+
+	  - where you stand now is the middle (the positional origin);
+	  - the way you face now is forward, for Direction Mode Off;
+	  - your head height now is standing height, seated or not (vr_recenter);
+	  - an open menu hangs in front of your eyes again.
+*/
+float recenterYaw = 0.0f;
+void TBXR_ReanchorMenu();
+void VR_RecenterAll()
+{
+	VectorCopy(hmdPosition, hmdOrigin);
+	recenterYaw = hmdorientation[YAW];
+	if (gamestate == GS_LEVEL) C_DoCommand("vr_recenter");
+	TBXR_ReanchorMenu();
+	VR_MenuReanchor();
+	Printf("Recentered\n");
+}
+
+
 void VR_MenuAnchorUpdate()
 {
 	if (!VR_MenuInWorld())
