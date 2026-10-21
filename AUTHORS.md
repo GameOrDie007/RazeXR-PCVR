@@ -1,5 +1,5 @@
 ### RazeXR (Quest VR build this port is based on):
-  * Team Beef - DrBeef and contributors
+  * Team Beef: DrBeef and contributors
   * https://www.teambeefvr.com/
 
 ### RazeXR PCVR port:
@@ -18,7 +18,7 @@
   * fgsfds
   * MarioJCH
   * mxrtxn
-  * BennyD - testing and feedback
+  * BennyD: testing and feedback
 
 ### Voxel Duke 3D (included with the author's permission):
   * Daniel Peterson ("Cheello")

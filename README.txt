@@ -1,11 +1,12 @@
-RazeXR - PCVR
-=============
+RazeXR PCVR
+===========
 
 Nineteen Build engine games in PC VR, from the copies you already own. This is
 a PC port of Team Beef's RazeXR, their Quest build of Raze, with the voxel
-weapons from VRaze - ninety-one models, every game covered.
+weapons from VRaze: ninety-one models, every game covered.
 
-Tested with a Quest 3 over Virtual Desktop.
+Tested on a Meta Quest 3 over Virtual Desktop. Valve Index and Pimax layouts
+are supported but not tested by us.
 
 
 Install
@@ -26,11 +27,58 @@ Install
 
 The folder is self-contained afterwards. Copy it to another PC and it runs
 there with nothing installed and no setup to repeat. Nothing is written outside
-the folder, and no Visual C++ redistributable is needed - the runtime is
+the folder, and no Visual C++ redistributable is needed; the runtime is
 linked statically.
 
-To update, extract a new release over the top. Your configs, saves, launchers
-and game data are not in the archive and are left alone.
+To update, extract a new release over the top. Updating keeps your saves and
+settings: your configs, saves, launchers and game data are not in the archive
+and are left alone.
+
+
+FAQ
+---
+
+Is it free?
+    Yes.
+
+Do I need my own copies of the games?
+    Yes. Steam, GOG and original CD releases all work. PowerSlave needs the
+    DOS Classic Edition, not the 2022 remaster.
+
+Which headsets work?
+    Any PC VR headset with an OpenXR runtime: Virtual Desktop, SteamVR (Steam
+    Link included) or the Meta Quest Link app. Tested on a Meta Quest 3 over
+    Virtual Desktop. The Valve Index and Pimax layouts were made from players'
+    reports and are supported but not tested by us.
+
+Does it run standalone on a Quest 3 or a Steam Frame?
+    Not this version. It runs on your PC, and a Quest 3 or a Steam Frame plays
+    it streamed over Virtual Desktop or Steam Link.
+
+Multiplayer?
+    No, single player only.
+
+Are my saves safe?
+    Yes. Saves, settings, launchers and game data live in this folder and none
+    of them are in the release zip, so updating keeps them.
+
+What PC do I need?
+    These are 1990s games. A PC that runs VR runs them.
+
+Does it work with mods?
+    Blood's Death Wish and MARROW, yes, and the voxel packs are built in. Mods
+    made for EDuke32's own scripting, such as Brutal Duke and most big total
+    conversions, don't run in Raze, and the 3D models in Duke's High
+    Resolution Pack don't show.
+
+Left-handed? Seated?
+    Yes to both. VR Options > Hands and Weapons > Leftorium (left-handed) puts
+    the gun in your left hand, and VR Options > Your Body > Recenter Height
+    makes a chair count as standing.
+
+It started flat, or something broke.
+    Start Virtual Desktop (or your VR runtime) and connect the headset before
+    you launch. If it still goes wrong, see "If something goes wrong" below.
 
 
 Launching
@@ -62,7 +110,7 @@ What lives where
                       with no error in the game.
 
 The launchers prefer games\ beside them, and fall back to where the data was
-found when they were written - which is why the folder still runs on the
+found when they were written, which is why the folder still runs on the
 machine that set it up after being moved.
 
 
@@ -133,7 +181,7 @@ Nothing else on the controller changes, so you can hold the grip, flick to what
 you want, press A, and let go.
 
 There is no button that takes steroids directly. Select them first, then use
-them - the same as every other item. Or use the item wheel, below.
+them, the same as every other item. Or use the item wheel, below.
 
 
 The weapon wheel
@@ -141,8 +189,8 @@ The weapon wheel
 
 Hold your gun hand's stick click and the weapons you are carrying hang in a
 ring in front of you, as the same 3D models you hold, on a disc of slices.
-Move your hand towards one - its slice lights up in the game's colour and the
-model grows - and let go of the stick to switch to it. Let go with your hand
+Move your hand towards one (its slice lights up in the game's color and the
+model grows) and let go of the stick to switch to it. Let go with your hand
 still in the middle and nothing changes.
 
 Hold the grip as well and the same ring holds your inventory instead: the
@@ -174,7 +222,7 @@ The Index has no menu button, so the Index gets a layout of its own:
     Left A / left B         X / Y
     Right A / right B       A / B
 
-Press, not touch - resting a thumb on a trackpad does nothing. Everything else
+Press, not touch: resting a thumb on a trackpad does nothing. Everything else
 matches the table above.
 
 
@@ -199,7 +247,7 @@ Under VR Options > Pause Menu:
     Menu Size               how much of your view it covers
     Menu Depth              how far away it hangs, 1 to 10 metres
 
-Menu Depth does not change how big the menu looks - it keeps its apparent size
+Menu Depth does not change how big the menu looks; it keeps its apparent size
 as it moves. Further away is flatter in your view and easier to read while
 turning your head; closer feels more immediate. 3.5 metres is the default.
 
@@ -222,7 +270,7 @@ Playing seated
 VR Options > Your Body > Recenter Height. Sit however you mean to play, select
 it, and that height becomes the one the game treats as standing, so a chair
 stops reading as a permanent crouch. Same command as the Quake and Quake II
-ports - vr_recenter at the console does the same thing.
+ports: vr_recenter at the console does the same thing.
 
 It is a capture, not a guess: the Height Adjust slider under it shows what was
 taken and can be nudged by hand afterwards.
@@ -245,7 +293,7 @@ every weapon, its model, and whether it has a placement.
 Voxel Weapons, under VR Options > Hands and Weapons, is separate from the Voxels setting
 under Display. Voxels there is the world: enemies, pickups, decoration. Voxel
 Weapons is only the one in your hand. You can turn the world's voxels off and
-keep the weapon a model, which is what Duke's expansions want - their enemies
+keep the weapon a model, which is what Duke's expansions want: their enemies
 carry Christmas hats and Hawaiian shirts, and Duke It Out In D.C. has weapon
 skins of its own, none of which survive being replaced by a voxel.
 
@@ -268,15 +316,15 @@ one then appears in the Switch Game menu with a launcher of its own.
     Redneck Rampage expansions     already in the GOG release
 
 Loose in the folder, not in a subfolder, and keep the name. If your copy of a
-Duke add-on also has a loose .CON beside it - DUKEDC.CON, VACATION.CON,
-NWINTER.CON - bring that across too. Some releases keep the script outside the
+Duke add-on also has a loose .CON beside it (DUKEDC.CON, VACATION.CON,
+NWINTER.CON), so bring that across too. Some releases keep the script outside the
 GRP and will not start without it.
 
 You need the base game first. Every add-on is tied to it, and on its own it is
 not a game Raze can identify.
 
 If you are working from an original CD, the disc may not hold a .GRP at all.
-Sunstorm's Duke add-ons shipped their data as .SSI - Duke it out in D.C. is
+Sunstorm's Duke add-ons shipped their data as .SSI: Duke it out in D.C. is
 DUKEDCPP.SSI in a DUKEDC folder. Copy that in and run SETUP.bat; Raze can read
 .SSI directly and it may simply be recognised. If it is not, the usual add-on
 patch utility converts it to a .GRP, and that goes in as above.
@@ -299,7 +347,7 @@ SETUP.bat again.
 
 Hand Raze the zip, and do not unpack it into the Blood folder. Both ship
 tiles007.art and tiles008.art, which are names Blood's own art already uses, so
-unpacking overwrites the base game's art - Death Wish's own readme warns about
+unpacking overwrites the base game's art, and Death Wish's own readme warns about
 this. Mounted as an archive the replacement art applies only to the episode you
 are playing.
 
@@ -310,7 +358,7 @@ the zip and move the contents up a level before copying it in.
 Both bring their own soundtracks as music tracks, and their launchers switch
 those on. Nothing to set.
 
-Anything else with its own .INI runs too, but is not recognised - there is no
+Anything else with its own .INI runs too, but is not recognised: there is no
 rule that knows about it, and nothing is wrong when it does not appear. Point a
 launcher at it instead. Unpack it into its own folder, say
 games\blood\addons\yourmod\ , then copy any launcher in launchers\ to a new
@@ -336,7 +384,7 @@ If something goes wrong
 
 logs\ holds one log per game plus startup.log, which records each startup stage
 in order. Between them they say how far it got. razexr_vr.log, beside raze.exe,
-records what your headset and runtime reported - include it with any report.
+records what your headset and runtime reported. Include it with any report.
 
 Each of them keeps the run before as .prev.log beside it (startup.prev.log,
 razexr_vr.prev.log, and one per game). Starting the game again after a crash
@@ -355,7 +403,7 @@ Double vision, or crossed eyes, on a Pimax
     default: VR Options > Troubleshooting > Fix Double Vision
     (Pimax). Seen under Pimax Play; the sboys3 SteamVR driver does not show
     it. If the world swims or shears with it on, turn it off and please say
-    so, with razexr_vr.log - it records exactly what your headset reports
+    so, with razexr_vr.log, which records exactly what your headset reports
     per eye.
 
 Changing the render resolution
@@ -373,7 +421,7 @@ I want walking to ignore both my head and my hand
 Redneck Rampage has no music unless you have its soundtrack. GOG ships it in a
 separate free bonus download that comes with the game rather than inside it.
 Leave that zip in your Downloads folder and run SETUP.bat again, or unpack it
-into games\rampage\ - setup prints the exact path when it cannot find it.
+into games\rampage\. Setup prints the exact path when it cannot find it.
 
 PowerSlave / Exhumed must be the DOS release. The 2022 Nightdive remaster will
 not work. Take Steam's free soundtrack DLC with it, or the game has no music.
@@ -385,7 +433,7 @@ Licence and credit
 ------------------
 
 GPL-2.0, inherited from Raze. Licence text in gpl-2.0.txt, and Ken
-Silverman's BUILD engine terms in buildlic.txt - Raze descends from BUILD
+Silverman's BUILD engine terms in buildlic.txt, since Raze descends from BUILD
 and those terms travel with it.
 
 The four DLLs beside the executable are unmodified upstream builds of
