@@ -162,9 +162,9 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
     ovrInputStateTrackedRemote *pPrimaryTrackedRemoteNew, *pPrimaryTrackedRemoteOld,  *pSecondaryTrackedRemoteNew, *pSecondaryTrackedRemoteOld;
     /*
         PC branch: the Leftorium moves the gun to the left hand and leaves the
-        sticks where they were - the left stick walks, the right stick turns,
-        and their clicks go with them (the house way, asked of the left-handed
-        player it was made for). So it undoes the swap for the sticks, and
+        sticks where they were: the left stick walks, the right stick turns,
+        and their clicks go with them, which is what left-handed players asked
+        for. So it undoes the swap for the sticks, and
         Switch Sticks, a row of its own, swaps them for anyone. "Primary" below
         is the turning stick, "secondary" the walking one.
     */

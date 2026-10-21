@@ -94,7 +94,7 @@ pad_back menu_main
 // PC branch: "+crouch", held for as long as the button is. This line came
 // from GZDoom's pad bindings as a bare "crouch", which fires once per press:
 // the VR X button sends this key, so X crouched for an instant and could not
-// hold you swimming down (a player, 29 Sep 2026). FGameConfigFile::DoKeySetup
+// hold you swimming down. FGameConfigFile::DoKeySetup
 // repairs configs that saved the old line.
 lthumb +crouch
 // PC branch: the off-hand stick click. Their VR layer routes it here and
