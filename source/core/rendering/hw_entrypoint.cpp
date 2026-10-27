@@ -56,6 +56,7 @@
 #include "vr_wheel.h"
 #include "vr_crosshair.h"
 #include "vr_crouch.h"
+#include "vr_gametome.h"
 
 EXTERN_CVAR(Bool, cl_capfps)
 
@@ -333,7 +334,8 @@ FRenderViewpoint SetupViewpoint(DCoreActor* cam, const DVector3& position, int s
 				and the world in the same frame. The resync resumes the moment
 				the menu closes, and does exactly what it was written for.
 			*/
-			const bool pausedInWorld = VR_MenuInWorld();
+			// The Game Tome opened in play holds the game still the same way.
+			const bool pausedInWorld = VR_MenuInWorld() || VR_GameTomePause();
 
 			// Special frame-yaw-resync code
 			// Basically, if the game code changes the player's yaw, then we need to gradually resync
@@ -396,7 +398,7 @@ FRenderViewpoint SetupViewpoint(DCoreActor* cam, const DVector3& position, int s
 		being drawn. The view yaw is the game's minus ninety, as the remote
 		camera branch above spells out.
 	*/
-	if (!renderingRemoteCamera && VR_MenuInWorld())
+	if (!renderingRemoteCamera && (VR_MenuInWorld() || VR_GameTomePause()))
 		r_viewpoint.RotAngle = DAngle::fromDeg(vrYaw + 90.).BAMs();
 	else
 		r_viewpoint.RotAngle = angles.Yaw.BAMs();
