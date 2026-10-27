@@ -154,19 +154,23 @@ Setup says so when it finds the remaster, rather than only reporting the game as
 
 ## Installing
 
-**Run `SETUP.bat`. That is the whole thing.**
+**The easy way:** download `RazeXR PCVR Installer.exe` from the latest release and
+double-click it. Windows may say it "protected your PC": press More info, then Run
+anyway. Press INSTALL, then PRESS START. It installs and updates RazeXR PCVR for you.
 
-It finds the Build games you already own on Steam and GOG, copies their data into
-this folder, downloads the optional voxel pack, and writes a launcher for each
-game it ends up with. No prompts and no arguments.
+**By hand:** extract the zip anywhere and run `SETUP.bat`. That is the whole thing.
 
-Then start Virtual Desktop, connect the headset, and run:
+It finds the Build games you already own on Steam, GOG or the 3D Realms Anthology,
+installs RazeXR PCVR to `Documents\RazeXR PCVR` (or `%USERPROFILE%\Games\RazeXR PCVR`
+when OneDrive keeps your Documents), copies the games' data into it, downloads the
+optional voxel packs, and writes a launcher for each game it ends up with. The folder
+you extracted is only the download: delete it afterwards if you like.
 
-    Play RazeXR PCVR.bat
-
-It opens whichever game you played last, and **Switch Game** in the menu moves
-between all of them without taking the headset off. To start one game directly,
-the individual scripts are in `launchers\`.
+Then start Virtual Desktop, connect the headset, and start **RazeXR PCVR** from the
+desktop shortcut, or run `Play RazeXR PCVR.bat` in that folder. It opens whichever game
+you played last, and **Switch Game** in the menu moves between all of them without
+taking the headset off. To start one game directly, the individual scripts are in
+`launchers\`.
 
     Play RazeXR PCVR.bat   the one you want
     launchers\             a script per game, for a direct shortcut
@@ -176,23 +180,27 @@ the individual scripts are in `launchers\`.
     config\                one settings file per game
     logs\                  one log per game; this is what to send if something breaks
                            (the run before each is kept as .prev.log, so a crash survives a restart)
+    Uninstall.bat          removes RazeXR PCVR; your saves, settings and Game Tome notes stay
+    Collect logs.bat       zips the logs onto your desktop, to send with a report
 
-Afterwards the folder is self-contained: copy it to another PC and it runs there
-with nothing installed and no setup to repeat. The exception is `-InPlace`, which
-points at your existing installs rather than copying them in: that saves the disk
-space and gives up the portability.
+The installed folder is self-contained: copy it to another PC and it runs there with
+nothing installed and no setup to repeat. The exception is `-InPlace`, which points at
+your existing installs rather than copying them in: that saves the disk space and gives
+up the portability.
 
     SETUP                 the normal way
     SETUP -InPlace        link to the games where they are instead of copying
     SETUP -NoDownload     skip the network step
     SETUP -Root D:\Games   also search this folder
 
-If a game is missing afterwards, setup did not find it. Run it again with `-Root`
-pointing at where it lives.
+If a game is missing afterwards, setup did not find it. Run `SETUP.bat` in the installed
+folder again with `-Root` pointing at where the game lives.
 
-**Updating from an earlier version:** extract the new zip over your folder and let it
-replace the files. Updating keeps your saves and settings: saves, configs, launchers and
-game data are not in the zip, so nothing of yours is touched.
+**Updating:** run the installer, or extract the new zip anywhere and run its `SETUP.bat`.
+It updates the folder you installed to before. **From 1.1 or 1.2, which you extracted
+and set up by hand:** extract the new zip over that folder and run `SETUP.bat` there, or
+drag that folder onto the new `SETUP.bat`. It is updated where it is. Updating keeps
+your saves, settings, Game Tome notes and anything you added.
 
 ## FAQ
 

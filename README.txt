@@ -12,27 +12,40 @@ are supported but not tested by us.
 Install
 -------
 
-1. Extract this folder anywhere.
+The easy way: download "RazeXR PCVR Installer.exe" from the latest release
+and double-click it (if Windows says it "protected your PC", press More info,
+then Run anyway). Press INSTALL, then PRESS START.
 
-2. Run SETUP.bat and leave it alone. No prompts, no arguments. It finds the
-   Build games you own on Steam and GOG, copies their data in, downloads the
-   voxel packs, builds the in-hand weapons from your own game files, and writes
-   a launcher for every game it ends up with.
+By hand:
+
+1. Extract the zip anywhere.
+
+2. Run SETUP.bat and leave it alone. It finds the Build games you own on
+   Steam, GOG or the 3D Realms Anthology, installs RazeXR PCVR to
+   Documents\RazeXR PCVR (%USERPROFILE%\Games\RazeXR PCVR when OneDrive keeps
+   your Documents), copies the games' data in, downloads the voxel packs,
+   builds the in-hand weapons from your own game files, and writes a launcher
+   for every game it ends up with. The folder you extracted is only the
+   download; delete it afterwards if you like.
 
 3. Start Virtual Desktop and connect the headset BEFORE launching. The game
    looks for an OpenXR session at startup; with no headset streaming it falls
    back to a flat window.
 
-4. Run "Play RazeXR PCVR.bat". It opens the game you played last.
+4. Start RazeXR PCVR from the desktop shortcut, or run "Play RazeXR PCVR.bat"
+   in the installed folder. It opens the game you played last.
 
-The folder is self-contained afterwards. Copy it to another PC and it runs
-there with nothing installed and no setup to repeat. Nothing is written outside
-the folder, and no Visual C++ redistributable is needed; the runtime is
-linked statically.
+The installed folder is self-contained. Copy it to another PC and it runs
+there with nothing installed and no setup to repeat. No Visual C++
+redistributable is needed; the runtime is linked statically. Uninstall.bat in
+it removes RazeXR PCVR and keeps your saves, settings and Game Tome notes;
+Collect logs.bat zips the logs onto your desktop to send with a report.
 
-To update, extract a new release over the top. Updating keeps your saves and
-settings: your configs, saves, launchers and game data are not in the archive
-and are left alone.
+To update, run the installer, or extract the new zip anywhere and run its
+SETUP.bat: it updates the folder you installed to before. A 1.1 or 1.2 folder
+you set up by hand: extract the new zip over it and run SETUP.bat there, or
+drag that folder onto the new SETUP.bat; it is updated where it is. Updating
+keeps your saves, settings, Game Tome notes and anything you added.
 
 
 FAQ

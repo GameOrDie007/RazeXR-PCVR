@@ -1,141 +1,214 @@
 <#
-    RazeXR PCVR - one-file setup.
+    RazeXR PCVR - install, update, uninstall and log collection, in one script.
 
-    Finds the Build games you already own on Steam and GOG, copies their data
-    into this folder, fetches the optional extras, and writes a launcher for
+    Finds the Build games you already own (Steam, GOG, the 3D Realms Anthology,
+    the usual folders, or a folder you name), copies their data into the
+    RazeXR PCVR folder, fetches the optional extras, and writes a launcher for
     every game it ends up with.
+
+    Where it installs:
+      - run from a folder that is already set up (an older RazeXR PCVR folder
+        you extracted the new zip over), it updates that folder where it is
+      - given an older RazeXR PCVR folder (dropped on SETUP.bat, or -GamePath),
+        it updates that one where it is
+      - otherwise it copies the port to Documents\RazeXR PCVR
+        (%USERPROFILE%\Games\RazeXR PCVR when OneDrive keeps your Documents),
+        or to the folder it installed to before
 
     Nothing here is downloaded from us and no game data ships with this port.
     Everything comes from your own installs or from the projects that publish it.
 
-        -InPlace     point the launchers at the games where they are instead of
-                     copying, for when disk space matters more than being able
-                     to move this folder to another PC
-        -NoDownload  skip the network step entirely
-        -Root <path> extra folder to search for game data
-        -VRaze <pk3> a VRaze raze.pk3, if you have one. The voxel weapons work
-                     without it; this adds the weapon animation frames and the
-                     four games whose models are not the games' own.
+      SETUP.bat               install, or update - this script with no switch
+      Uninstall.bat           -Uninstall: removes what it installed; your saves,
+                              settings and Game Tome notes are kept
+      Collect logs.bat        -Collect: zips the logs onto your desktop
+
+    For people:
+      -InPlace     point at the games where they are instead of copying them
+      -NoDownload  skip the network step entirely
+      -Root <path> one more folder to search for game data
+      -VRaze <pk3> a VRaze raze.pk3, if you have one (adds the weapon animation
+                   frames; the voxel weapons work without it)
+
+    For tools and hubs (the same switches in every Game Or Die port):
+      -Detect                 change nothing; report the games and the install
+      -Quiet                  no questions, no pause
+      -Json                   print the result as JSON on stdout, nothing else
+      -GamePath "<a>;<b>"     only these folders; no searching. A RazeXR PCVR
+                              folder among them is the install to update
+      -AddToSteam             with -Quiet: add the Steam library entry
+      -CloseSteam             with -Quiet: close Steam to write it (reopened after)
+      -NoSteam, -NoShortcuts  no Steam entry / no desktop shortcut
+      Tests: -NoPrompt, -NoSearch, -SteamRoot, -DocumentsRoot, -UserRoot, -DesktopRoot
+    Exit codes: 0 done, 1 nothing could be installed (no games found), 2 error.
 #>
 
+[CmdletBinding(PositionalBinding = $false)]
 param(
-    [switch]$InPlace,
-    [switch]$NoDownload,
-    [string]$Root,
-    [string]$VRaze
+    [switch] $Uninstall,
+    [switch] $Collect,
+    [switch] $Detect,
+    [switch] $Quiet,
+    [switch] $Json,
+    [string[]] $GamePath,
+    [switch] $AddToSteam,
+    [switch] $CloseSteam,
+    [switch] $NoSteam,
+    [switch] $NoShortcuts,
+    [switch] $NoDownload,
+    [switch] $InPlace,
+    [string] $Root,
+    [string] $VRaze,
+    # Tests: no questions; only the folders given; stand-ins for Steam,
+    # Documents, the user folder and the desktop.
+    [switch] $NoPrompt,
+    [switch] $NoSearch,
+    [string] $SteamRoot,
+    [string] $DocumentsRoot,
+    [string] $UserRoot,
+    [string] $DesktopRoot,
+    # Folders dropped on SETUP.bat arrive as bare arguments.
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]] $Dropped
 )
 
-$ErrorActionPreference = "Stop"
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-if (Test-Path (Join-Path $here "raze.exe")) { $dest = $here }
-else { $dest = Split-Path -Parent $here }     # running from tools/
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 
-$exe = Join-Path $dest "raze.exe"
-if (-not (Test-Path $exe)) {
-    Write-Host "ERROR: raze.exe not found next to this script." -ForegroundColor Red
-    exit 1
+$Product = 'RazeXR PCVR'
+$ProductFile = 'RazeXR PCVR'
+$Version = '1.2.1'
+
+if ($Quiet -or $Json) { $NoPrompt = $true }
+if ($GamePath) { $NoSearch = $true; $Dropped = @($Dropped) + @($GamePath | ForEach-Object { $_ -split ';' } | Where-Object { $_ }) }
+$Dropped = @($Dropped | Where-Object { $_ } | ForEach-Object { $_.Trim('"').TrimEnd('\') })
+
+# ProviderPath, not Path: on a network share .Path carries a provider prefix
+# that .NET file calls refuse.
+$Here = (Resolve-Path -LiteralPath $PSScriptRoot).ProviderPath
+
+# ---------------------------------------------------------------- where things are
+
+function Is-RazeFolder([string] $d) {
+    if (-not $d) { return $false }
+    return (Test-Path -LiteralPath (Join-Path $d 'raze.exe')) -and (Test-Path -LiteralPath (Join-Path $d 'raze.pk3'))
 }
-
-function Line($t) { Write-Host $t }
-function Ok($t)   { Write-Host "  [ok]   $t"   -ForegroundColor Green }
-function Warn($t) { Write-Host "  [ ! ]  $t"   -ForegroundColor Yellow }
-function Info($t) { Write-Host "  [--]   $t"   -ForegroundColor DarkGray }
-
-Line ""
-Line "RazeXR PCVR setup"
-Line "================="
-Line ""
-
-# ---------------------------------------------------------------- 1. where the games might be
-
-$roots = New-Object System.Collections.Generic.List[string]
-
-function AddRoot($p) {
-    if ([string]::IsNullOrWhiteSpace($p)) { return }
-    if (Test-Path $p) { if (-not $roots.Contains($p)) { $roots.Add($p) } }
-}
-
-# Steam, including every library folder it knows about
-$steam = $null
-foreach ($k in @("HKLM:\SOFTWARE\WOW6432Node\Valve\Steam",
-                 "HKLM:\SOFTWARE\Valve\Steam",
-                 "HKCU:\Software\Valve\Steam")) {
-    try {
-        $v = (Get-ItemProperty -Path $k -ErrorAction Stop)
-        if ($v.InstallPath) { $steam = $v.InstallPath; break }
-        if ($v.SteamPath)   { $steam = $v.SteamPath;   break }
-    } catch {}
-}
-<#
-    [System.IO.Path]::Combine, not Join-Path, for every path read from Steam.
-
-    Join-Path checks that the drive exists and throws when it does not, and
-    libraryfolders.vdf lists every library Steam has ever had - including
-    external drives that are switched off. One such drive stopped setup dead
-    before it had looked at anything ("Cannot find drive. A drive with the name
-    'S' does not exist", a player, 29 Sep 2026). Combine only joins strings;
-    AddRoot's Test-Path then skips a library that is not there.
-#>
-if ($steam) {
-    AddRoot ([System.IO.Path]::Combine($steam, "steamapps\common"))
-    $vdf = [System.IO.Path]::Combine($steam, "steamapps\libraryfolders.vdf")
-    if (Test-Path $vdf) {
-        foreach ($m in [regex]::Matches((Get-Content $vdf -Raw), '"path"\s+"([^"]+)"')) {
-            AddRoot ([System.IO.Path]::Combine(($m.Groups[1].Value -replace '\\\\', '\'), "steamapps\common"))
-        }
+# A RazeXR PCVR folder somebody has played from: set up by an earlier Setup.
+function Is-SetUp([string] $d) {
+    if (-not (Is-RazeFolder $d)) { return $false }
+    foreach ($m in @('version.txt', 'games', 'launchers', 'config')) {
+        if (Test-Path -LiteralPath (Join-Path $d $m)) { return $true }
     }
+    return $false
 }
 
-# GOG
-foreach ($base in @("HKLM:\SOFTWARE\WOW6432Node\GOG.com\Games",
-                    "HKLM:\SOFTWARE\GOG.com\Games")) {
-    if (Test-Path $base) {
-        foreach ($g in Get-ChildItem $base -ErrorAction SilentlyContinue) {
-            try { AddRoot (Get-ItemProperty $g.PSPath -ErrorAction Stop).path } catch {}
-        }
+# The port's files: beside this script in the download, or this script is the
+# copy in an installed folder's tools\.
+$Package = $null
+if (Is-RazeFolder $Here) { $Package = $Here }
+elseif ((Split-Path -Leaf $Here) -ieq 'tools' -and (Is-RazeFolder (Split-Path -Parent $Here))) { $Package = Split-Path -Parent $Here }
+
+function Documents { if ($DocumentsRoot) { return $DocumentsRoot } return [Environment]::GetFolderPath('MyDocuments') }
+function Desktop   { if ($DesktopRoot)   { return $DesktopRoot }   return [Environment]::GetFolderPath('Desktop') }
+function UserHome  { if ($UserRoot)      { return $UserRoot }      return $env:USERPROFILE }
+function LocalData {
+    if ($UserRoot) { return (Join-Path $UserRoot 'AppData\Local') }
+    return [Environment]::GetFolderPath('LocalApplicationData')
+}
+$Remembered = Join-Path (LocalData) ('Game Or Die\' + $ProductFile + '\home.txt')
+
+function Default-Home {
+    $docs = Documents
+    # A Documents folder OneDrive keeps would upload gigabytes of game data.
+    if ($docs -like '*OneDrive*') { return (Join-Path (UserHome) ('Games\' + $ProductFile)) }
+    return (Join-Path $docs $ProductFile)
+}
+
+# Which RazeXR PCVR folder this run is about, in order: one the player named,
+# the one this script runs from (if it is set up), the one installed to
+# before, the default one. $ForInstall: the default even when it is not there.
+function Find-Home([bool] $ForInstall) {
+    foreach ($d in $Dropped) { if (Is-RazeFolder $d) { return $d } }
+    if ($Package -and (Is-SetUp $Package)) { return $Package }
+    if (Test-Path -LiteralPath $Remembered) {
+        $r = ([string](Get-Content -LiteralPath $Remembered -TotalCount 1)).Trim()
+        if (Is-RazeFolder $r) { return $r }
     }
+    $d = Default-Home
+    if ($ForInstall -or (Is-RazeFolder $d)) { return $d }
+    return $null
 }
 
-<#
-    3D Realms Anthology bought from 3D Realms itself, not Steam, installs
-    outside every Steam library and registers here, as Raze's own search list
-    (searchpaths.cpp) records. The games sit a folder or two below it, which
-    the search below reaches. A missing key adds nothing.
-#>
-foreach ($k in @("HKLM:\SOFTWARE\WOW6432Node\3DRealms\Anthology",
-                 "HKLM:\SOFTWARE\3DRealms\Anthology",
-                 "HKCU:\Software\3DRealms\Anthology")) {
-    try { AddRoot (Get-ItemProperty -Path $k -ErrorAction Stop).'(default)' } catch {}
+# ---------------------------------------------------------------- the log, and -Json
+
+$Mode = 'install'
+if ($Uninstall) { $Mode = 'uninstall' }
+if ($Collect)   { $Mode = 'collect' }
+if ($Detect)    { $Mode = 'detect' }
+$LogFile = Join-Path ([System.IO.Path]::GetTempPath()) ('razexr-pcvr-' + $Mode + '.txt')
+$Result = [ordered]@{ product = $Product; version = $Version; mode = $Mode; result = 'ok' }
+
+function Say([string] $m, [string] $color) {
+    if ($Json) { return }	# stdout carries the JSON alone
+    if ($color) { Write-Host $m -ForegroundColor $color } else { Write-Host $m }
 }
-foreach ($d in @("C:\Program Files (x86)\3D Realms", "C:\Program Files\3D Realms",
-                 "C:\3D Realms", "C:\Games\3D Realms Anthology")) { AddRoot $d }
-
-# The usual manual spots
-foreach ($d in @("C:\GOG Games", "D:\GOG Games", "E:\GOG Games",
-                 "C:\Games", "D:\Games", "E:\Games")) { AddRoot $d }
-if ($Root) { AddRoot $Root }
-
-Line "Looking for games"
-if ($roots.Count -eq 0) {
-    Warn "no Steam or GOG install found - pass -Root <folder> to point at your games"
-} else {
-    foreach ($r in $roots) { Info $r }
+function Log([string] $m, [string] $color) {
+    Add-Content -LiteralPath $LogFile -Value $m -Encoding UTF8
+    Say $m $color
 }
-Line ""
+function Line($t) { Log $t }
+function Ok($t)   { Log "  [ok]   $t" 'Green' }
+function Warn($t) { Log "  [ ! ]  $t" 'Yellow' }
+function Info($t) { Log "  [--]   $t" 'DarkGray' }
+Set-Content -LiteralPath $LogFile -Value ($Product + ' ' + $Version + ' ' + $Mode + ', ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')) -Encoding UTF8
 
-# ---------------------------------------------------------------- 2. what we are looking for
+function Finish([int] $code) {
+    if ($Json) {
+        $Result['exitCode'] = $code
+        $Result['games'] = @(Game-Status)
+        Write-Output ($Result | ConvertTo-Json -Depth 5)
+    }
+    exit $code
+}
+trap {
+    Log ''
+    Log ('ERROR: ' + $_.Exception.Message)
+    Log ('  at ' + $_.InvocationInfo.PositionMessage)
+    Log ''
+    Log 'Setup stopped.  Run "Collect logs.bat" and send us the file it makes.'
+    $Result['result'] = 'error'
+    $Result['error'] = $_.Exception.Message
+    if ($Json) { $Result['exitCode'] = 2; Write-Output ($Result | ConvertTo-Json -Depth 5) }
+    exit 2
+}
+
+function Ask-YesNo([string] $q) {
+    if ($NoPrompt) { return $false }
+    $a = Read-Host ($q + ' [Y/n]')
+    return ($a -eq '' -or $a -match '^[Yy]')
+}
+
+# ---------------------------------------------------------------- the games
 
 # A recognised file identifies the game; its whole folder comes across, so
 # companions (extra ART, maps, expansion GRPs, music) arrive with it.
 $games = @(
-    @{ Folder = "duke";          Name = "Duke Nukem 3D";        Files = @("DUKE3D.GRP") },
-    @{ Folder = "blood";         Name = "Blood";                Files = @("BLOOD.RFF") },
-    @{ Folder = "shadowwarrior"; Name = "Shadow Warrior";       Files = @("SW.GRP") },
-    @{ Folder = "rampage";       Name = "Redneck Rampage";      Files = @("REDNECK.GRP") },
-    @{ Folder = "ridesagain";    Name = "Redneck Rides Again";  Files = @("REDNECK.GRP", "RIDES.GRP", "RIDESAGAIN.GRP") },
-    @{ Folder = "nam";           Name = "NAM";                  Files = @("NAM.GRP") },
-    @{ Folder = "ww2gi";         Name = "WWII GI";              Files = @("WW2GI.GRP") },
-    @{ Folder = "exhumed";       Name = "Exhumed / PowerSlave"; Files = @("STUFF.DAT") }
+    @{ Folder = 'duke';          Name = 'Duke Nukem 3D';        Files = @('DUKE3D.GRP');
+       Launchers = @('Duke Nukem 3D - World Tour VR', 'Duke Nukem 3D - Atomic Edition VR', 'Duke Nukem 3D*VR') },
+    @{ Folder = 'blood';         Name = 'Blood';                Files = @('BLOOD.RFF');
+       Launchers = @('BLOOD - One Unit Whole Blood VR', 'BLOOD*VR') },
+    @{ Folder = 'shadowwarrior'; Name = 'Shadow Warrior';       Files = @('SW.GRP');
+       Launchers = @('Shadow Warrior VR', 'Shadow Warrior*VR') },
+    @{ Folder = 'rampage';       Name = 'Redneck Rampage';      Files = @('REDNECK.GRP');
+       Launchers = @('Redneck Rampage VR') },
+    @{ Folder = 'ridesagain';    Name = 'Redneck Rides Again';  Files = @('REDNECK.GRP', 'RIDES.GRP', 'RIDESAGAIN.GRP');
+       Launchers = @('Redneck Rampage Rides Again VR') },
+    @{ Folder = 'nam';           Name = 'NAM';                  Files = @('NAM.GRP');
+       Launchers = @('NAM VR', 'NAPALM VR') },
+    @{ Folder = 'ww2gi';         Name = 'WWII GI';              Files = @('WW2GI.GRP');
+       Launchers = @('WWII GI VR') },
+    @{ Folder = 'exhumed';       Name = 'Exhumed / PowerSlave'; Files = @('STUFF.DAT');
+       Launchers = @('Powerslave VR', 'Exhumed VR', 'PowerSlave*VR') }
 )
 
 # Rides Again ships its data as REDNECK.GRP too, so it is told apart by size.
@@ -145,46 +218,500 @@ $RIDESAGAIN_SIZE = 191798609
     Exhumed is identified by STUFF.DAT, and Duke Nukem 3D ships a stuff.dat of
     its own - 840 KB of Duke data against Exhumed's 27 MB. Without this, anyone
     who owns Duke on Steam got Duke's gameroot copied into games\exhumed, 1527
-    files of the wrong game, and Exhumed would not run. The size in grpinfo.txt
-    is exact, so the test only has to separate two files that are nothing alike.
+    files of the wrong game, and Exhumed would not run.
 #>
 $EXHUMED_MIN = 20000000
 
 <#
-    Duke: prefer Atomic over 1.3D.
-
-    Several things ship a Duke 1.3D DUKE3D.GRP as their own base - Penthouse
-    Paradise does - and the search takes its first hit. A user whose Atomic copy
-    is found second would quietly end up playing 1.3D, losing Duke it out in
-    D.C., Life's a Beach and Nuclear Winter, which all depend on the Atomic GRP.
-    Atomic and World Tour are both 44,356,548 bytes; 1.3D is 26,524,524. So
-    anything below this is kept only as a fallback.
+    Duke: prefer Atomic over 1.3D. Several things ship a Duke 1.3D DUKE3D.GRP
+    as their own base (Penthouse Paradise does), and an Atomic copy found second
+    would quietly lose D.C., Life's a Beach and Nuclear Winter. Atomic and World
+    Tour are both 44,356,548 bytes; 1.3D is 26,524,524.
 #>
 $DUKE_ATOMIC_MIN = 40000000
 
-# Modern remasters that answer to a game's name and contain nothing Raze can
-# use. Checked, not guessed - see the note where this is used.
+# Modern remasters that answer to a game's name and contain nothing Raze can use.
 $remasters = @(
-    @{ Folder = "exhumed"; Dir = "PowerSlave Exhumed";
-       Why    = "the 2022 Nightdive remaster, a rewrite with its own assets";
-       Needs  = "the DOS original - Steam sells it as PowerSlave (DOS Classic Edition)" }
+    @{ Folder = 'exhumed'; Dir = 'PowerSlave Exhumed';
+       Why    = 'the 2022 Nightdive remaster, a rewrite with its own assets';
+       Needs  = 'the DOS original - Steam sells it as PowerSlave (DOS Classic Edition)' }
 )
 
-$skipExt = @(".exe", ".dll", ".msi", ".cab", ".log", ".url", ".ico", ".bat", ".sh")
+$skipExt = @('.exe', '.dll', '.msi', '.cab', '.log', '.url', '.ico', '.bat', '.sh')
+
+# ---------------------------------------------------------------- where the games might be
+
+$roots = New-Object System.Collections.Generic.List[string]
+function AddRoot($p) {
+    if ([string]::IsNullOrWhiteSpace($p)) { return }
+    if (Test-Path -LiteralPath $p) { if (-not $roots.Contains($p)) { $roots.Add($p) } }
+}
+
+function Steam-Dir {
+    if ($SteamRoot) { return $SteamRoot }
+    foreach ($k in @('HKLM:\SOFTWARE\WOW6432Node\Valve\Steam', 'HKLM:\SOFTWARE\Valve\Steam', 'HKCU:\Software\Valve\Steam')) {
+        try {
+            $v = Get-ItemProperty -Path $k -ErrorAction Stop
+            if ($v.InstallPath) { return $v.InstallPath }
+            if ($v.SteamPath)   { return $v.SteamPath }
+        } catch {}
+    }
+    return $null
+}
+
+$searched = $false
+function Search-Roots {
+    if ($script:searched) { return }
+    $script:searched = $true
+    # The folders named: game folders to search (a RazeXR PCVR folder among
+    # them is the install, not a place to look for games).
+    foreach ($d in $Dropped) { if (-not (Is-RazeFolder $d)) { AddRoot $d } }
+    if ($Root) { AddRoot $Root }
+    if ($NoSearch) { return }
+
+    <#
+        [System.IO.Path]::Combine, not Join-Path, for every path read from Steam.
+        libraryfolders.vdf lists every library Steam has ever had - including
+        external drives that are switched off - and Join-Path throws on a drive
+        that is not there ("Cannot find drive", a player, 29 Sep 2026).
+    #>
+    $steam = Steam-Dir
+    if ($steam) {
+        AddRoot ([System.IO.Path]::Combine($steam, 'steamapps\common'))
+        $vdf = [System.IO.Path]::Combine($steam, 'steamapps\libraryfolders.vdf')
+        if (Test-Path -LiteralPath $vdf) {
+            foreach ($m in [regex]::Matches((Get-Content -LiteralPath $vdf -Raw), '"path"\s+"([^"]+)"')) {
+                AddRoot ([System.IO.Path]::Combine(($m.Groups[1].Value -replace '\\\\', '\'), 'steamapps\common'))
+            }
+        }
+    }
+    if ($SteamRoot) { return }	# a test: its stand-in Steam and nothing of this PC's
+
+    foreach ($base in @('HKLM:\SOFTWARE\WOW6432Node\GOG.com\Games', 'HKLM:\SOFTWARE\GOG.com\Games')) {
+        if (Test-Path $base) {
+            foreach ($g in Get-ChildItem $base -ErrorAction SilentlyContinue) {
+                try { AddRoot (Get-ItemProperty $g.PSPath -ErrorAction Stop).path } catch {}
+            }
+        }
+    }
+    # The 3D Realms Anthology bought from 3D Realms installs outside Steam.
+    foreach ($k in @('HKLM:\SOFTWARE\WOW6432Node\3DRealms\Anthology', 'HKLM:\SOFTWARE\3DRealms\Anthology', 'HKCU:\Software\3DRealms\Anthology')) {
+        try { AddRoot (Get-ItemProperty -Path $k -ErrorAction Stop).'(default)' } catch {}
+    }
+    foreach ($d in @('C:\Program Files (x86)\3D Realms', 'C:\Program Files\3D Realms', 'C:\3D Realms', 'C:\Games\3D Realms Anthology',
+                     'C:\GOG Games', 'D:\GOG Games', 'E:\GOG Games', 'C:\Games', 'D:\Games', 'E:\Games')) { AddRoot $d }
+}
+
+function BloodHasCampaigns($dir) {
+    foreach ($c in @('Death Wish', 'MARROW')) {
+        if (Test-Path -LiteralPath (Join-Path (Join-Path $dir 'addons') $c)) { return $true }
+    }
+    return $false
+}
+
+<#
+    Every game's data, found once: folder -> the file that identifies it.
+
+    World Tour is looked for in its own right first: as a side effect of the
+    Duke search it was never reached on a machine where another Duke is found
+    first. It is identified by FIREFLYTROOPER.CON, which no other release has.
+#>
+$hits = $null
+$wtDir = ''
+function Find-AllGames {
+    if ($script:hits) { return $script:hits }
+    Search-Roots
+    $found = @{}
+    foreach ($r in $roots) {
+        $c = Get-ChildItem -LiteralPath $r -Filter 'FIREFLYTROOPER.CON' -Recurse -File -Depth 4 -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($c) { $script:wtDir = $c.DirectoryName; break }
+    }
+    foreach ($g in $games) {
+        $hit = $null; $wtFallback = $null; $smallDuke = $null; $plainBlood = $null
+        foreach ($r in $roots) {
+            foreach ($fn in $g.Files) {
+                $cands = Get-ChildItem -LiteralPath $r -Filter $fn -Recurse -File -Depth 4 -ErrorAction SilentlyContinue | Select-Object -First 5
+                foreach ($cand in $cands) {
+                    if ($g.Folder -eq 'ridesagain' -and $cand.Length -ne $RIDESAGAIN_SIZE) { continue }
+                    if ($g.Folder -eq 'rampage'    -and $cand.Length -eq $RIDESAGAIN_SIZE) { continue }
+                    if ($g.Folder -eq 'exhumed'    -and $cand.Length -lt $EXHUMED_MIN) { continue }
+                    # Blood: prefer the install that carries Death Wish and MARROW
+                    # (Blood: Refreshed Supply); a plain one only as a fallback.
+                    if ($g.Folder -eq 'blood' -and -not (BloodHasCampaigns $cand.DirectoryName)) {
+                        if (-not $plainBlood) { $plainBlood = $cand }
+                        continue
+                    }
+                    if ($g.Folder -eq 'duke' -and $cand.Length -lt $DUKE_ATOMIC_MIN) {
+                        if (-not $smallDuke) { $smallDuke = $cand }
+                        continue
+                    }
+                    <#
+                        World Tour's folder must not become games\duke: four of its
+                        loose files share names with lumps in the Atomic GRP, and a
+                        loose file wins, so it would re-script every other Duke game.
+                        Its episode five is added afterwards, by name.
+                    #>
+                    if ($g.Folder -eq 'duke' -and (Test-Path -LiteralPath (Join-Path $cand.DirectoryName 'FIREFLYTROOPER.CON'))) {
+                        if (-not $wtFallback) { $wtFallback = $cand }
+                        continue
+                    }
+                    $hit = $cand; break
+                }
+                if ($hit) { break }
+            }
+            if ($hit) { break }
+        }
+        # Only World Tour: it serves as the base game, episode five with it.
+        if (-not $hit -and $wtFallback) { $hit = $wtFallback; $script:wtDir = '' }
+        if (-not $hit -and $smallDuke)  { $hit = $smallDuke }
+        if (-not $hit -and $plainBlood) { $hit = $plainBlood }
+        if ($hit) { $found[$g.Folder] = $hit }
+    }
+    $script:hits = $found
+    return $found
+}
+
+# Does a RazeXR PCVR folder hold this game's data?
+function Home-HasGame([string] $vrHome, $g) {
+    if (-not $vrHome) { return $false }
+    $gd = Join-Path (Join-Path $vrHome 'games') $g.Folder
+    if (-not (Test-Path -LiteralPath $gd)) { return $false }
+    foreach ($fn in $g.Files) {
+        if (Get-ChildItem -LiteralPath $gd -Filter $fn -File -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 1) { return $true }
+    }
+    return $false
+}
+
+function Installed-Version([string] $vrHome) {
+    if (-not (Is-RazeFolder $vrHome)) { return $null }
+    $v = Join-Path $vrHome 'version.txt'
+    if (Test-Path -LiteralPath $v) { return ([string](Get-Content -LiteralPath $v -TotalCount 1)).Trim() }
+    # Set up by hand before 1.2.1, with no version.txt: 1.2 brought the Game Tome.
+    if (-not (Is-SetUp $vrHome)) { return $null }
+    if (Test-Path -LiteralPath (Join-Path $vrHome 'gametome')) { return ($Product + ' 1.2') }
+    return ($Product + ' 1.1')
+}
+
+function Launcher-For([string] $vrHome, $g) {
+    $dir = Join-Path $vrHome 'launchers'
+    if (-not (Test-Path -LiteralPath $dir)) { return $null }
+    foreach ($name in $g.Launchers) {
+        $f = Get-ChildItem -LiteralPath $dir -Filter ($name + '.bat') -File -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -First 1
+        if ($f) { return $f.FullName }
+    }
+    return $null
+}
+
+# ---------------------------------------------------------------- the Steam library
+#
+# Steam keeps "Add a Non-Steam Game" entries in a binary file,
+# userdata\<account>\config\shortcuts.vdf, one per account. It reads it when it
+# starts and writes it when it exits, so it must not be running while this is
+# changed. Every other entry is kept byte for byte.
+
+function Vdf-ReadString([byte[]] $b, [ref] $i) {
+    $start = $i.Value
+    while ($b[$i.Value] -ne 0) { $i.Value++ }
+    $s = [System.Text.Encoding]::UTF8.GetString($b, $start, $i.Value - $start)
+    $i.Value++
+    return $s
+}
+function Vdf-ReadMap([byte[]] $b, [ref] $i) {
+    $entries = New-Object System.Collections.ArrayList
+    while ($true) {
+        if ($i.Value -ge $b.Length) { throw 'shortcuts.vdf ends early' }
+        $t = $b[$i.Value]; $i.Value++
+        if ($t -eq 8) { return ,$entries }
+        $k = Vdf-ReadString $b $i
+        switch ($t) {
+            0 { $v = Vdf-ReadMap $b $i }
+            1 { $v = Vdf-ReadString $b $i }
+            2 { $v = [BitConverter]::ToInt32($b, $i.Value); $i.Value += 4 }
+            7 { $v = [BitConverter]::ToUInt64($b, $i.Value); $i.Value += 8 }
+            default { throw ('shortcuts.vdf has a value type this does not know (' + $t + '); left alone') }
+        }
+        [void]$entries.Add(@{ T = [int]$t; K = $k; V = $v })
+    }
+}
+function Vdf-Write($entries, [System.IO.MemoryStream] $ms) {
+    foreach ($e in $entries) {
+        $ms.WriteByte([byte]$e.T)
+        $kb = [System.Text.Encoding]::UTF8.GetBytes($e.K); $ms.Write($kb, 0, $kb.Length); $ms.WriteByte(0)
+        switch ($e.T) {
+            0 { Vdf-Write $e.V $ms; $ms.WriteByte(8) }
+            1 { $vb = [System.Text.Encoding]::UTF8.GetBytes([string]$e.V); $ms.Write($vb, 0, $vb.Length); $ms.WriteByte(0) }
+            2 { $vb = [BitConverter]::GetBytes([int32]$e.V); $ms.Write($vb, 0, 4) }
+            7 { $vb = [BitConverter]::GetBytes([uint64]$e.V); $ms.Write($vb, 0, 8) }
+        }
+    }
+}
+function Vdf-Get($entries, [string] $k) {
+    foreach ($e in $entries) { if ($e.K -ieq $k) { return ,$e.V } }
+    return $null
+}
+
+# Steam's id for a non-Steam game: CRC-32 of the quoted exe and the name, top
+# bit set. Unsigned constants written out: PowerShell 5.1 reads 0xFFFFFFFF,
+# 0xEDB88320 and 0x80000000 as negative int32s.
+$Crc = $null
+$Poly = [uint32]3988292384
+$TopBit = [uint32]2147483648
+function Crc32([string] $s) {
+    if (-not $script:Crc) {
+        $script:Crc = New-Object 'uint32[]' 256
+        for ($n = 0; $n -lt 256; $n++) {
+            $c = [uint32]$n
+            for ($k = 0; $k -lt 8; $k++) { if ($c -band 1) { $c = [uint32]($Poly -bxor ($c -shr 1)) } else { $c = [uint32]($c -shr 1) } }
+            $script:Crc[$n] = $c
+        }
+    }
+    $c = [uint32]::MaxValue
+    foreach ($byte in [System.Text.Encoding]::UTF8.GetBytes($s)) { $c = [uint32]($script:Crc[($c -bxor $byte) -band 0xFF] -bxor ($c -shr 8)) }
+    return [uint32]($c -bxor [uint32]::MaxValue)
+}
+function Shortcut-Id([string] $exeQuoted, [string] $name) { return [uint32]((Crc32 ($exeQuoted + $name)) -bor $TopBit) }
+
+function Steam-Configs {
+    $s = Steam-Dir
+    if (-not $s) { return @() }
+    $u = Join-Path $s 'userdata'
+    if (-not (Test-Path -LiteralPath $u)) { return @() }
+    return @(Get-ChildItem -LiteralPath $u -Directory | Where-Object { $_.Name -match '^\d+$' -and $_.Name -ne '0' } |
+        ForEach-Object { Join-Path $_.FullName 'config' } | Where-Object { Test-Path -LiteralPath $_ })
+}
+function Steam-Running {
+    if ($SteamRoot) { return $false }	# a stand-in folder in a test
+    return [bool](Get-Process -Name 'steam' -ErrorAction SilentlyContinue)
+}
+$SteamWasClosed = $false
+function Steam-Close {
+    $exe = Join-Path (Steam-Dir) 'steam.exe'
+    Log '  Closing Steam...'
+    Start-Process -FilePath $exe -ArgumentList '-shutdown'
+    for ($n = 0; $n -lt 60 -and (Steam-Running); $n++) { Start-Sleep -Milliseconds 500 }
+    if (Steam-Running) { Log '  Steam did not close.'; return $false }
+    $script:SteamWasClosed = $true
+    return $true
+}
+function Steam-Reopen {
+    if (-not $SteamWasClosed) { return }
+    Start-Process -FilePath (Join-Path (Steam-Dir) 'steam.exe')
+    Log '  Steam started again.'
+}
+
+$PlayBat = 'Play RazeXR PCVR.bat'
+# Ours: named as ours AND starting the Play script of THIS install. Another
+# install's entry, or anything else, is left alone.
+function Is-Ours($entry, [string] $vrHome) {
+    if ((Vdf-Get $entry.V 'AppName') -ne $Product) { return $false }
+    return ([string](Vdf-Get $entry.V 'Exe')) -like ('*' + (Join-Path $vrHome $PlayBat) + '*')
+}
+function Read-Shortcuts([string] $file) {
+    if (-not (Test-Path -LiteralPath $file)) {
+        $root = New-Object System.Collections.ArrayList
+        [void]$root.Add(@{ T = 0; K = 'shortcuts'; V = (New-Object System.Collections.ArrayList) })
+        return ,$root
+    }
+    $b = [System.IO.File]::ReadAllBytes($file)
+    $i = 0
+    $root = Vdf-ReadMap $b ([ref]$i)
+    if (-not ($root | Where-Object { $_.K -ieq 'shortcuts' -and $_.T -eq 0 })) { throw ('no shortcuts list in ' + $file + '; left alone') }
+    return ,$root
+}
+function Write-Shortcuts([string] $file, $root) {
+    $ms = New-Object System.IO.MemoryStream
+    Vdf-Write $root $ms
+    $ms.WriteByte(8)
+    $backup = $file + '.before-razexr-pcvr'
+    if ((Test-Path -LiteralPath $file) -and -not (Test-Path -LiteralPath $backup)) { Copy-Item -LiteralPath $file -Destination $backup }
+    [System.IO.File]::WriteAllBytes($file, $ms.ToArray())
+}
+function Renumber($list) { for ($n = 0; $n -lt $list.Count; $n++) { $list[$n].K = [string]$n } }
+
+function New-ShortcutEntry([string] $vrHome) {
+    $exe = '"' + (Join-Path $vrHome $PlayBat) + '"'
+    $id = Shortcut-Id $exe $Product
+    $v = New-Object System.Collections.ArrayList
+    foreach ($f in @(
+        @{ T = 2; K = 'appid'; V = [BitConverter]::ToInt32([BitConverter]::GetBytes($id), 0) },
+        @{ T = 1; K = 'AppName'; V = $Product },
+        @{ T = 1; K = 'Exe'; V = $exe },
+        @{ T = 1; K = 'StartDir'; V = ('"' + $vrHome + '\"') },
+        @{ T = 1; K = 'icon'; V = (Join-Path $vrHome 'raze.exe') },
+        @{ T = 1; K = 'ShortcutPath'; V = '' },
+        @{ T = 1; K = 'LaunchOptions'; V = '' },
+        @{ T = 2; K = 'IsHidden'; V = 0 },
+        @{ T = 2; K = 'AllowDesktopConfig'; V = 1 },
+        @{ T = 2; K = 'AllowOverlay'; V = 1 },
+        @{ T = 2; K = 'OpenVR'; V = 1 },	# a VR game: in SteamVR's library too
+        @{ T = 2; K = 'Devkit'; V = 0 },
+        @{ T = 1; K = 'DevkitGameID'; V = '' },
+        @{ T = 2; K = 'DevkitOverrideAppID'; V = 0 },
+        @{ T = 2; K = 'LastPlayTime'; V = 0 },
+        @{ T = 1; K = 'FlatpakAppID'; V = '' },
+        @{ T = 0; K = 'tags'; V = (New-Object System.Collections.ArrayList) })) { [void]$v.Add($f) }
+    return @{ T = 0; K = '0'; V = $v }
+}
+
+function Steam-Add([string] $vrHome) {
+    $configs = Steam-Configs
+    if ($configs.Count -eq 0) { return 'no Steam' }
+    foreach ($c in $configs) {
+        $file = Join-Path $c 'shortcuts.vdf'
+        $root = Read-Shortcuts $file
+        $list = Vdf-Get $root 'shortcuts'
+        foreach ($e in @($list)) { if (Is-Ours $e $vrHome) { [void]$list.Remove($e) } }
+        [void]$list.Add((New-ShortcutEntry $vrHome))
+        Renumber $list
+        Write-Shortcuts $file $root
+    }
+    return 'added'
+}
+function Steam-HasOurs([string] $vrHome) {
+    if (-not $vrHome) { return $false }
+    foreach ($c in Steam-Configs) {
+        $file = Join-Path $c 'shortcuts.vdf'
+        if (-not (Test-Path -LiteralPath $file)) { continue }
+        try { foreach ($e in (Vdf-Get (Read-Shortcuts $file) 'shortcuts')) { if (Is-Ours $e $vrHome) { return $true } } } catch { }
+    }
+    return $false
+}
+function Steam-Remove([string] $vrHome) {
+    foreach ($c in Steam-Configs) {
+        $file = Join-Path $c 'shortcuts.vdf'
+        if (-not (Test-Path -LiteralPath $file)) { continue }
+        $root = Read-Shortcuts $file
+        $list = Vdf-Get $root 'shortcuts'
+        $removed = 0
+        foreach ($e in @($list)) { if (Is-Ours $e $vrHome) { [void]$list.Remove($e); $removed++ } }
+        if ($removed) { Renumber $list; Write-Shortcuts $file $root }
+    }
+}
+function Steam-Ready([bool] $quietAllowed) {
+    if (-not (Steam-Running)) { return $true }
+    if ($NoPrompt) {
+        if ($quietAllowed -and $CloseSteam) { return (Steam-Close) }
+        return $false
+    }
+    if (Ask-YesNo 'Steam is open, and it has to be closed for this.  Close Steam now (it opens again after)?') { return (Steam-Close) }
+    return $false
+}
+
+function Make-Shortcut([string] $lnk, [string] $target, [string] $workdir, [string] $icon, [string] $what) {
+    $sh = New-Object -ComObject WScript.Shell
+    $s = $sh.CreateShortcut($lnk)
+    $s.TargetPath = $target
+    $s.WorkingDirectory = $workdir
+    $s.IconLocation = $icon + ',0'
+    $s.Description = $what
+    $s.WindowStyle = 7	# minimised: the script's window stays out of the way
+    $s.Save()
+}
+$DesktopLink = $ProductFile + '.lnk'
+function Shortcut-Target([string] $lnk) {
+    try { return (New-Object -ComObject WScript.Shell).CreateShortcut($lnk).TargetPath } catch { return $null }
+}
+
+# ---------------------------------------------------------------- what an install owns
+
+# What the release zip carries (payload.txt, made by make-release.py): copied
+# into the install on every run, so an update replaces them all.
+function Payload-List {
+    $list = Join-Path $Package 'payload.txt'
+    if (Test-Path -LiteralPath $list) {
+        return @(Get-Content -LiteralPath $list | Where-Object { $_ -and -not $_.StartsWith('#') })
+    }
+    # A folder with no list (a build tree, or a 1.1/1.2 folder): the port's
+    # own files by name, never the player's.
+    $mine = @('raze.exe', 'raze.pk3', 'raze_portable.ini', 'libsndfile-1.dll', 'openal32.dll', 'openxr_loader.dll', 'zmusiclite.dll',
+              'SETUP.bat', 'setup.ps1', 'build-vrweapons.ps1', 'README.md', 'README.txt', 'THIRD-PARTY-PERMISSIONS.md',
+              'AUTHORS.md', 'gpl-2.0.txt', 'buildlic.txt', 'Controls - RazeXR PCVR - Meta Quest 3.png',
+              'assets\voxel_duke3d.zip', 'assets\vrweapons_models.pk3', 'assets\boxart.pk3', 'soundfonts\raze.sf2')
+    $out = @($mine | Where-Object { Test-Path -LiteralPath (Join-Path $Package $_) })
+    $gt = Join-Path $Package 'gametome'
+    if (Test-Path -LiteralPath $gt) {
+        foreach ($f in Get-ChildItem -LiteralPath $gt -Recurse -File) {
+            if ($f.Name -in @('ink.txt', 'place.txt', 'typed.txt') -or $f.Name -like '*_log.txt') { continue }
+            $out += $f.FullName.Substring($Package.Length).TrimStart('\')
+        }
+    }
+    return $out
+}
+
+# Made by Setup in assets\ (downloaded or built here); the rest of assets\ is
+# the zip's.
+$MadeAssets = @('duke3d_voxels.zip', 'voxels_blood.zip', 'voxels_sw.zip', 'voxels_exhumed.zip',
+                'vrweapons.pk3', 'vrweapons_rr.pk3', 'penthouse_paradise.zip')
+
+<#
+    The game data an install owns, for Uninstall: in games\<game>, the files
+    that came from the player's own copy of that game (the same path in the
+    folder it was copied from) and the ones Setup made from it (World Tour's
+    episode five, the CD music). Anything the player added there by hand - a
+    Blood fan campaign zip, an add-on GRP off an old disc - is not on it, and
+    stays. Worked out from the folder as it is, so an update and a fresh
+    install list the same files.
+#>
+function Games-Owned([string] $vrHome, $sources) {
+    $out = New-Object System.Collections.Generic.List[string]
+    $gamesDir = Join-Path $vrHome 'games'
+    if (-not (Test-Path -LiteralPath $gamesDir)) { return $out }
+    $dukeExtra = @('FIREFLYTROOPER.CON', 'FLAMETHROWER.CON', 'EPISODE5BOSS.CON', 'TILES020.ART', 'TILES021.ART', 'TILES022.ART',
+                   'WT_GAME.CON', 'WT_USER.CON', 'WT_DEFS.CON', 'DUKEDC.GRP', 'VACATION.GRP', 'NWINTER.GRP', 'DUKE!ZON.GRP')
+    foreach ($g in $games) {
+        $gd = Join-Path $gamesDir $g.Folder
+        if (-not (Test-Path -LiteralPath $gd)) { continue }
+        $item = Get-Item -LiteralPath $gd -Force
+        if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) { $out.Add('junction:games\' + $g.Folder); continue }
+        $src = $sources[$g.Folder]
+        foreach ($f in Get-ChildItem -LiteralPath $gd -Recurse -File -Force -ErrorAction SilentlyContinue) {
+            $rel = $f.FullName.Substring($gd.Length).TrimStart('\')
+            $own = $false
+            if ($src -and (Test-Path -LiteralPath (Join-Path $src $rel))) { $own = $true }
+            elseif ($rel -match '^music\\') { $own = $true }
+            elseif ($g.Folder -eq 'duke' -and ($dukeExtra -contains $rel.ToUpper() -or $rel -match '^(maps|sound)\\')) { $own = $true }
+            if ($own) { $out.Add('games\' + $g.Folder + '\' + $rel) }
+        }
+    }
+    return $out
+}
+
+# The game folders an earlier run copied from, kept in its manifest, so an
+# update with a game no longer installed still knows what it owns.
+function Manifest-Sources([string] $vrHome) {
+    $s = @{}
+    $m = Join-Path $vrHome 'install-manifest.txt'
+    if (Test-Path -LiteralPath $m) {
+        foreach ($line in Get-Content -LiteralPath $m) {
+            if ($line -match '^# source (\S+): (.+)$') { $s[$Matches[1]] = $Matches[2] }
+        }
+    }
+    return $s
+}
+
+# ---------------------------------------------------------------- install
+
+function Copy-Payload([string] $vrHome) {
+    $n = 0
+    foreach ($rel in Payload-List) {
+        $src = Join-Path $Package $rel
+        if (-not (Test-Path -LiteralPath $src)) { continue }
+        $dst = Join-Path $vrHome $rel
+        $dir = Split-Path -Parent $dst
+        if (-not (Test-Path -LiteralPath $dir)) { [void][System.IO.Directory]::CreateDirectory($dir) }
+        Copy-Item -LiteralPath $src -Destination $dst -Force
+        $n++
+    }
+    return $n
+}
 
 <#
     Every path here goes through -LiteralPath, and the directories are made with
-    .NET rather than New-Item.
-
-    Game folders contain names PowerShell reads as wildcards. A Duke install
-    here ships "hudstatfont_[.png", and a bare Copy-Item treats the '[' as the
-    start of a character class, fails with "The specified wildcard character
-    pattern is not valid", and takes the whole setup down with it - after the
-    "Copying game data" banner, so it looks like the copy itself broke. Square
-    brackets are legal in filenames and mods use them freely.
+    .NET rather than New-Item: game folders hold names like "hudstatfont_[.png",
+    and a bare Copy-Item reads the '[' as a wildcard and fails.
 #>
-function CopyGameFolder($src, $targetName) {
-    $target = Join-Path (Join-Path $dest "games") $targetName
+function CopyGameFolder($dest, $src, $targetName) {
+    $target = Join-Path (Join-Path $dest 'games') $targetName
     [void][System.IO.Directory]::CreateDirectory($target)
     $n = 0
     foreach ($f in Get-ChildItem -LiteralPath $src -Recurse -File -ErrorAction SilentlyContinue) {
@@ -201,884 +728,777 @@ function CopyGameFolder($src, $targetName) {
     return $n
 }
 
-<#
-    Everything that is not the engine, the game data or the player's own files
-    lives in assets\. Ten archives in the root was ten things to mistake for
-    something you were meant to open.
-#>
-$assets = Join-Path $dest "assets"
-[void][System.IO.Directory]::CreateDirectory($assets)
+function Do-Install {
+    Line ''
+    Line 'RazeXR PCVR setup'
+    Line '================='
+    Line ''
+    if (-not $Package) { throw 'Run SETUP.bat from the RazeXR PCVR folder you unzipped (it holds raze.exe).' }
 
-Line "Copying game data"
-$found = 0
-$seedPath = ""      # a real data file, to hand the engine as -gamegrp later
+    Search-Roots
+    Line 'Looking for games'
+    if ($roots.Count -eq 0) { Warn 'no Steam or GOG install found - pass -Root <folder> to point at your games' }
+    else { foreach ($r in $roots) { Info $r } }
+    Line ''
+    $found = Find-AllGames
 
-<#
-    World Tour is searched for in its own right, before anything else.
-
-    Doing it as a side effect of the Duke search did not work: that loop stops
-    at its first hit, so on a machine where another Duke install is found first
-    the World Tour folder is never looked at and episode five silently does not
-    appear. It is identified by FIREFLYTROOPER.CON, which no other release has.
-#>
-$wtDir = ""
-foreach ($r in $roots) {
-    $c = Get-ChildItem -LiteralPath $r -Filter "FIREFLYTROOPER.CON" -Recurse -File -Depth 4 -ErrorAction SilentlyContinue |
-         Select-Object -First 1
-    if ($c) { $wtDir = $c.DirectoryName; break }
-}
-
-<#
-    Blood: prefer the install that carries Death Wish and MARROW.
-
-    Blood: Refreshed Supply ships both fan campaigns - now official - as
-    addons\Death Wish\ and addons\MARROW\ beside BLOOD.RFF, and the whole
-    folder comes across, so they become games of their own with no download.
-    But the search stops at its first Blood, and One Unit Whole Blood, Fresh
-    Supply and the DOS copies inside Refreshed Supply itself all answer to
-    BLOOD.RFF with no campaigns beside them. Anyone with two installs could
-    get the one without. So a Blood with neither is set aside, as an older
-    Duke is, and used only if no better one turns up.
-#>
-function BloodHasCampaigns($dir) {
-    foreach ($c in @("Death Wish", "MARROW")) {
-        if (Test-Path -LiteralPath (Join-Path (Join-Path $dir "addons") $c)) { return $true }
-    }
-    return $false
-}
-
-foreach ($g in $games) {
-    $hit = $null
-    $wtFallback = $null
-    $smallDuke = $null
-    $plainBlood = $null
-    foreach ($r in $roots) {
-        foreach ($fn in $g.Files) {
-            $c = Get-ChildItem -Path $r -Filter $fn -Recurse -File -Depth 4 -ErrorAction SilentlyContinue |
-                 Select-Object -First 5
-            foreach ($cand in $c) {
-                if ($g.Folder -eq "ridesagain" -and $cand.Length -ne $RIDESAGAIN_SIZE) { continue }
-                if ($g.Folder -eq "rampage"    -and $cand.Length -eq $RIDESAGAIN_SIZE) { continue }
-                if ($g.Folder -eq "exhumed"    -and $cand.Length -lt $EXHUMED_MIN) { continue }
-                if ($g.Folder -eq "blood" -and -not (BloodHasCampaigns $cand.DirectoryName)) {
-                    if (-not $plainBlood) { $plainBlood = $cand }
-                    continue
-                }
-                if ($g.Folder -eq "duke" -and $cand.Length -lt $DUKE_ATOMIC_MIN) {
-                    if (-not $smallDuke) { $smallDuke = $cand }
-                    continue
-                }
-                <#
-                    World Tour ships DUKE3D.GRP like every other Duke release,
-                    so it answers the search for Duke - but its folder must not
-                    become games\duke. Four of its loose files carry the same
-                    names as lumps inside the Atomic GRP (GAME.CON, USER.CON,
-                    DEFS.CON, TILES009.ART) and 41 of its 49 maps do too, and a
-                    loose file wins over a GRP lump. Copying it wholesale would
-                    quietly re-script and re-map Atomic, Duke it out in D.C.,
-                    Caribbean and Nuclear Winter as well.
-
-                    So it is remembered and set aside. Its episode five is added
-                    afterwards, by name, without the four that collide.
-                #>
-                if ($g.Folder -eq "duke" -and
-                    (Test-Path -LiteralPath (Join-Path $cand.DirectoryName "FIREFLYTROOPER.CON"))) {
-                    if (-not $wtFallback) { $wtFallback = $cand }
-                    continue
-                }
-                $hit = $cand; break
-            }
-            if ($hit) { break }
-        }
-        if ($hit) { break }
+    $dest = Find-Home $true
+    $update = Is-RazeFolder $dest
+    $hadGames = @($games | Where-Object { Home-HasGame $dest $_ }).Count
+    if ($found.Count -eq 0 -and $hadGames -eq 0) {
+        Line 'No game data was found, so there is nothing to play yet.'
+        Line 'Install one of the games (Steam, GOG or a disc), or point Setup at its folder, and run it again.'
+        $Result['result'] = 'no game found'
+        Finish 1
     }
 
-    # Only World Tour was found, so it has to serve as the base game after all,
-    # and episode five comes with it rather than being added separately.
-    if (-not $hit -and $wtFallback) { $hit = $wtFallback; $wtDir = "" }
+    if ($Package -ne $dest) {
+        [void][System.IO.Directory]::CreateDirectory($dest)
+        $n = Copy-Payload $dest
+        if ($update) { Ok ('{0,-24} {1} files updated in {2}' -f 'RazeXR PCVR', $n, $dest) }
+        else         { Ok ('{0,-24} {1} files installed to {2}' -f 'RazeXR PCVR', $n, $dest) }
+    } else {
+        Ok ('{0,-24} set up where it is, {1}' -f 'RazeXR PCVR', $dest)
+    }
+    $Result['vrFolder'] = $dest
+    # Installed again after an uninstall: the note beside the kept saves is no longer true.
+    $note = Join-Path $dest 'Your saves are kept here.txt'
+    if (Test-Path -LiteralPath $note) { Remove-Item -LiteralPath $note -Force }
 
-    # No Atomic anywhere, so an older Duke is better than none.
-    if (-not $hit -and $smallDuke) { $hit = $smallDuke }
+    $exe = Join-Path $dest 'raze.exe'
+    $assets = Join-Path $dest 'assets'
+    [void][System.IO.Directory]::CreateDirectory($assets)
+    $sources = Manifest-Sources $dest
 
-    # No Refreshed Supply, so Blood without the campaigns. They can still be
-    # added by hand - README, "Blood's fan campaigns".
-    if (-not $hit -and $plainBlood) { $hit = $plainBlood }
-
-    if (-not $hit) {
-        Info ("{0,-24} not found" -f $g.Name)
-        <#
-            "not found" is a poor thing to tell somebody who owns the game.
-
-            Raze runs the original Build engine releases. The modern remasters
-            are rewrites with their own repacked assets and ship nothing Raze
-            can read - PowerSlave Exhumed (Nightdive, 2022) has no STUFF.DAT in
-            it anywhere, which was confirmed on a machine that owns it. So when
-            the folder is sitting right there in the search, say why rather than
-            leaving the owner to conclude the search is broken.
-
-            Only releases actually checked are listed. A remaster that does ship
-            the original data alongside would be found by the normal search and
-            never reach here.
-        #>
-        foreach ($r in $roots) {
-            foreach ($rm in $remasters) {
-                if ($rm.Folder -ne $g.Folder) { continue }
-                $cand = Join-Path $r $rm.Dir
-                if (Test-Path -LiteralPath $cand) {
-                    Info ("  found {0}, which is {1}" -f $rm.Dir, $rm.Why)
-                    Info ("  Raze needs {0}" -f $rm.Needs)
+    Line 'Copying game data'
+    $seedPath = ''
+    foreach ($g in $games) {
+        $hit = $found[$g.Folder]
+        if (-not $hit) {
+            if (Home-HasGame $dest $g) { Info ('{0,-24} already here' -f $g.Name); continue }
+            Info ('{0,-24} not found' -f $g.Name)
+            # "not found" is a poor thing to tell somebody who owns the remaster.
+            foreach ($r in $roots) {
+                foreach ($rm in $remasters) {
+                    if ($rm.Folder -ne $g.Folder) { continue }
+                    if (Test-Path -LiteralPath (Join-Path $r $rm.Dir)) {
+                        Info ('  found {0}, which is {1}' -f $rm.Dir, $rm.Why)
+                        Info ('  Raze needs {0}' -f $rm.Needs)
+                    }
                 }
             }
+            continue
         }
-        continue
-    }
-
-    $found++
-    if ($InPlace) {
-        <#
-            A junction rather than a copy.
-
-            The engine finds other games by walking out from the one it was
-            given, so games scattered across Steam and GOG are invisible to each
-            other - point it at Duke under Steam and it will never see Redneck
-            under GOG. Linking them all into games\ puts every one under a single
-            root, which is what the copy does, without duplicating gigabytes.
-
-            Directory junctions need no administrator rights. They do not survive
-            being copied to another PC, which is the trade this switch makes.
-        #>
-        $target = Join-Path (Join-Path $dest "games") $g.Folder
-        if (Test-Path $target) { cmd /c rmdir "$target" 2>$null | Out-Null }
-        New-Item -ItemType Directory -Force -Path (Join-Path $dest "games") | Out-Null
-        cmd /c mklink /J "$target" "$($hit.DirectoryName)" | Out-Null
-        if (Test-Path (Join-Path $target $hit.Name)) {
-            if (-not $seedPath) { $seedPath = Join-Path $target $hit.Name }
-            Ok ("{0,-24} linked to {1}" -f $g.Name, $hit.DirectoryName)
+        $sources[$g.Folder] = $hit.DirectoryName
+        if ($InPlace) {
+            <#
+                A junction rather than a copy: every game under one root, which
+                the engine needs to see the others, without duplicating
+                gigabytes. Junctions need no administrator rights; they do not
+                survive being copied to another PC, which is the trade.
+            #>
+            $target = Join-Path (Join-Path $dest 'games') $g.Folder
+            if (Test-Path -LiteralPath $target) { cmd /c rmdir "$target" 2>$null | Out-Null }
+            [void][System.IO.Directory]::CreateDirectory((Join-Path $dest 'games'))
+            cmd /c mklink /J "$target" "$($hit.DirectoryName)" | Out-Null
+            if (Test-Path -LiteralPath (Join-Path $target $hit.Name)) {
+                if (-not $seedPath) { $seedPath = Join-Path $target $hit.Name }
+                Ok ('{0,-24} linked to {1}' -f $g.Name, $hit.DirectoryName)
+            } else {
+                if (-not $seedPath) { $seedPath = $hit.FullName }
+                Warn ('{0,-24} could not link - using it where it is' -f $g.Name)
+            }
         } else {
             if (-not $seedPath) { $seedPath = $hit.FullName }
-            Warn ("{0,-24} could not link - using it where it is" -f $g.Name)
-        }
-    } else {
-        if (-not $seedPath) { $seedPath = $hit.FullName }
-        $n = CopyGameFolder $hit.DirectoryName $g.Folder
-        Ok ("{0,-24} {1} files from {2}" -f $g.Name, $n, $hit.DirectoryName)
-        if ($g.Folder -eq "blood" -and (BloodHasCampaigns $hit.DirectoryName)) {
-            $bloodAddons = Join-Path $hit.DirectoryName "addons"
-            $hasDW = Test-Path -LiteralPath (Join-Path $bloodAddons "Death Wish")
-            $hasMRW = Test-Path -LiteralPath (Join-Path $bloodAddons "MARROW")
-            if ($hasDW -and $hasMRW) {
-                Info "  with Death Wish and MARROW, from Blood: Refreshed Supply"
-            } elseif ($hasMRW) {
-                <#
-                    Death Wish came to Refreshed Supply in its patch 3.0, free.
-                    An install that has not updated has MARROW and nothing else
-                    - found on a test PC on 28 Sep 2026 - so say how to get it
-                    rather than leave it silently missing.
-                #>
-                Info "  with MARROW, from Blood: Refreshed Supply"
-                Warn "  no Death Wish: update Blood: Refreshed Supply (patch 3.0 added it, free) and run SETUP.bat again"
-            } else {
-                Info "  with Death Wish, from Blood: Refreshed Supply"
+            $n = CopyGameFolder $dest $hit.DirectoryName $g.Folder
+            Ok ('{0,-24} {1} files from {2}' -f $g.Name, $n, $hit.DirectoryName)
+            if ($g.Folder -eq 'blood' -and (BloodHasCampaigns $hit.DirectoryName)) {
+                $bloodAddons = Join-Path $hit.DirectoryName 'addons'
+                $hasDW = Test-Path -LiteralPath (Join-Path $bloodAddons 'Death Wish')
+                $hasMRW = Test-Path -LiteralPath (Join-Path $bloodAddons 'MARROW')
+                if ($hasDW -and $hasMRW) { Info '  with Death Wish and MARROW, from Blood: Refreshed Supply' }
+                elseif ($hasMRW) {
+                    Info '  with MARROW, from Blood: Refreshed Supply'
+                    Warn '  no Death Wish: update Blood: Refreshed Supply (patch 3.0 added it, free) and run SETUP.bat again'
+                } else { Info '  with Death Wish, from Blood: Refreshed Supply' }
             }
         }
     }
-}
 
-<#
-    A game archive that also exists deeper in the same folder is thrown away.
-
-    Steam's Duke ships the Atomic GRP twice, byte for byte: gameroot/duke3d.grp
-    and gameroot/classic/DUKE3D.GRP. Both come across, and then which one the
-    scan reports decides which folder the engine loads - so when it picked the
-    one in classic\ the game ran from a folder holding 43 files instead of the
-    one holding World Tour's scripts, and World Tour died on
-    "WT_GAME.CON: Missing con file(s)".
-
-    Nothing is gained by keeping a second identical copy, and everything that
-    reads the folder beside the game data depends on there being one answer. So
-    the deeper duplicate goes, and only on an exact hash match - a same-sized
-    file that differs is a different release and stays.
-#>
-$gamesRoot = Join-Path $dest "games"
-if ((Test-Path -LiteralPath $gamesRoot) -and -not $InPlace) {
-    $dropped = 0
-    foreach ($gdir in Get-ChildItem -LiteralPath $gamesRoot -Directory -ErrorAction SilentlyContinue) {
-        $top = @{}
-        foreach ($f in Get-ChildItem -LiteralPath $gdir.FullName -File -ErrorAction SilentlyContinue) {
-            if ($f.Extension -notmatch '^\.(grp|rff|dat)$') { continue }
-            $top[(Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash] = $f.FullName
-        }
-        if ($top.Count -eq 0) { continue }
-
-        foreach ($f in Get-ChildItem -LiteralPath $gdir.FullName -File -Recurse -ErrorAction SilentlyContinue) {
-            if ($f.DirectoryName -eq $gdir.FullName) { continue }      # the keepers
-            if ($f.Extension -notmatch '^\.(grp|rff|dat)$') { continue }
-            $h = (Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash
-            if (-not $top.ContainsKey($h)) { continue }
-            Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue
-            $dropped++
-        }
-    }
-    if ($dropped -gt 0) {
-        Ok ("{0,-24} {1} duplicate copies removed" -f "Game data", $dropped)
-    }
-}
-
-<#
-    Duke's expansions are scattered across its releases.
-
-    No single Duke release has them all. World Tour is the base game and episode
-    five and nothing else; Megaton Edition is the only one with Duke!ZONE II;
-    the plain Steam release keeps D.C., Life's a Beach and Nuclear Winter under
-    gameroot\addons\. Setup copies one Duke folder as the base game, so
-    whichever it picked, the others' expansions were left behind - a machine
-    with all three installed still only got what one of them happened to carry.
-
-    So each expansion is fetched by name from wherever it turns up, and only if
-    it is not already there. They are small, they sit beside Duke, and Raze
-    identifies each by its own CRC.
-#>
-$dukeDir = Join-Path (Join-Path $dest "games") "duke"
-if ((Test-Path -LiteralPath $dukeDir) -and -not $InPlace) {
-    $dukeAddons = @("DUKEDC.GRP", "VACATION.GRP", "NWINTER.GRP", "DUKE!ZON.GRP")
-    $got = 0
-    foreach ($an in $dukeAddons) {
-        # Already have it, at the root or in an addons\ subfolder? Leave it.
-        $have = Get-ChildItem -LiteralPath $dukeDir -Filter $an -Recurse -File -ErrorAction SilentlyContinue |
-                Select-Object -First 1
-        if ($have) { continue }
-
-        foreach ($r in $roots) {
-            $f = Get-ChildItem -LiteralPath $r -Filter $an -Recurse -File -Depth 4 -ErrorAction SilentlyContinue |
-                 Select-Object -First 1
-            if (-not $f) { continue }
-            Copy-Item -LiteralPath $f.FullName -Destination (Join-Path $dukeDir $f.Name) -Force
-            Info ("  + {0} from {1}" -f $f.Name, $f.DirectoryName)
-            $got++
-            break
-        }
-    }
-    if ($got -gt 0) { Ok ("{0,-24} {1} added from other Duke releases" -f "Duke expansions", $got) }
-}
-
-<#
-    Duke Nukem's Penthouse Paradise.
-
-    Raze's entries for it expect a repacked .grp, and the original release is a
-    folder of loose files, so it is never identified and never gets a launcher.
-    Four files are the whole add-on. Its CONs include only each other, none of
-    the names collide with anything in the Duke GRP, and it depends on the
-    Atomic GRP - so they go in beside Duke and the launcher names the script.
-
-    The DUKE3D.GRP in that folder is a 1.3D copy the add-on shipped with. It is
-    not needed and is deliberately not taken.
-#>
-$ppakDir = ""
-foreach ($r in $roots) {
-    $c = Get-ChildItem -LiteralPath $r -Filter "ppakgame.con" -Recurse -File -Depth 4 -ErrorAction SilentlyContinue |
-         Select-Object -First 1
-    if ($c) { $ppakDir = $c.DirectoryName; break }
-}
-
-if ($ppakDir -and -not $InPlace) {
     <#
-        Packed into an archive of its own rather than dropped beside Duke.
-
-        It ships a TILES014.art, and the Atomic GRP has a TILES014 as well, so
-        loose files would have replaced that art for every other Duke game. Only
-        the Penthouse launcher names this archive, so nothing else ever sees it.
-
-        Its sounds and music come along for the same reason they belong to it,
-        and the base game's own GAME/USER/DEFS.CON are left behind - those three
-        names are the collision, not the add-on's own p* and ppak* sets.
+        A game archive that also exists deeper in the same folder is thrown away,
+        on an exact hash match only. Steam's Duke ships the Atomic GRP twice, and
+        which one the scan reported decided whether World Tour found its scripts.
     #>
-    $ppakZip = Join-Path $assets "penthouse_paradise.zip"
-    $stage = Join-Path $env:TEMP ("razexr_ppak_" + [guid]::NewGuid().ToString())
-    try {
-        [void][System.IO.Directory]::CreateDirectory($stage)
-        $skip = @("GAME.CON", "USER.CON", "DEFS.CON")
-        $n = 0
-        foreach ($f in Get-ChildItem -LiteralPath $ppakDir -File) {
-            if ($f.Extension -notmatch '^\.(con|map|art|voc|wav|mid)$') { continue }
-            if ($skip -contains $f.Name.ToUpper()) { continue }
-            Copy-Item -LiteralPath $f.FullName -Destination (Join-Path $stage $f.Name) -Force
-            $n++
+    $gamesRoot = Join-Path $dest 'games'
+    if ((Test-Path -LiteralPath $gamesRoot) -and -not $InPlace) {
+        $dupes = 0
+        foreach ($gdir in Get-ChildItem -LiteralPath $gamesRoot -Directory -ErrorAction SilentlyContinue) {
+            $top = @{}
+            foreach ($f in Get-ChildItem -LiteralPath $gdir.FullName -File -ErrorAction SilentlyContinue) {
+                if ($f.Extension -notmatch '^\.(grp|rff|dat)$') { continue }
+                $top[(Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash] = $f.FullName
+            }
+            if ($top.Count -eq 0) { continue }
+            foreach ($f in Get-ChildItem -LiteralPath $gdir.FullName -File -Recurse -ErrorAction SilentlyContinue) {
+                if ($f.DirectoryName -eq $gdir.FullName) { continue }
+                if ($f.Extension -notmatch '^\.(grp|rff|dat)$') { continue }
+                $h = (Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash
+                if (-not $top.ContainsKey($h)) { continue }
+                Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue
+                $dupes++
+            }
         }
-        if ($n -ge 4) {
-            if (Test-Path -LiteralPath $ppakZip) { Remove-Item -LiteralPath $ppakZip -Force }
-            Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $ppakZip
-            Ok ("{0,-24} {1} files from {2}" -f "Penthouse Paradise", $n, $ppakDir)
-        } else {
-            Warn "Penthouse Paradise found but incomplete - skipped"
-        }
-    } catch {
-        Warn "could not pack Penthouse Paradise - everything else still works"
-    } finally {
-        if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue }
+        if ($dupes -gt 0) { Ok ('{0,-24} {1} duplicate copies removed' -f 'Game data', $dupes) }
     }
-}
 
-<#
-    Duke Nukem 3D: World Tour - episode five, Alien World Order.
-
-    Episode five is not a separate game to select. It is definevolumename 4 in
-    World Tour's USER.CON, which its GAME.CON includes alongside the three
-    scripts that add the incinerator and the firefly trooper. Load those scripts
-    and the episode is simply in the list.
-
-    The three that collide are copied under a WT_ prefix with their own include
-    lines repointed to match, so nothing shadows what the other Duke games load
-    out of the GRP. The launcher for World Tour then names WT_GAME.CON and gets
-    all five episodes; every other Duke launcher is untouched.
-
-    Nothing here is redistributed - it is copied from the user's own install.
-#>
-if ($wtDir -and -not $InPlace) {
-    Line "Duke Nukem 3D: World Tour"
-    $dukeDir = Join-Path (Join-Path $dest "games") "duke"
-    if (-not (Test-Path $dukeDir)) {
-        Warn "World Tour found but Duke was not copied - skipping episode five"
-    } else {
-        $n = 0
-
-        # Names that appear nowhere in the Atomic GRP, so they are safe as they are.
-        foreach ($f in @("FIREFLYTROOPER.CON", "FLAMETHROWER.CON", "EPISODE5BOSS.CON",
-                         "TILES020.ART", "TILES021.ART", "TILES022.ART")) {
-            $srcf = Join-Path $wtDir $f
-            if (Test-Path -LiteralPath $srcf) {
-                Copy-Item -LiteralPath $srcf -Destination (Join-Path $dukeDir $f) -Force; $n++
+    <#
+        Duke's expansions are scattered across its releases (World Tour, Megaton,
+        the plain Steam release's addons\), so each is fetched by name from
+        wherever it turns up, and only if it is not already there.
+    #>
+    $dukeDir = Join-Path (Join-Path $dest 'games') 'duke'
+    if ((Test-Path -LiteralPath $dukeDir) -and -not $InPlace) {
+        $got = 0
+        foreach ($an in @('DUKEDC.GRP', 'VACATION.GRP', 'NWINTER.GRP', 'DUKE!ZON.GRP')) {
+            $have = Get-ChildItem -LiteralPath $dukeDir -Filter $an -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($have) { continue }
+            foreach ($r in $roots) {
+                $f = Get-ChildItem -LiteralPath $r -Filter $an -Recurse -File -Depth 4 -ErrorAction SilentlyContinue | Select-Object -First 1
+                if (-not $f) { continue }
+                Copy-Item -LiteralPath $f.FullName -Destination (Join-Path $dukeDir $f.Name) -Force
+                Info ('  + {0} from {1}' -f $f.Name, $f.DirectoryName)
+                $got++
+                break
             }
         }
+        if ($got -gt 0) { Ok ('{0,-24} {1} added from other Duke releases' -f 'Duke expansions', $got) }
+    }
 
-        <#
-            All of World Tour's maps, keeping the maps\ folder and the names.
-
-            USER.CON names every level with the prefix, not just episode five:
-            "definelevelname 0 0 maps/E1L1.map" as much as
-            "definelevelname 4 0 maps/E5L1.map". So the engine asks the file
-            system for "maps/E1L1.map", and copying only E5* left World Tour
-            able to list all five episodes and unable to start any of the first
-            four - "Unable to open map maps/E1L1.map" on New Game.
-
-            Copying all of them is safe, and is what World Tour is: they go in a
-            maps\ subfolder, so they are looked up only by a CON that asks for
-            that path. Every other Duke launcher asks for a bare "E1L1.MAP" and
-            still gets the Atomic GRP's own copy, untouched.
-        #>
-        $mapsrc = Join-Path $wtDir "maps"
-        if (Test-Path $mapsrc) {
-            $mapdst = Join-Path $dukeDir "maps"
-            if (-not (Test-Path $mapdst)) { New-Item -ItemType Directory -Force -Path $mapdst | Out-Null }
-            foreach ($m in Get-ChildItem -LiteralPath $mapsrc -Filter "*.map" -File) {
-                Copy-Item -LiteralPath $m.FullName -Destination (Join-Path $mapdst $m.Name) -Force; $n++
+    <#
+        Duke Nukem's Penthouse Paradise: a folder of loose files Raze never
+        identifies on its own. Packed into an archive of its own, because its
+        TILES014.art would replace the Atomic GRP's for every other Duke game;
+        only the Penthouse launcher names the archive.
+    #>
+    $ppakDir = ''
+    foreach ($r in $roots) {
+        $c = Get-ChildItem -LiteralPath $r -Filter 'ppakgame.con' -Recurse -File -Depth 4 -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($c) { $ppakDir = $c.DirectoryName; break }
+    }
+    if ($ppakDir -and -not $InPlace) {
+        $ppakZip = Join-Path $assets 'penthouse_paradise.zip'
+        $stage = Join-Path $env:TEMP ('razexr_ppak_' + [guid]::NewGuid().ToString())
+        try {
+            [void][System.IO.Directory]::CreateDirectory($stage)
+            $skip = @('GAME.CON', 'USER.CON', 'DEFS.CON')
+            $n = 0
+            foreach ($f in Get-ChildItem -LiteralPath $ppakDir -File) {
+                if ($f.Extension -notmatch '^\.(con|map|art|voc|wav|mid)$') { continue }
+                if ($skip -contains $f.Name.ToUpper()) { continue }
+                Copy-Item -LiteralPath $f.FullName -Destination (Join-Path $stage $f.Name) -Force
+                $n++
             }
-        }
+            if ($n -ge 4) {
+                if (Test-Path -LiteralPath $ppakZip) { Remove-Item -LiteralPath $ppakZip -Force }
+                Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $ppakZip
+                Ok ('{0,-24} {1} files from {2}' -f 'Penthouse Paradise', $n, $ppakDir)
+            } else { Warn 'Penthouse Paradise found but incomplete - skipped' }
+        } catch { Warn 'could not pack Penthouse Paradise - everything else still works' }
+        finally { if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue } }
+    }
 
-        # The episode five voice-overs. None of these collide either.
-        $sndsrc = Join-Path $wtDir "sound"
-        if (Test-Path $sndsrc) {
-            $snddst = Join-Path $dukeDir "sound"
-            if (-not (Test-Path $snddst)) { New-Item -ItemType Directory -Force -Path $snddst | Out-Null }
-            foreach ($f in Get-ChildItem -LiteralPath $sndsrc -File) {
-                $o = Join-Path $snddst $f.Name
-                if (-not (Test-Path -LiteralPath $o)) {
-                    Copy-Item -LiteralPath $f.FullName -Destination $o -Force; $n++
+    <#
+        Duke Nukem 3D: World Tour - episode five, Alien World Order. It is
+        definevolumename 4 in World Tour's USER.CON. The three scripts whose
+        names collide with the Atomic GRP's are copied under a WT_ prefix with
+        their includes repointed, and only the World Tour launcher names
+        WT_GAME.CON. All of World Tour's maps go in maps\, which only a CON
+        asking for that path ever reads.
+    #>
+    if ($wtDir -and -not $InPlace) {
+        Line 'Duke Nukem 3D: World Tour'
+        if (-not (Test-Path -LiteralPath $dukeDir)) {
+            Warn 'World Tour found but Duke was not copied - skipping episode five'
+        } else {
+            $n = 0
+            foreach ($f in @('FIREFLYTROOPER.CON', 'FLAMETHROWER.CON', 'EPISODE5BOSS.CON', 'TILES020.ART', 'TILES021.ART', 'TILES022.ART')) {
+                $srcf = Join-Path $wtDir $f
+                if (Test-Path -LiteralPath $srcf) { Copy-Item -LiteralPath $srcf -Destination (Join-Path $dukeDir $f) -Force; $n++ }
+            }
+            $mapsrc = Join-Path $wtDir 'maps'
+            if (Test-Path -LiteralPath $mapsrc) {
+                $mapdst = Join-Path $dukeDir 'maps'
+                [void][System.IO.Directory]::CreateDirectory($mapdst)
+                foreach ($m in Get-ChildItem -LiteralPath $mapsrc -Filter '*.map' -File) {
+                    Copy-Item -LiteralPath $m.FullName -Destination (Join-Path $mapdst $m.Name) -Force; $n++
                 }
             }
+            $sndsrc = Join-Path $wtDir 'sound'
+            if (Test-Path -LiteralPath $sndsrc) {
+                $snddst = Join-Path $dukeDir 'sound'
+                [void][System.IO.Directory]::CreateDirectory($snddst)
+                foreach ($f in Get-ChildItem -LiteralPath $sndsrc -File) {
+                    $o = Join-Path $snddst $f.Name
+                    if (-not (Test-Path -LiteralPath $o)) { Copy-Item -LiteralPath $f.FullName -Destination $o -Force; $n++ }
+                }
+            }
+            $enc = [System.Text.Encoding]::GetEncoding('iso-8859-1')
+            $conok = $true
+            foreach ($c in @('GAME.CON', 'USER.CON', 'DEFS.CON')) {
+                $srcf = Join-Path $wtDir $c
+                if (-not (Test-Path -LiteralPath $srcf)) { $conok = $false; continue }
+                $txt = [System.IO.File]::ReadAllText($srcf, $enc)
+                $txt = $txt -replace '(?im)^(\s*include\s+)GAME\.CON', '${1}WT_GAME.CON'
+                $txt = $txt -replace '(?im)^(\s*include\s+)USER\.CON', '${1}WT_USER.CON'
+                $txt = $txt -replace '(?im)^(\s*include\s+)DEFS\.CON', '${1}WT_DEFS.CON'
+                [System.IO.File]::WriteAllText((Join-Path $dukeDir ('WT_' + $c)), $txt, $enc)
+                $n++
+            }
+            if ($conok) { Ok ('{0,-24} {1} files from {2}' -f 'episode five', $n, $wtDir) }
+            else { Warn 'World Tour scripts incomplete - episode five may not appear' }
         }
+    } elseif ($wtDir -and $InPlace) {
+        Info 'World Tour episode five needs copied data; re-run without -InPlace for it'
+    }
 
-        # The three whose names collide, renamed, with their includes repointed.
-        $enc = [System.Text.Encoding]::GetEncoding("iso-8859-1")
-        $conok = $true
-        foreach ($c in @("GAME.CON", "USER.CON", "DEFS.CON")) {
-            $srcf = Join-Path $wtDir $c
-            if (-not (Test-Path $srcf)) { $conok = $false; continue }
-            $txt = [System.IO.File]::ReadAllText($srcf, $enc)
-            $txt = $txt -replace "(?im)^(\s*include\s+)GAME\.CON", '${1}WT_GAME.CON'
-            $txt = $txt -replace "(?im)^(\s*include\s+)USER\.CON", '${1}WT_USER.CON'
-            $txt = $txt -replace "(?im)^(\s*include\s+)DEFS\.CON", '${1}WT_DEFS.CON'
-            [System.IO.File]::WriteAllText((Join-Path $dukeDir ("WT_" + $c)), $txt, $enc)
-            $n++
+    # ------------------------------------------------------------ optional extras
+    Line ''
+    Line 'Optional extras'
+    $vox = Join-Path $assets 'duke3d_voxels.zip'
+    $voxCheello = Join-Path $assets 'voxel_duke3d.zip'
+    if (Test-Path -LiteralPath $voxCheello) { Ok 'Voxel Duke 3D already present - monsters and props as voxels' }
+    elseif (Test-Path -LiteralPath $vox) { Ok 'Duke3D Voxel Pack already present - props and pickups as voxels' }
+    elseif ($NoDownload) { Info 'voxel pack skipped (-NoDownload)' }
+    else {
+        $url = 'https://github.com/NightFright2k19/duke3d_voxelpack/releases/download/2.0-rc2/duke3d_voxels.zip'
+        try {
+            Say '  ...  downloading the Duke3D Voxel Pack (4 MB)' 'DarkGray'
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            Invoke-WebRequest -Uri $url -OutFile $vox -UseBasicParsing
+            $size = (Get-Item -LiteralPath $vox).Length
+            if ($size -lt 1000000) { Remove-Item -LiteralPath $vox -Force; throw 'download too small' }
+            Ok ('Duke3D Voxel Pack, {0:N0} bytes' -f $size)
+        } catch {
+            Warn 'could not download the voxel pack - this is optional, everything else works'
+            Info "get it yourself from: $url"
         }
-
-        if ($conok) {
-            Ok ("{0,-24} {1} files from {2}" -f "episode five", $n, $wtDir)
-        } else {
-            Warn "World Tour scripts incomplete - episode five may not appear"
-        }
-    }
-} elseif ($wtDir -and $InPlace) {
-    Info "World Tour episode five needs copied data; re-run without -InPlace for it"
-}
-
-if ($found -eq 0) {
-    Line ""
-    Write-Host "No game data was found, so there is nothing to play yet." -ForegroundColor Red
-    Write-Host "Put your game folders somewhere and re-run with -Root <that folder>." -ForegroundColor Red
-    Line ""
-}
-
-# ---------------------------------------------------------------- 3. optional extras
-
-Line ""
-Line "Optional extras"
-
-$vox = Join-Path $assets "duke3d_voxels.zip"
-$voxCheello = Join-Path $assets "voxel_duke3d.zip"
-
-if (Test-Path $voxCheello) {
-    Ok "Voxel Duke 3D already present - monsters and props as voxels"
-} elseif (Test-Path $vox) {
-    Ok "Duke3D Voxel Pack already present - props and pickups as voxels"
-} elseif ($NoDownload) {
-    Info "voxel pack skipped (-NoDownload)"
-} else {
-    $url = "https://github.com/NightFright2k19/duke3d_voxelpack/releases/download/2.0-rc2/duke3d_voxels.zip"
-    try {
-        Write-Host "  ...  downloading the Duke3D Voxel Pack (4 MB)" -ForegroundColor DarkGray
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest -Uri $url -OutFile $vox -UseBasicParsing
-        $size = (Get-Item $vox).Length
-        if ($size -lt 1000000) { Remove-Item $vox -Force; throw "download too small" }
-        Ok ("Duke3D Voxel Pack, {0:N0} bytes" -f $size)
-    } catch {
-        Warn "could not download the voxel pack - this is optional, everything else works"
-        Info "get it yourself from: $url"
-    }
-}
-
-if (-not (Test-Path -LiteralPath $voxCheello)) {
-    Info "for voxel MONSTERS as well, get Voxel Duke 3D and drop the zip in this folder:"
-    Info "  https://www.moddb.com/mods/voxel-duke-nukem-3d/downloads"
-}
-
-<#
-    The other games' voxel packs.
-
-    Blood, Shadow Warrior and Exhumed have community packs of their own - props,
-    scenery and some monsters - by fgsfds and contributors, under the same
-    non-commercial share-alike Voxel Pack Art License as the Duke3D pack. They
-    are fetched from the authors' own repositories rather than redistributed by
-    us, and each carries its own license.txt inside.
-
-    Taken as the repository archive rather than a release, because only one of
-    the three publishes release assets and all three keep the pack in the tree.
-    GitHub wraps a source zip in a <repo>-<branch>/ folder and Raze reads the
-    defs from the archive root, so the wrapper is stripped and the contents
-    repacked here, on the user's machine.
-
-    Each pack ships <game>-raze.def, so dropping the archive in is the whole
-    installation - the launcher just names it.
-#>
-$packs = @(
-    @{ Name = "Blood voxel pack";          File = "voxels_blood.zip";
-       Url  = "https://github.com/fgsfds/Blood-Voxel-Pack/archive/refs/heads/master.zip" },
-    @{ Name = "Shadow Warrior voxel pack"; File = "voxels_sw.zip";
-       Url  = "https://github.com/fgsfds/Shadow-Warrior-Voxel-Pack/archive/refs/heads/master.zip" },
-    @{ Name = "Exhumed voxel pack";        File = "voxels_exhumed.zip";
-       Url  = "https://github.com/fgsfds/Powerslave-Voxel-Pack/archive/refs/heads/master.zip" }
-)
-
-foreach ($pk in $packs) {
-    $out = Join-Path $assets $pk.File
-    if (Test-Path -LiteralPath $out) {
-        Ok ("{0} already present" -f $pk.Name)
-        continue
-    }
-    if ($NoDownload) {
-        Info ("{0} skipped (-NoDownload)" -f $pk.Name)
-        continue
     }
 
-    $tmp = Join-Path $env:TEMP ("razexr_" + [guid]::NewGuid().ToString() + ".zip")
-    $ex  = Join-Path $env:TEMP ("razexr_x_" + [guid]::NewGuid().ToString())
-    try {
-        Write-Host ("  ...  downloading the {0}" -f $pk.Name) -ForegroundColor DarkGray
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest -Uri $pk.Url -OutFile $tmp -UseBasicParsing
-
-        Expand-Archive -LiteralPath $tmp -DestinationPath $ex -Force
-        $inner = Get-ChildItem -LiteralPath $ex -Directory | Select-Object -First 1
-        if (-not $inner) { throw "archive had no folder in it" }
-        Compress-Archive -Path (Join-Path $inner.FullName '*') -DestinationPath $out -Force
-
-        $size = (Get-Item -LiteralPath $out).Length
-        if ($size -lt 100000) { Remove-Item -LiteralPath $out -Force; throw "result too small" }
-        Ok ("{0}, {1:N0} bytes" -f $pk.Name, $size)
-    } catch {
-        Warn ("could not fetch the {0} - optional, everything else works" -f $pk.Name)
-        Info ("  " + $pk.Url)
-    } finally {
-        if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
-        if (Test-Path -LiteralPath $ex)  { Remove-Item -LiteralPath $ex -Recurse -Force -ErrorAction SilentlyContinue }
-    }
-}
-
-# The voxel weapons in your hands. Built here rather than shipped: the models
-# belong to the games and to Cheello, so they are taken from the copies you
-# already have. See THIRD-PARTY-PERMISSIONS.md.
-$builder = Join-Path $here "build-vrweapons.ps1"
-if (-not (Test-Path $builder)) { $builder = Join-Path $dest "build-vrweapons.ps1" }
-if (Test-Path $builder) {
     <#
-        The bundled overlay, unless the user pointed at a VRaze install of their
-        own.
-
-        vrweapons_models.pk3 holds the 66 weapon models that cannot be derived
-        from anything the user already has - Exhumed's, NAM's, Redneck's and
-        WWII GI's, plus the animation frames. The other 34 are Blood's and
-        Shadow Warrior's own pickup voxels and Duke's from Cheello's pack, and
-        those are still taken from the user's own copies rather than shipped:
-        no permission from a modder covers redistributing a game's own data.
+        The other games' voxel packs, by fgsfds and contributors, under the same
+        non-commercial share-alike licence as the Duke3D pack: fetched from the
+        authors' own repositories rather than redistributed, each with its own
+        license.txt inside. GitHub wraps a source zip in a <repo>-<branch>
+        folder, and Raze reads the defs from the archive root, so the wrapper
+        is stripped and the contents repacked here.
     #>
-    $overlay = $VRaze
-    if (-not $overlay) {
-        $bundled = Join-Path $assets "vrweapons_models.pk3"
-        if (Test-Path -LiteralPath $bundled) { $overlay = $bundled }
+    $packs = @(
+        @{ Name = 'Blood voxel pack';          File = 'voxels_blood.zip';   Url = 'https://github.com/fgsfds/Blood-Voxel-Pack/archive/refs/heads/master.zip' },
+        @{ Name = 'Shadow Warrior voxel pack'; File = 'voxels_sw.zip';      Url = 'https://github.com/fgsfds/Shadow-Warrior-Voxel-Pack/archive/refs/heads/master.zip' },
+        @{ Name = 'Exhumed voxel pack';        File = 'voxels_exhumed.zip'; Url = 'https://github.com/fgsfds/Powerslave-Voxel-Pack/archive/refs/heads/master.zip' }
+    )
+    foreach ($pk in $packs) {
+        $out = Join-Path $assets $pk.File
+        if (Test-Path -LiteralPath $out) { Ok ('{0} already present' -f $pk.Name); continue }
+        if ($NoDownload) { Info ('{0} skipped (-NoDownload)' -f $pk.Name); continue }
+        $tmp = Join-Path $env:TEMP ('razexr_' + [guid]::NewGuid().ToString() + '.zip')
+        $ex  = Join-Path $env:TEMP ('razexr_x_' + [guid]::NewGuid().ToString())
+        try {
+            Say ('  ...  downloading the {0}' -f $pk.Name) 'DarkGray'
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            Invoke-WebRequest -Uri $pk.Url -OutFile $tmp -UseBasicParsing
+            Expand-Archive -LiteralPath $tmp -DestinationPath $ex -Force
+            $inner = Get-ChildItem -LiteralPath $ex -Directory | Select-Object -First 1
+            if (-not $inner) { throw 'archive had no folder in it' }
+            Compress-Archive -Path (Join-Path $inner.FullName '*') -DestinationPath $out -Force
+            $size = (Get-Item -LiteralPath $out).Length
+            if ($size -lt 100000) { Remove-Item -LiteralPath $out -Force; throw 'result too small' }
+            Ok ('{0}, {1:N0} bytes' -f $pk.Name, $size)
+        } catch {
+            Warn ('could not fetch the {0} - optional, everything else works' -f $pk.Name)
+            Info ('  ' + $pk.Url)
+        } finally {
+            if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
+            if (Test-Path -LiteralPath $ex)  { Remove-Item -LiteralPath $ex -Recurse -Force -ErrorAction SilentlyContinue }
+        }
     }
 
-    try {
-        & $builder -Root $dest -VRaze $overlay
+    <#
+        The voxel weapons in your hands, built here from the copies you already
+        have (the models belong to the games and to Cheello); the bundled
+        vrweapons_models.pk3 adds the 66 that cannot be derived from them.
+        Its output is caught here so -Json keeps stdout to itself.
+    #>
+    $builder = Join-Path $dest 'build-vrweapons.ps1'
+    if (Test-Path -LiteralPath $builder) {
+        $overlay = $VRaze
         if (-not $overlay) {
-            Info "for the animation frames and the Exhumed / NAM / Redneck / WWII GI"
-            Info "weapons, re-run with -VRaze pointing at a VRaze raze.pk3."
+            $bundled = Join-Path $assets 'vrweapons_models.pk3'
+            if (Test-Path -LiteralPath $bundled) { $overlay = $bundled }
         }
-    } catch {
-        Warn "could not build the voxel weapons pack - everything else still works"
-        Info $_.Exception.Message
-    }
-} else {
-    Warn "build-vrweapons.ps1 is missing - no voxel weapons"
-}
-
-<#
-    Redneck Rampage's soundtrack.
-
-    Redneck is CD audio and has no MIDI to fall back on, so a copy with no
-    tracks is simply silent - which is what every Redneck game did until now.
-    GOG does ship the music, as MP3s under Extras with the song titles for
-    names, so nothing needs downloading; it just has to be where the engine
-    looks and named what the engine asks for.
-
-    S_PlayRRMusic asks for redneck02..09 (redneckrides02..09 for Rides Again),
-    and OpenMusic always searches a "music" subfolder as well. Track 1 on the
-    disc is the data track, so the first song is track 2.
-
-    The launchers pass +set mus_extendedlookup 1, which is what lets the .mp3
-    answer a request for .ogg.
-#>
-$soundtracks = @(
-    @{ Dir = Join-Path $dest "games\rampage";       Base = "redneck";      Name = "Redneck Rampage";             Match = "*Redneck Rampage Soundtrack*"; Zip = "*redneck_rampage_soundtrack*.zip" },
-    @{ Dir = Join-Path $dest "games\rampage\AGAIN"; Base = "redneckrides"; Name = "Redneck Rampage Rides Again"; Match = "*Rides Again soundtrack*";     Zip = "*rides_again_soundtrack*.zip" }
-)
-
-<#
-    Where a soundtrack might be.
-
-    GOG does not put this music in the game. The only copy anywhere in a
-    Redneck install is under Extras\, and Extras\ is filled by a separate
-    "bonus content" download - so an ordinary install has no music at all and
-    the game is silent, which is what it did on the machine this was reported
-    from.
-
-    Nothing can conjure it, but it can be looked for properly: beside the game
-    data, then anywhere setup already searches for games, and then inside the
-    zip GOG leaves next to the folder it unpacks - because a download that was
-    never unpacked still has the music in it.
-#>
-Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
-
-function Get-SongsFromZip($path, $st, $depth) {
-    <#
-        What is in this archive, without unpacking all of it.
-
-        GOG's bonus content is a zip of zips with no installer, so the music
-        can be nested one level down and may never have been extracted at all.
-        Reading the entry list first means a large or unrelated archive costs a
-        directory read rather than a full extraction.
-    #>
-    try {
-        $zip = [System.IO.Compression.ZipFile]::OpenRead($path)
-    } catch { return @() }
-
-    $audio = @()
-    $inner = @()
-    try {
-        foreach ($e in $zip.Entries) {
-            if ($e.Name -match '\.(mp3|ogg|flac)$') { $audio += $e.FullName }
-            elseif ($e.Name -match '\.zip$' -and $e.Name -like $st.Zip) { $inner += $e.FullName }
-        }
-    } finally { $zip.Dispose() }
-
-    if ($audio.Count -gt 0) {
-        $tmp = Join-Path $env:TEMP ("razexr_mus_" + [guid]::NewGuid().ToString())
         try {
-            Expand-Archive -LiteralPath $path -DestinationPath $tmp -Force -ErrorAction Stop
-            return @(Get-ChildItem -LiteralPath $tmp -File -Recurse -ErrorAction SilentlyContinue |
-                     Where-Object { $_.Extension -match '^\.(mp3|ogg|flac)$' } | Sort-Object Name)
-        } catch { return @() }
-    }
-
-    # A zip of zips. One level only - the download is not deeper than that,
-    # and following archives without a bound is how a setup script hangs.
-    if ($inner.Count -gt 0 -and $depth -lt 1) {
-        $tmp = Join-Path $env:TEMP ("razexr_musz_" + [guid]::NewGuid().ToString())
-        try {
-            Expand-Archive -LiteralPath $path -DestinationPath $tmp -Force -ErrorAction Stop
-        } catch { return @() }
-        foreach ($z in (Get-ChildItem -LiteralPath $tmp -File -Recurse -ErrorAction SilentlyContinue |
-                        Where-Object { $_.Name -like $st.Zip })) {
-            $songs = @(Get-SongsFromZip $z.FullName $st ($depth + 1))
-            if ($songs.Count -gt 0) { return $songs }
+            & $builder -Root $dest -VRaze $overlay *>&1 | ForEach-Object { Log ('  ' + [string]$_) }
+        } catch {
+            Warn 'could not build the voxel weapons pack - everything else still works'
+            Info $_.Exception.Message
         }
-    }
+    } else { Warn 'build-vrweapons.ps1 is missing - no voxel weapons' }
 
-    return @()
-}
-
-function Find-Soundtrack($st) {
+    # ------------------------------------------------------------ music
     <#
-        Where the music might be, in the order it is most likely to be.
-
-        GOG does not put this music in the game - the only copy in an install
-        is under Extras\, which a separate "bonus content" download fills, and
-        that download is a zip of zips with no installer that people extract
-        wherever they happen to be standing. So look beside the game data, then
-        anywhere setup already searches, then the places a download lands, and
-        finally inside the archives themselves.
+        Redneck Rampage is CD audio with no MIDI underneath, and GOG keeps its
+        music in a separate free "bonus content" download. Found beside the game,
+        anywhere Setup searches, in Downloads, Desktop or Documents, or inside
+        the zip GOG leaves (read without unpacking all of it), and named the way
+        the engine asks: redneck02..09, redneckrides02..09.
     #>
-    $places = @((Join-Path $dest "games\rampage"))
-    $places += $roots
-    foreach ($d in @("$env:USERPROFILE\Downloads", "$env:USERPROFILE\Desktop",
-                     "$env:USERPROFILE\Documents")) {
-        if (Test-Path -LiteralPath $d) { $places += $d }
-    }
-
-    # Unpacked, somewhere.
-    foreach ($r in $places) {
-        if (-not (Test-Path -LiteralPath $r)) { continue }
-        foreach ($d in (Get-ChildItem -Path $r -Directory -Recurse -Depth 4 -ErrorAction SilentlyContinue |
-                        Where-Object { $_.Name -like $st.Match })) {
-            $songs = @(Get-ChildItem -LiteralPath $d.FullName -File -ErrorAction SilentlyContinue |
-                       Where-Object { $_.Extension -match '^\.(mp3|ogg|flac)$' } | Sort-Object Name)
-            if ($songs.Count -gt 0) { return $songs }
+    $soundtracks = @(
+        @{ Dir = Join-Path $dest 'games\rampage';       Base = 'redneck';      Name = 'Redneck Rampage';             Match = '*Redneck Rampage Soundtrack*'; Zip = '*redneck_rampage_soundtrack*.zip' },
+        @{ Dir = Join-Path $dest 'games\rampage\AGAIN'; Base = 'redneckrides'; Name = 'Redneck Rampage Rides Again'; Match = '*Rides Again soundtrack*';     Zip = '*rides_again_soundtrack*.zip' }
+    )
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+    function Get-SongsFromZip($path, $st, $depth) {
+        try { $zip = [System.IO.Compression.ZipFile]::OpenRead($path) } catch { return @() }
+        $audio = @(); $inner = @()
+        try {
+            foreach ($e in $zip.Entries) {
+                if ($e.Name -match '\.(mp3|ogg|flac)$') { $audio += $e.FullName }
+                elseif ($e.Name -match '\.zip$' -and $e.Name -like $st.Zip) { $inner += $e.FullName }
+            }
+        } finally { $zip.Dispose() }
+        if ($audio.Count -gt 0) {
+            $tmp = Join-Path $env:TEMP ('razexr_mus_' + [guid]::NewGuid().ToString())
+            try {
+                Expand-Archive -LiteralPath $path -DestinationPath $tmp -Force -ErrorAction Stop
+                return @(Get-ChildItem -LiteralPath $tmp -File -Recurse -ErrorAction SilentlyContinue |
+                         Where-Object { $_.Extension -match '^\.(mp3|ogg|flac)$' } | Sort-Object Name)
+            } catch { return @() }
         }
-    }
-
-    # Still in an archive: the soundtrack zip itself, or the bundle holding it.
-    foreach ($r in $places) {
-        if (-not (Test-Path -LiteralPath $r)) { continue }
-        foreach ($z in (Get-ChildItem -Path $r -File -Recurse -Depth 4 -ErrorAction SilentlyContinue |
-                        Where-Object { $_.Name -like "*redneck*.zip" })) {
-            $songs = @(Get-SongsFromZip $z.FullName $st 0)
-            if ($songs.Count -gt 0) {
-                Info ("using the soundtrack from " + $z.Name)
-                return $songs
+        # A zip of zips, one level only: following archives without a bound hangs.
+        if ($inner.Count -gt 0 -and $depth -lt 1) {
+            $tmp = Join-Path $env:TEMP ('razexr_musz_' + [guid]::NewGuid().ToString())
+            try { Expand-Archive -LiteralPath $path -DestinationPath $tmp -Force -ErrorAction Stop } catch { return @() }
+            foreach ($z in (Get-ChildItem -LiteralPath $tmp -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -like $st.Zip })) {
+                $songs = @(Get-SongsFromZip $z.FullName $st ($depth + 1))
+                if ($songs.Count -gt 0) { return $songs }
             }
         }
+        return @()
+    }
+    function Find-Soundtrack($st) {
+        $places = @((Join-Path $dest 'games\rampage'))
+        $places += $roots
+        if (-not $NoSearch) {
+            foreach ($d in @("$(UserHome)\Downloads", "$(UserHome)\Desktop", "$(UserHome)\Documents")) {
+                if (Test-Path -LiteralPath $d) { $places += $d }
+            }
+        }
+        foreach ($r in $places) {
+            if (-not (Test-Path -LiteralPath $r)) { continue }
+            foreach ($d in (Get-ChildItem -LiteralPath $r -Directory -Recurse -Depth 4 -ErrorAction SilentlyContinue | Where-Object { $_.Name -like $st.Match })) {
+                $songs = @(Get-ChildItem -LiteralPath $d.FullName -File -ErrorAction SilentlyContinue |
+                           Where-Object { $_.Extension -match '^\.(mp3|ogg|flac)$' } | Sort-Object Name)
+                if ($songs.Count -gt 0) { return $songs }
+            }
+        }
+        foreach ($r in $places) {
+            if (-not (Test-Path -LiteralPath $r)) { continue }
+            foreach ($z in (Get-ChildItem -LiteralPath $r -File -Recurse -Depth 4 -ErrorAction SilentlyContinue | Where-Object { $_.Name -like '*redneck*.zip' })) {
+                $songs = @(Get-SongsFromZip $z.FullName $st 0)
+                if ($songs.Count -gt 0) { Info ('using the soundtrack from ' + $z.Name); return $songs }
+            }
+        }
+        return @()
+    }
+    foreach ($st in $soundtracks) {
+        if (-not (Test-Path -LiteralPath $st.Dir)) { continue }
+        $musicDir = Join-Path $st.Dir 'music'
+        if (Test-Path -LiteralPath (Join-Path $musicDir ($st.Base + '02.mp3'))) { continue }
+        $songs = @(Find-Soundtrack $st)
+        if ($songs.Count -eq 0) {
+            Warn ('{0} has no music - the game will be silent' -f $st.Name)
+            Info "Its soundtrack is a separate free 'bonus content' download on GOG,"
+            Info 'not part of the game installer - so you already own it. Get it from'
+            Info "the game's page in your GOG library, then either:"
+            Info '  - leave the .zip in your Downloads folder and run SETUP.bat again'
+            Info '    (it is read straight out of the zip - no need to unpack it), or'
+            Info ('  - unpack it and put the soundtrack folder in ' + $st.Dir)
+            continue
+        }
+        [void][System.IO.Directory]::CreateDirectory($musicDir)
+        $track = 2; $n = 0
+        foreach ($song in $songs) {
+            if ($track -gt 9) { break }
+            Copy-Item -LiteralPath $song.FullName -Destination (Join-Path $musicDir ('{0}{1:D2}{2}' -f $st.Base, $track, $song.Extension)) -Force -ErrorAction SilentlyContinue
+            $track++; $n++
+        }
+        if ($n -gt 0) { Ok ('{0,-24} {1} CD tracks' -f 'Redneck music', $n) }
     }
 
-    return @()
-}
-
-foreach ($st in $soundtracks) {
-    if (-not (Test-Path -LiteralPath $st.Dir)) { continue }
-
-    $musicDir = Join-Path $st.Dir "music"
-    # Already done by a previous run.
-    if (Test-Path -LiteralPath (Join-Path $musicDir ($st.Base + "02.mp3"))) { continue }
-
-    $songs = @(Find-Soundtrack $st)
-    if ($songs.Count -eq 0) {
-        <#
-            Say it in full, and name the folder.
-
-            Redneck is CD audio with no MIDI underneath, so this is the
-            difference between a game with music and a silent one - and the
-            music is not missing from the machine by accident. GOG keeps it in
-            a separate free download, so the person reading this owns it
-            already and simply has not fetched it. Telling them that, and
-            exactly where it can go, is the whole of the fix.
-        #>
-        Warn ("{0} has no music - the game will be silent" -f $st.Name)
-        Info "Its soundtrack is a separate free 'bonus content' download on GOG,"
-        Info "not part of the game installer - so you already own it. Get it from"
-        Info "the game's page in your GOG library, then either:"
-        Info ""
-        Info "  - leave the .zip in your Downloads folder and run SETUP.bat again"
-        Info "    (it is read straight out of the zip - no need to unpack it), or"
-        Info ("  - unpack it and put the soundtrack folder in " + $st.Dir)
-        Info ""
-        continue
-    }
-
-    if (-not (Test-Path -LiteralPath $musicDir)) {
-        New-Item -ItemType Directory -Path $musicDir -Force | Out-Null
-    }
-
-    $track = 2
-    $n = 0
-    foreach ($song in $songs) {
-        if ($track -gt 9) { break }
-        $target = Join-Path $musicDir ("{0}{1:D2}{2}" -f $st.Base, $track, $song.Extension)
-        Copy-Item -LiteralPath $song.FullName -Destination $target -Force -ErrorAction SilentlyContinue
-        $track++
-        $n++
-    }
-    if ($n -gt 0) { Ok ("{0,-24} {1} CD tracks" -f "Redneck music", $n) }
-}
-
-<#
-    CD music that shipped with a different copy of the same game.
-
-    PowerSlave is why this exists. The Steam DOS Classic Edition and the GOG DOS
-    release ship a byte-identical STUFF.DAT - 27,020,745 bytes either way - so
-    the search above can legitimately pick either one. Only Steam's has the free
-    soundtrack DLC's MUSIC folder beside it, and PowerSlave has no music
-    anywhere else: its data holds 648 entries and every one of them is a sound
-    effect. So whichever copy the walk happened to reach first decided, in
-    silence, whether the game had any music at all.
-
-    A game that came across without music therefore gets one more look: any
-    other copy of the same data file, with a music folder beside it, and that
-    folder alone is brought over. The game data itself is never touched, and a
-    game that already has its music is skipped.
-#>
-foreach ($g in $games) {
-    $gdir = Join-Path (Join-Path $dest "games") $g.Folder
-    if (-not (Test-Path -LiteralPath $gdir)) { continue }
-
-    $already = @(Get-ChildItem -LiteralPath $gdir -Directory -ErrorAction SilentlyContinue |
-                 Where-Object { $_.Name -ieq "music" })
-    if ($already.Count -gt 0) { continue }
-
-    $srcMusic = $null
-    foreach ($r in $roots) {
-        foreach ($fn in $g.Files) {
-            $c = Get-ChildItem -Path $r -Filter $fn -Recurse -File -Depth 4 -ErrorAction SilentlyContinue |
-                 Select-Object -First 5
-            foreach ($cand in $c) {
-                # The same guards the search above uses. Without them Duke's own
-                # 840KB stuff.dat answers the search for Exhumed - it has a MUSIC
-                # folder beside it, so Duke's soundtrack lands in games\exhumed.
-                if ($g.Folder -eq "ridesagain" -and $cand.Length -ne $RIDESAGAIN_SIZE) { continue }
-                if ($g.Folder -eq "rampage"    -and $cand.Length -eq $RIDESAGAIN_SIZE) { continue }
-                if ($g.Folder -eq "exhumed"    -and $cand.Length -lt $EXHUMED_MIN)     { continue }
-                if ($g.Folder -eq "duke"       -and $cand.Length -lt $DUKE_ATOMIC_MIN) { continue }
-
-                $m = Join-Path $cand.DirectoryName "MUSIC"
-                if (Test-Path -LiteralPath $m) { $srcMusic = $m; break }
+    <#
+        CD music that shipped with a different copy of the same game. Steam's
+        and GOG's PowerSlave carry a byte-identical STUFF.DAT, and only Steam's
+        has the soundtrack DLC's MUSIC folder beside it, so a game that came
+        across without music gets one more look at the other copies.
+    #>
+    foreach ($g in $games) {
+        $gdir = Join-Path (Join-Path $dest 'games') $g.Folder
+        if (-not (Test-Path -LiteralPath $gdir)) { continue }
+        if (@(Get-ChildItem -LiteralPath $gdir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -ieq 'music' }).Count -gt 0) { continue }
+        $srcMusic = $null
+        foreach ($r in $roots) {
+            foreach ($fn in $g.Files) {
+                foreach ($cand in (Get-ChildItem -LiteralPath $r -Filter $fn -Recurse -File -Depth 4 -ErrorAction SilentlyContinue | Select-Object -First 5)) {
+                    if ($g.Folder -eq 'ridesagain' -and $cand.Length -ne $RIDESAGAIN_SIZE) { continue }
+                    if ($g.Folder -eq 'rampage'    -and $cand.Length -eq $RIDESAGAIN_SIZE) { continue }
+                    if ($g.Folder -eq 'exhumed'    -and $cand.Length -lt $EXHUMED_MIN)     { continue }
+                    if ($g.Folder -eq 'duke'       -and $cand.Length -lt $DUKE_ATOMIC_MIN) { continue }
+                    $m = Join-Path $cand.DirectoryName 'MUSIC'
+                    if (Test-Path -LiteralPath $m) { $srcMusic = $m; break }
+                }
+                if ($srcMusic) { break }
             }
             if ($srcMusic) { break }
         }
-        if ($srcMusic) { break }
-    }
-    if (-not $srcMusic) { continue }
-
-    $dstMusic = Join-Path $gdir "music"
-    [void][System.IO.Directory]::CreateDirectory($dstMusic)
-    $n = 0
-    foreach ($f in Get-ChildItem -LiteralPath $srcMusic -File -ErrorAction SilentlyContinue) {
-        if ($skipExt -contains $f.Extension.ToLower()) { continue }
-        $o = Join-Path $dstMusic $f.Name
-        if (-not (Test-Path -LiteralPath $o)) {
-            Copy-Item -LiteralPath $f.FullName -Destination $o -ErrorAction SilentlyContinue
-            $n++
+        if (-not $srcMusic) { continue }
+        $dstMusic = Join-Path $gdir 'music'
+        [void][System.IO.Directory]::CreateDirectory($dstMusic)
+        $n = 0
+        foreach ($f in Get-ChildItem -LiteralPath $srcMusic -File -ErrorAction SilentlyContinue) {
+            if ($skipExt -contains $f.Extension.ToLower()) { continue }
+            $o = Join-Path $dstMusic $f.Name
+            if (-not (Test-Path -LiteralPath $o)) { Copy-Item -LiteralPath $f.FullName -Destination $o -ErrorAction SilentlyContinue; $n++ }
         }
+        if ($n -gt 0) { Ok ('{0,-24} {1} CD tracks' -f ($g.Name + ' music'), $n) }
     }
-    if ($n -gt 0) { Ok ("{0,-24} {1} CD tracks" -f ($g.Name + " music"), $n) }
-}
 
-# ---------------------------------------------------------------- 4. launchers
-
-Line ""
-Line "Writing launchers"
-
-# Whatever route we took, prefer a file under games\ - that is the root the
-# engine will walk to find everything else.
-$anyGrp = Get-ChildItem -Path (Join-Path $dest "games") -Include *.grp,*.rff,*.dat -Recurse -File -ErrorAction SilentlyContinue |
-          Select-Object -First 1
-if ($anyGrp) { $seedPath = $anyGrp.FullName }
-
-if (-not $seedPath) {
-    # An empty -gamegrp contributes no search path, finds no game, and takes the
-    # engine down before its first frame. Never send one.
-    Warn "no game data found - skipping launcher generation"
-} else {
-    $cfg = Join-Path $dest "cfg_setup.ini"
-    $log = Join-Path $dest "setup.log"
-    if (Test-Path $log) { Remove-Item $log -Force -ErrorAction SilentlyContinue }
-
-    # NOT $args - that is a PowerShell automatic variable, and assigning it here
-    # leaves Start-Process with the script's own arguments instead of these.
-    #
-    # And the list has to be quoted by hand. PowerShell 5.1 joins -ArgumentList
-    # with spaces and quotes nothing, so every path containing a space arrives
-    # split in two. This folder is called "RazeXR Setup Test (Miles's)" for
-    # exactly that reason - a path with no spaces proves nothing here.
-    # -portable, for the same reason the launchers carry it: without it this
-    # run scans every Steam and GOG install and can write launchers naming data
-    # outside this folder, which is exactly what the portable copy exists to
-    # avoid. It also takes minutes off the scan.
-    # -novr: this run only writes the launcher files. Without it the engine
-    # brings up a VR session, and with no headset connected it waits minutes for
-    # one to become active - setup looks frozen and the desktop stutters behind
-    # it. Playing is unaffected; the launchers do not pass it.
-    # +quit, or this never ends on its own. Without it the engine writes the
-    # launchers and then sits in the game until the timeout below kills it -
-    # two minutes of looking frozen, and a race the launchers can lose: killed
-    # before the write, setup reports that nothing was written, which is exactly
-    # what happened once the game list got long enough.
-    $razeArgs = ('-nosetup -portable -novr -gamegrp "{0}" -config "{1}" +logfile "{2}" +vrwritelaunchers +quit' `
-                 -f $seedPath, $cfg, $log)
-
-    $p = Start-Process -FilePath $exe -ArgumentList $razeArgs `
-                       -WorkingDirectory $dest -PassThru -WindowStyle Minimized
-    # It exits on its own in about a second now. The wait is only a backstop.
-    if (-not $p.WaitForExit(60000)) { $p.Kill() }
-    Start-Sleep -Seconds 1
-
-    $wrote = $null
-    if (Test-Path $log) { $wrote = Select-String -Path $log -Pattern "Wrote (\d+) launchers" }
-
-    if ($wrote) {
-        Ok $wrote.Matches[0].Value
-        # Only the block the launcher step itself printed, which sits directly
-        # above its summary line - the log above that is engine startup noise.
-        $lines = Get-Content $log
-        $end = $wrote.LineNumber - 2
-        $start = $end
-        while ($start -ge 0 -and $lines[$start] -match "^  \S") { $start-- }
-        for ($i = $start + 1; $i -le $end; $i++) { Info $lines[$i].Trim() }
+    # ------------------------------------------------------------ launchers
+    Line ''
+    Line 'Writing launchers'
+    $anyGrp = Get-ChildItem -LiteralPath (Join-Path $dest 'games') -Include *.grp, *.rff, *.dat -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($anyGrp) { $seedPath = $anyGrp.FullName }
+    if (-not $seedPath) {
+        # An empty -gamegrp finds no game and takes the engine down. Never send one.
+        Warn 'no game data found - skipping launcher generation'
     } else {
-        # Silence here used to mean the whole step had done nothing and said so
-        # in no way at all. Never again.
-        Write-Host ""
-        Write-Host "  LAUNCHERS WERE NOT WRITTEN." -ForegroundColor Red
-        if (Test-Path $log) {
-            Write-Host "  The engine ran but did not report - last lines of setup.log:" -ForegroundColor Red
-            foreach ($l in (Get-Content $log -Tail 5)) { Info $l }
-        } else {
-            Write-Host "  The engine did not start, or wrote no log." -ForegroundColor Red
-            Info ("tried: {0} {1}" -f $exe, $razeArgs)
+        $cfg = Join-Path $dest 'cfg_setup.ini'
+        $log = Join-Path $dest 'log-launchers.txt'
+        if (Test-Path -LiteralPath $log) { Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue }
+        <#
+            -portable keeps the scan inside this folder; -novr writes the launchers
+            without waiting for a headset; +quit ends the run on its own. The list
+            is quoted by hand: PowerShell 5.1 joins -ArgumentList with spaces and
+            quotes nothing.
+        #>
+        <#
+            The engine writes its own start-up logs beside raze.exe and keeps
+            the run before as .prev.log. This run is only Setup's, so the
+            player's logs from their last game are put back as they were (and
+            ones this run made alone go), or a crash log would be lost to an
+            update, and an update would differ from a fresh install.
+        #>
+        $engineLogs = @('startup.log', 'startup.prev.log', 'razexr_vr.log', 'razexr_vr.prev.log')
+        $keep = Join-Path ([System.IO.Path]::GetTempPath()) ('razexr_logs_' + [guid]::NewGuid().ToString())
+        [void][System.IO.Directory]::CreateDirectory($keep)
+        foreach ($l in $engineLogs) {
+            $p0 = Join-Path $dest $l
+            if (Test-Path -LiteralPath $p0) { Copy-Item -LiteralPath $p0 -Destination (Join-Path $keep $l) }
         }
-        Write-Host ""
+        $razeArgs = ('-nosetup -portable -novr -gamegrp "{0}" -config "{1}" +logfile "{2}" +vrwritelaunchers +quit' -f $seedPath, $cfg, $log)
+        $p = Start-Process -FilePath $exe -ArgumentList $razeArgs -WorkingDirectory $dest -PassThru -WindowStyle Minimized
+        # About a second normally. The first run on a PC compiles the graphics
+        # driver's shaders and took over a minute once, so the backstop is long.
+        if (-not $p.WaitForExit(180000)) { $p.Kill() }
+        Start-Sleep -Seconds 1
+        $wrote = $null
+        if (Test-Path -LiteralPath $log) { $wrote = Select-String -LiteralPath $log -Pattern 'Wrote (\d+) launchers' }
+        if ($wrote) {
+            Ok $wrote.Matches[0].Value
+            $lines = Get-Content -LiteralPath $log
+            $end = $wrote.LineNumber - 2
+            $start = $end
+            while ($start -ge 0 -and $lines[$start] -match '^  \S') { $start-- }
+            for ($i = $start + 1; $i -le $end; $i++) { Info $lines[$i].Trim() }
+        } else {
+            Log '  LAUNCHERS WERE NOT WRITTEN.' 'Red'
+            if (Test-Path -LiteralPath $log) {
+                Log '  The engine ran but did not report - last lines of its log:' 'Red'
+                foreach ($l in (Get-Content -LiteralPath $log -Tail 5)) { Info $l }
+            } else {
+                Log '  The engine did not start, or wrote no log.' 'Red'
+                Info ('tried: {0} {1}' -f $exe, $razeArgs)
+            }
+        }
+        Remove-Item -LiteralPath $cfg -ErrorAction SilentlyContinue
+        foreach ($l in $engineLogs) {
+            $p0 = Join-Path $dest $l
+            $k0 = Join-Path $keep $l
+            if (Test-Path -LiteralPath $k0) { Copy-Item -LiteralPath $k0 -Destination $p0 -Force }
+            elseif (Test-Path -LiteralPath $p0) { Remove-Item -LiteralPath $p0 -Force -ErrorAction SilentlyContinue }
+        }
+        Remove-Item -LiteralPath $keep -Recurse -Force -ErrorAction SilentlyContinue
+        # Before 1.2.1 this run's log was setup.log; log-launchers.txt now.
+        $o = Join-Path $dest 'setup.log'
+        if (Test-Path -LiteralPath $o) { Remove-Item -LiteralPath $o -Force -ErrorAction SilentlyContinue }
     }
-    Remove-Item $cfg -ErrorAction SilentlyContinue
+
+    # ------------------------------------------------------------ the kit
+    # Uninstall and Collect logs, there without the download.
+    $tools = Join-Path $dest 'tools'
+    [void][System.IO.Directory]::CreateDirectory($tools)
+    $me = Join-Path $Here 'setup.ps1'
+    if ((Resolve-Path -LiteralPath $me).ProviderPath -ne (Join-Path $tools 'setup.ps1')) {
+        Copy-Item -LiteralPath $me -Destination (Join-Path $tools 'setup.ps1') -Force
+    }
+    Set-Content -LiteralPath (Join-Path $dest 'Uninstall.bat') -Encoding ASCII -Value @(
+        '@echo off',
+        ('rem ' + $Product + ': removes what Setup installed.  Your saves, settings and Game Tome notes are kept.'),
+        'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\setup.ps1" -Uninstall %*',
+        'if not defined VRXR_NOPAUSE pause')
+    Set-Content -LiteralPath (Join-Path $dest 'Collect logs.bat') -Encoding ASCII -Value @(
+        '@echo off',
+        ('rem ' + $Product + ': zips the logs onto your desktop, to send with a report.'),
+        'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\setup.ps1" -Collect %*',
+        'if not defined VRXR_NOPAUSE pause')
+    Set-Content -LiteralPath (Join-Path $dest 'version.txt') -Value ($Product + ' ' + $Version) -Encoding ASCII
+
+    # ------------------------------------------------------------ desktop and Steam
+    $play = Join-Path $dest $PlayBat
+    if (-not $NoShortcuts -and (Test-Path -LiteralPath $play)) {
+        Make-Shortcut (Join-Path (Desktop) $DesktopLink) $play $dest $exe ($Product + ': the game you played last')
+        Log ('  Desktop shortcut: ' + $DesktopLink)
+    }
+    $Result['steam'] = 'skipped'
+    if (-not $NoSteam -and (Test-Path -LiteralPath $play) -and (Steam-Configs).Count -gt 0) {
+        $want = $false
+        if ($NoPrompt) { $want = [bool]$AddToSteam }
+        else { Say ''; $want = Ask-YesNo ('Add ' + $Product + ' to your Steam library?') }
+        if ($want) {
+            if (Steam-Ready $true) {
+                $Result['steam'] = Steam-Add $dest
+                Log ('Added to your Steam library (and SteamVR''s).')
+                Steam-Reopen
+            } else {
+                $Result['steam'] = 'skipped: Steam is open'
+                Log 'Not added to Steam: Steam has to be closed.  Run SETUP.bat again any time to add it.'
+            }
+        }
+    }
+
+    # Where it is, for the next run of a newer Setup.
+    [void][System.IO.Directory]::CreateDirectory((Split-Path -Parent $Remembered))
+    Set-Content -LiteralPath $Remembered -Value $dest -Encoding UTF8
+
+    # ------------------------------------------------------------ the manifest
+    $manifest = New-Object System.Collections.Generic.List[string]
+    foreach ($rel in Payload-List) { if (Test-Path -LiteralPath (Join-Path $dest $rel)) { $manifest.Add($rel) } }
+    foreach ($a in $MadeAssets) { if (Test-Path -LiteralPath (Join-Path $assets $a)) { $manifest.Add('assets\' + $a) } }
+    $ldir = Join-Path $dest 'launchers'
+    if (Test-Path -LiteralPath $ldir) {
+        foreach ($f in Get-ChildItem -LiteralPath $ldir -Filter '*.bat' -File | Sort-Object Name) { $manifest.Add('launchers\' + $f.Name) }
+    }
+    foreach ($k in @($PlayBat, 'tools\setup.ps1', 'Uninstall.bat', 'Collect logs.bat', 'version.txt', 'log-launchers.txt', 'setup-log.txt', 'install-manifest.txt')) {
+        if (-not $manifest.Contains($k)) { $manifest.Add($k) }
+    }
+    $owned = Games-Owned $dest $sources
+    $head = @(('# ' + $Product + ' ' + $Version),
+              '# Uninstall removes exactly these files.  Saves, settings (config), the Game Tome',
+              '# notes (ink.txt, place.txt, typed.txt) and anything you added are not in it.')
+    foreach ($k in ($sources.Keys | Sort-Object)) { $head += ('# source ' + $k + ': ' + $sources[$k]) }
+    Set-Content -LiteralPath (Join-Path $dest 'install-manifest.txt') -Value ($head + ($manifest | Select-Object -Unique) + $owned) -Encoding UTF8
+
+    Line ''
+    Line 'Done.'
+    Line ''
+    Line ('RazeXR PCVR is in ' + $dest)
+    Line 'Start Virtual Desktop and connect your headset FIRST, then run'
+    Line ('  ' + $PlayBat + ' (the desktop shortcut starts it too)')
+    Line 'It opens the game you played last, and Switch Game in the menu moves'
+    Line 'between all of them without leaving the headset.'
+    Copy-Item -LiteralPath $LogFile -Destination (Join-Path $dest 'setup-log.txt') -Force
+    $Result['result'] = 'installed'
 }
 
-# ---------------------------------------------------------------- done
+# ---------------------------------------------------------------- uninstall
 
-Line ""
-Line "Done."
-Line ""
-Line "Start Virtual Desktop and connect your headset FIRST, then run"
-Line "  Play RazeXR PCVR.bat"
-Line ""
-Line "It opens the game you played last, and Switch Game in the menu moves"
-Line "between all of them without leaving the headset. To start one directly,"
-Line "the individual scripts are in the launchers folder."
-Line ""
-Line "Settings go in config, logs go in logs, game data in games. Everything"
-Line "lives in this folder - copy it to another PC and it runs."
-Line ""
+function Remove-Empty([string] $dir) {
+    if (-not (Test-Path -LiteralPath $dir)) { return }
+    foreach ($d in Get-ChildItem -LiteralPath $dir -Directory -Recurse -Force | Sort-Object { $_.FullName.Length } -Descending) {
+        if (-not (Get-ChildItem -LiteralPath $d.FullName -Force)) { Remove-Item -LiteralPath $d.FullName -Force }
+    }
+    if (-not (Get-ChildItem -LiteralPath $dir -Force)) { Remove-Item -LiteralPath $dir -Force }
+}
+
+function Do-Uninstall {
+    Line ''
+    Line 'RazeXR PCVR uninstall'
+    Line ''
+    $dest = Find-Home $false
+    $Result['steam'] = 'none'
+    if ($dest -and (Steam-HasOurs $dest)) {
+        if (Steam-Ready $true) {
+            Steam-Remove $dest
+            $Result['steam'] = 'removed'
+            Log 'Removed from your Steam library.'
+            Steam-Reopen
+        } else {
+            $Result['steam'] = 'left: Steam is open'
+            Log 'Still in your Steam library: Steam has to be closed.  Close it and run Uninstall again.'
+        }
+    }
+    $lnk = Join-Path (Desktop) $DesktopLink
+    if ($dest -and (Test-Path -LiteralPath $lnk) -and ((Shortcut-Target $lnk) -like ($dest + '\*'))) {
+        Remove-Item -LiteralPath $lnk -Force
+        Log ('Removed the desktop shortcut ' + $DesktopLink)
+    }
+    if (-not $dest -or -not (Test-Path -LiteralPath (Join-Path $dest 'install-manifest.txt'))) {
+        Log 'Nothing to uninstall: no RazeXR PCVR folder installed by Setup was found.'
+        $Result['result'] = 'nothing installed'
+        return
+    }
+    $Result['vrFolder'] = $dest
+    Log ('Removing ' + $dest)
+    foreach ($rel in (Get-Content -LiteralPath (Join-Path $dest 'install-manifest.txt') | Where-Object { $_ -and -not $_.StartsWith('#') })) {
+        if ($rel.StartsWith('junction:')) {
+            $j = Join-Path $dest $rel.Substring(9)
+            if (Test-Path -LiteralPath $j) { cmd /c rmdir "$j" 2>$null | Out-Null }	# the link only, never the game behind it
+            continue
+        }
+        $p = Join-Path $dest $rel
+        if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Force }
+    }
+    # What the game wrote that is not the player's: logs and crash dumps.
+    foreach ($pat in @('*.log', '*.prev.log', '*.dmp')) {
+        Get-ChildItem -LiteralPath $dest -Filter $pat -File -ErrorAction SilentlyContinue | Remove-Item -Force
+        Get-ChildItem -LiteralPath (Join-Path $dest 'logs') -Filter $pat -File -ErrorAction SilentlyContinue | Remove-Item -Force
+    }
+    Get-ChildItem -LiteralPath (Join-Path $dest 'gametome\layer') -Filter '*_log.txt' -File -ErrorAction SilentlyContinue | Remove-Item -Force
+    if (Test-Path -LiteralPath $Remembered) {
+        if (([string](Get-Content -LiteralPath $Remembered -TotalCount 1)).Trim() -eq $dest) { Remove-Item -LiteralPath $Remembered -Force }
+    }
+    Remove-Empty $dest
+    if (Test-Path -LiteralPath $dest) {
+        Set-Content -LiteralPath (Join-Path $dest 'Your saves are kept here.txt') -Encoding ASCII -Value @(
+            ($Product + ' was uninstalled.  Your saved games, settings and Game Tome notes are'),
+            'kept here, and come back if you install it again.',
+            'Delete this folder to remove them too.')
+        Log '  Your saves and settings are kept there.'
+    } else { Log '  Removed.' }
+    Log ''
+    Log ($Product + ' is uninstalled.  Your games themselves are untouched.')
+    $Result['result'] = 'uninstalled'
+}
+
+# ---------------------------------------------------------------- collect logs
+
+function Do-Collect {
+    Line ''
+    Line 'RazeXR PCVR: collect logs'
+    Line ''
+    $dest = Find-Home $false
+    $stamp = Get-Date -Format 'yyyyMMdd-HHmm'
+    $work = Join-Path ([System.IO.Path]::GetTempPath()) ('razexr-pcvr-logs-' + $stamp)
+    if (Test-Path -LiteralPath $work) { Remove-Item -LiteralPath $work -Recurse -Force }
+    [void][System.IO.Directory]::CreateDirectory($work)
+    if ($dest) {
+        foreach ($f in @('install-manifest.txt', 'setup-log.txt', 'version.txt', 'log-launchers.txt', 'razexr_vr.log', 'razexr_vr.prev.log')) {
+            $p = Join-Path $dest $f
+            if (Test-Path -LiteralPath $p) { Copy-Item -LiteralPath $p -Destination $work }
+        }
+        foreach ($sub in @('logs', 'config')) {
+            $d = Join-Path $dest $sub
+            if (Test-Path -LiteralPath $d) {
+                $o = Join-Path $work $sub
+                [void][System.IO.Directory]::CreateDirectory($o)
+                Get-ChildItem -LiteralPath $d -File -ErrorAction SilentlyContinue | Copy-Item -Destination $o
+            }
+        }
+        Get-ChildItem -LiteralPath (Join-Path $dest 'gametome\layer') -Filter '*_log.txt' -File -ErrorAction SilentlyContinue | Copy-Item -Destination $work
+        Get-ChildItem -LiteralPath $dest -Filter '*.dmp' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 2 | Copy-Item -Destination $work
+        Log ('Logs from ' + $dest)
+    } else { Log 'No RazeXR PCVR folder was found; only this PC''s details go in.' }
+    foreach ($m in @('install', 'uninstall')) {
+        $p = Join-Path ([System.IO.Path]::GetTempPath()) ('razexr-pcvr-' + $m + '.txt')
+        if (Test-Path -LiteralPath $p) { Copy-Item -LiteralPath $p -Destination $work }
+    }
+    $pc = @(($Product + ' ' + $Version + ' - this PC, ' + (Get-Date -Format 'yyyy-MM-dd HH:mm')), '')
+    try { $os = Get-CimInstance Win32_OperatingSystem; $pc += ('Windows: ' + $os.Caption + ' ' + $os.Version) } catch { }
+    try { foreach ($v in Get-CimInstance Win32_VideoController) { $pc += ('Graphics: ' + $v.Name + ', driver ' + $v.DriverVersion) } } catch { }
+    foreach ($k in @('HKLM:\SOFTWARE\Khronos\OpenXR\1', 'HKCU:\SOFTWARE\Khronos\OpenXR\1')) {
+        try { $v = Get-ItemProperty -LiteralPath $k -ErrorAction Stop; if ($v.ActiveRuntime) { $pc += ('OpenXR runtime (' + $k + '): ' + $v.ActiveRuntime) } } catch { }
+    }
+    foreach ($n in @('VirtualDesktop.Streamer', 'vrserver', 'vrcompositor', 'OVRServer_x64')) {
+        if (Get-Process -Name $n -ErrorAction SilentlyContinue) { $pc += ('Running: ' + $n) }
+    }
+    $pc += ''
+    $pc += ('Installed in: ' + $dest)
+    $pc += ('Installed version: ' + (Installed-Version $dest))
+    $pc += ('In the Steam library: ' + (Steam-HasOurs $dest))
+    Set-Content -LiteralPath (Join-Path $work 'this-pc.txt') -Value $pc -Encoding UTF8
+    $zip = Join-Path (Desktop) ('RazeXR-PCVR-logs-' + $stamp + '.zip')
+    if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
+    Compress-Archive -Path (Join-Path $work '*') -DestinationPath $zip
+    Remove-Item -LiteralPath $work -Recurse -Force
+    Log ''
+    Log ('Made ' + $zip)
+    Log 'Send that file to us (Discord or a GitHub issue) with a line on what happened.'
+    $Result['zip'] = $zip
+    if (-not $NoPrompt) { try { Start-Process explorer.exe -ArgumentList ('/select,"' + $zip + '"') } catch { } }
+}
+
+# ---------------------------------------------------------------- status, for -Detect and -Json
+
+function Game-Status {
+    $vrHome = Find-Home $false
+    $ver = Installed-Version $vrHome
+    $found = Find-AllGames
+    foreach ($g in $games) {
+        $hit = $found[$g.Folder]
+        $has = ($ver -ne $null) -and (Home-HasGame $vrHome $g)
+        $launcher = $null
+        if ($has) { $launcher = Launcher-For $vrHome $g }
+        $title = $g.Name + ' VR'
+        if ($launcher) { $title = [System.IO.Path]::GetFileNameWithoutExtension($launcher) }
+        $note = $null
+        if (-not $hit -and -not $has -and $g.Folder -eq 'exhumed') {
+            $note = 'Raze needs the DOS original: Steam sells it as PowerSlave (DOS Classic Edition). The 2022 PowerSlave Exhumed will not work.'
+        }
+        $gameFolder = $null
+        if ($hit) { $gameFolder = $hit.DirectoryName } elseif ($has) { $gameFolder = Join-Path (Join-Path $vrHome 'games') $g.Folder }
+        [pscustomobject][ordered]@{
+            key = $g.Folder; name = $g.Name; title = $title
+            found = [bool]($hit -or $has)
+            gameFolder = $gameFolder
+            installed = [bool]$has
+            vrFolder = $(if ($ver) { $vrHome } else { $null })
+            installedVersion = $(if ($has) { $ver } else { $null })
+            launcher = $launcher
+            installNote = $note
+        }
+    }
+}
+
+function Do-Detect {
+    Line ''
+    Line 'RazeXR PCVR: what is here'
+    Search-Roots
+    Log ('Looking in ' + $roots.Count + ' place(s):')
+    foreach ($r in $roots) { Log ('  ' + $r) }
+    $vrHome = Find-Home $false
+    if ($vrHome) { Log ('Installed: ' + (Installed-Version $vrHome) + ' in ' + $vrHome) } else { Log 'Not installed.' }
+    foreach ($s in Game-Status) {
+        if ($s.found) { Log ($s.name + ': ' + $s.gameFolder + $(if ($s.installed) { ', installed' } else { ', not installed yet' })) }
+        else { Log ($s.name + ': not found') }
+    }
+    $Result['vrFolder'] = $vrHome
+    $Result['steamLibrary'] = Steam-HasOurs $vrHome
+}
+
+switch ($Mode) {
+    'detect'    { Do-Detect }
+    'install'   { Do-Install }
+    'uninstall' { Do-Uninstall }
+    'collect'   { Do-Collect }
+}
+Finish 0

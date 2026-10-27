@@ -231,6 +231,21 @@ def main():
     print("audit clean: no game data; Voxel Duke 3D bundled by permission;")
     print("             no Duke3D Voxel Pack, no built weapon packs, no configs, no launchers")
 
+    """
+    payload.txt: every file in the archive, so setup.ps1 copies exactly these
+    into an install and Uninstall removes exactly these - never a player's own
+    file that happens to sit beside them.
+    """
+    listed = []
+    for base, _dirs, names in os.walk(root):
+        for name in names:
+            listed.append(os.path.relpath(os.path.join(base, name), root).replace("/", "\\"))
+    listed.append("payload.txt")
+    with open(os.path.join(root, "payload.txt"), "w", encoding="utf-8", newline="\r\n") as f:
+        f.write("# The files of this release, for setup.ps1. One per line.\n")
+        for rel in sorted(listed, key=str.lower):
+            f.write(rel + "\n")
+
     if os.path.isfile(args.out):
         os.remove(args.out)
     with zipfile.ZipFile(args.out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
