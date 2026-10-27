@@ -70,6 +70,7 @@
 #include "cheats.h"
 
 extern bool pauseext;
+#include "vr_gametome.h"
 extern int gametic;
 
 // Placeholders to make it compile.
@@ -988,7 +989,8 @@ void NetUpdate (void)
 	{
 		I_StartTic ();
 		D_ProcessEvents ();
-		if (pauseext || (maketic - gametic) / ticdup >= BACKUPTICS/2-1)
+		// PC branch: the Game Tome holds play still like a lost focus does.
+		if (pauseext || VR_GameTomePause() || (maketic - gametic) / ticdup >= BACKUPTICS/2-1)
 			break;			// can't hold any more
 
 		//Printf ("mk:%i ",maketic);

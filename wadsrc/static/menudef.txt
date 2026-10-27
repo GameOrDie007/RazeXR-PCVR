@@ -591,6 +591,7 @@ OptionMenu "VROptionsMenu" protected
 	StaticText 	""
 	Command "Recenter",	"vr_recenter_all"
 	Submenu "Switch Game",	"VRGameSelectMenu"
+	Command "Game Tome",	"vr_game_tome"
 	StaticText 	""
 	Submenu "Turning and Moving",	"VRTurningMenu"
 	Submenu "Your Body",	"VRBodyMenu"

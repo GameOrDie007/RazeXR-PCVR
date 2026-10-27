@@ -144,6 +144,7 @@ Setup says so when it finds the remaster, rather than only reporting the game as
 - Recenter with both grips, crouching for real, a wall fade, a menu pointer, the
   Leftorium (left-handed play) and VR Options sorted into short pages
 - Paintball: every shot leaves a splat of bright paint on the wall instead of a bullet hole
+- The Game Tome: the game's manual as a book in your hand, with the controls and pages for your own notes
 - One launcher that opens the game you played last, and Switch Game in the menu
 - A self-contained portable layout: copy the folder to another PC and it runs
 - A `vrweapons` console command that prints the resolved weapon table
@@ -169,6 +170,7 @@ the individual scripts are in `launchers\`.
     launchers\             a script per game, for a direct shortcut
     games\                 your game data, copied here by setup
     assets\                the voxel packs, weapon models and cover art
+    gametome\              the Game Tome: one book per game, and what you write in them
     config\                one settings file per game
     logs\                  one log per game; this is what to send if something breaks
                            (the run before each is kept as .prev.log, so a crash survives a restart)
@@ -303,6 +305,7 @@ Right-handed default. Everything is rebindable in Options → Customize Controls
 | **Left stick click** | **Alt Weapon** |
 | Right stick up/down | Next / previous weapon |
 | Dominant thumbrest | Quick kick (Duke, NAM, Redneck) |
+| Both palms up together, a second | The Game Tome |
 
 Alt Weapon matters in Shadow Warrior: it re-selects the weapon already in your hand,
 which is how you reach the quad shotgun and the nuke. In Duke and Blood it picks the
@@ -338,6 +341,22 @@ the next 15 cm. **VR Options → Your Body → Wall Fade.**
 **Modern** is wet paint in one bright color a splat; **Classic** is the old GoldenEye 007
 look, every splat a blend of four colors. Damage, sounds and blood stay as they were.
 **VR Options → Hands and Weapons → Paintball**, off at the start.
+
+### The Game Tome
+
+**Hold both hands out in front of you, palms up, as if holding an open book, for a
+second**, and the Game Tome opens in your off hand: the game's manual, with the
+controls and VR Options at the front and pages for your own notes at the back. It
+works in play and in the menus, and the game waits while it is open. **VR Options →
+Game Tome** opens it too.
+
+Turn a page by reaching to its edge with your gun hand, pulling the trigger and
+drawing it across, or with either stick. Point at a line on the Controls page and that
+button lights up on the controller. On a notes page your hand holds a pen: touch the
+paper to write. The PC keyboard types on the notes too. **B, Y or Menu closes it**,
+and it opens again where you left it.
+
+Each game has its own book. What you write stays in `gametome\`, and updating keeps it.
 
 ### The weapon wheel
 

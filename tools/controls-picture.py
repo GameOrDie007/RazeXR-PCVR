@@ -359,7 +359,7 @@ def quest_picture(b):
         job("grip + A", b, True), job("grip + B", b, True), job("grip + R trigger", b, True),
         job("grip + stick up", b, True).replace(" item", ""), job("grip + stick down", b, True))
     return p, [grip,
-               "Both grips together: recenter.   In a menu, hold the right grip to point; the trigger clicks.",
+               "Both grips together: recenter.   Both palms up together, a second: the Game Tome.   In a menu, hold the right grip to point.",
                "Pause menu: click the left stick to hide it for photos.   Valve Index: left trackpad press is the menu, right is the kick.",
                "Change any button: VR Options > Controls.   VR Options is on the main menu and the pause menu."]
 

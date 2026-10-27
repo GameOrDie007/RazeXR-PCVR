@@ -24,6 +24,7 @@ Copyright (C) 2026 RazeXR PCVR port. GPL-2.0-or-later, see gpl-2.0.txt.
 import argparse
 import os
 import shutil
+import subprocess
 import sys
 import zipfile
 
@@ -172,6 +173,35 @@ def main():
                              zipfile.ZIP_STORED) as z:
             for f in covers:
                 z.write(os.path.join(art, f), "boxart/" + f)
+
+    """
+    The Game Tome: its OpenXR layer and one built book per game, from the
+    gitignored gametome-drop. The books hold the manuals' pages as pictures,
+    so they live in the release zip and never in the repository. Each one is
+    checked by the Game Tome's own release check first, which refuses a book
+    carrying test pages or anyone's writing.
+    """
+    drop = os.path.join(repo, "gametome-drop")
+    books = sorted(d for d in os.listdir(drop) if d.startswith("tome-")) if os.path.isdir(drop) else []
+    layer = os.path.join(drop, "layer")
+    if not books or not os.path.isfile(os.path.join(layer, "GameTomeLayer.dll")):
+        missing.append("gametome-drop/ (the layer and the books)")
+    else:
+        checker = r"E:\Tools\Game Tome\tools\check-release-tome.ps1"
+        for b in books:
+            if os.path.isfile(checker):
+                r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                                    checker, "-Tome", os.path.join(drop, b)],
+                                   capture_output=True, text=True)
+                if r.returncode != 0:
+                    print(r.stdout + r.stderr)
+                    print("the Game Tome release check refused " + b)
+                    return 1
+            else:
+                print("warning: no Game Tome release check on this PC; " + b + " not checked")
+            shutil.copytree(os.path.join(drop, b), os.path.join(root, "gametome", b))
+        shutil.copytree(layer, os.path.join(root, "gametome", "layer"))
+        print("Game Tome: the layer and %d books (%s)" % (len(books), ", ".join(b[5:] for b in books)))
 
     if missing:
         print("missing, refusing to build:")

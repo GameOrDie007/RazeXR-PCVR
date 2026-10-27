@@ -16,3 +16,6 @@ razexr_vr.prev.log
 # Working documents - plans, the development log. Not for the public repo.
 REBASE-PLAN.md
 PROGRESS.md
+
+# Game Tome: the built books and the layer (manual pages are the publisher's; never in the repo)
+gametome-drop/

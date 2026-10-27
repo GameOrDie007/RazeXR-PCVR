@@ -54,6 +54,131 @@
 #include "VrCommon.h"
 
 #include <math.h>
+#include <stdlib.h>
+
+/*
+	The Game Tome: the game's manual as a book in the off hand. The book is
+	its own OpenXR API layer (gametome\layer beside raze.exe, shipped built,
+	never linked); this side only asks for it. The whole interface is a small
+	shared memory block the layer makes when our instance is created, named
+	after our process id; we write which book and which hand, and read back
+	while it shows. Laid out here by hand from the layer's published layout:
+	every field 4 bytes or chars, 540 bytes in all.
+*/
+static const unsigned GTB_SIGNAL_MAGIC = 0x31425447u;	// "GTB1"
+struct GtbSignal
+{
+	unsigned magic;
+	unsigned size;
+	volatile long ready;
+	volatile long open;
+	volatile long showing;
+	long main_hand;
+	long floating;
+	char tome_dir[512];
+};
+static HANDLE gGtbMap = NULL;
+static GtbSignal *gGtb = NULL;
+static bool gGtbLayer = false;
+static char gGtbRoot[MAX_PATH];		// <exe folder>\gametome
+static char gGtbBook[64];			// the current game's book, "tome-duke" and so on
+static int gGtbHand = 1;
+static void VR_Log(const char *fmt, ...);
+
+// Before xrCreateInstance: point the loader at the layer if it shipped.
+static void TBXR_GameTomeLayerPath(void)
+{
+	char exe[MAX_PATH], json[MAX_PATH + 64], dir[MAX_PATH + 32];
+	DWORD n = GetModuleFileNameA(NULL, exe, sizeof(exe));
+	char *slash = (n > 0 && n < sizeof(exe)) ? strrchr(exe, '\\') : NULL;
+	gGtbLayer = false;
+	if (!slash)
+		return;
+	*slash = 0;
+	snprintf(gGtbRoot, sizeof(gGtbRoot), "%s\\gametome", exe);
+	snprintf(dir, sizeof(dir), "%s\\layer", gGtbRoot);
+	snprintf(json, sizeof(json), "%s\\GameTomeLayer.json", dir);
+	if (GetFileAttributesA(json) == INVALID_FILE_ATTRIBUTES)
+	{
+		VR_Log("VR: no Game Tome layer at %s - no Game Tome this run\n", dir);
+		return;
+	}
+	SetEnvironmentVariableA("XR_API_LAYER_PATH", dir);
+	_putenv_s("XR_API_LAYER_PATH", dir);
+	gGtbLayer = true;
+}
+
+static void TBXR_GameTomeWrite(void)
+{
+	if (!gGtb || !gGtbBook[0])
+		return;
+	snprintf(gGtb->tome_dir, sizeof(gGtb->tome_dir), "%s\\%s", gGtbRoot, gGtbBook);
+	gGtb->main_hand = gGtbHand;
+}
+
+// After xrCreateSession: find the layer's block and name the book at once,
+// so the open-book gesture opens the right one before the menu row is used.
+static void TBXR_GameTomeSignalOpen(void)
+{
+	char name[64];
+	if (!gGtbLayer)
+		return;
+	snprintf(name, sizeof(name), "Local\\GameOrDie.GameTome.%lu", (unsigned long)GetCurrentProcessId());
+	gGtbMap = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, name);
+	if (!gGtbMap)
+	{
+		VR_Log("VR: Game Tome layer loaded but no signal block (%s)\n", name);
+		return;
+	}
+	gGtb = (GtbSignal *)MapViewOfFile(gGtbMap, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(GtbSignal));
+	if (!gGtb || gGtb->magic != GTB_SIGNAL_MAGIC)
+	{
+		VR_Log("VR: Game Tome signal block wrong (magic %08x)\n", gGtb ? gGtb->magic : 0u);
+		if (gGtb)
+			UnmapViewOfFile(gGtb);
+		gGtb = NULL;
+		return;
+	}
+	TBXR_GameTomeWrite();
+	VR_Log("VR: Game Tome ready=%ld (block %u bytes), the open-book gesture opens %s\n",
+			gGtb->ready, gGtb->size, gGtb->tome_dir[0] ? gGtb->tome_dir : "(no game yet)");
+}
+
+// Every frame, from the engine: which game's book, which hand turns pages.
+void TBXR_GameTomeSet(const char *book, int mainHand)
+{
+	if (!book)
+		book = "";
+	if (strcmp(book, gGtbBook) == 0 && mainHand == gGtbHand)
+		return;
+	snprintf(gGtbBook, sizeof(gGtbBook), "%s", book);
+	gGtbHand = mainHand;
+	TBXR_GameTomeWrite();
+	if (gGtb && gGtbBook[0])
+		VR_Log("VR: Game Tome book is %s, pages turned by the %s hand\n", gGtb->tome_dir, mainHand ? "right" : "left");
+}
+
+bool TBXR_GameTomeShowing(void) { return gGtb && gGtb->showing; }
+
+// The VR Options row.
+bool TBXR_GameTomeOpen(void)
+{
+	if (!gGtb)
+	{
+		Printf("Game Tome: the book's layer is not loaded this run.\n");
+		return false;
+	}
+	if (!gGtb->ready || !gGtbBook[0])
+	{
+		Printf("Game Tome: the book is not ready yet.\n");
+		return false;
+	}
+	TBXR_GameTomeWrite();
+	gGtb->floating = 0;
+	gGtb->open = 1;
+	VR_Log("VR: Game Tome opened from the menu: %s\n", gGtb->tome_dir);
+	return true;
+}
 
 bool VR_MenuInWorld();	// hw_vrmodes.cpp
 float VR_MenuScale();
@@ -1006,7 +1131,25 @@ bool TBXR_InitialiseInstance(void)
 	instanceCreateInfo.enabledExtensionCount = enabledExtensionCount;
 	instanceCreateInfo.enabledExtensionNames = enabledExtensions;
 
+	// The Game Tome's layer, when it shipped. If the instance will not come up
+	// with it, it comes up without it: the game matters more than the book.
+	static const char *gameTomeLayer[] = { "XR_APILAYER_GAMEORDIE_game_tome" };
+	TBXR_GameTomeLayerPath();
+	if (gGtbLayer)
+	{
+		instanceCreateInfo.enabledApiLayerCount = 1;
+		instanceCreateInfo.enabledApiLayerNames = gameTomeLayer;
+	}
+
 	initResult = xrCreateInstance(&instanceCreateInfo, &gAppState.Instance);
+	if (initResult != XR_SUCCESS && gGtbLayer)
+	{
+		VR_Log("VR: OpenXR instance with the Game Tome layer failed (%d), trying without it\n", (int)initResult);
+		gGtbLayer = false;
+		instanceCreateInfo.enabledApiLayerCount = 0;
+		instanceCreateInfo.enabledApiLayerNames = NULL;
+		initResult = xrCreateInstance(&instanceCreateInfo, &gAppState.Instance);
+	}
 	free(availableExtensions);
 
 	if (initResult != XR_SUCCESS)
@@ -1164,6 +1307,8 @@ bool TBXR_EnterVR(void)
 	spaceCreateInfo.poseInReferenceSpace.orientation.w = 1.0f;
 	OXR(xrCreateReferenceSpace(gAppState.Session, &spaceCreateInfo, &gAppState.HeadSpace));
 
+	TBXR_GameTomeSignalOpen();
+
 	return true;
 }
 
@@ -1185,6 +1330,18 @@ void TBXR_LeaveVR(void)
 		gAppState.CurrentSpace = XR_NULL_HANDLE;
 		OXR(xrDestroySession(gAppState.Session));
 		gAppState.Session = XR_NULL_HANDLE;
+	}
+
+	// The layer's block goes with the instance; a new instance makes a new one.
+	if (gGtb)
+	{
+		UnmapViewOfFile(gGtb);
+		gGtb = NULL;
+	}
+	if (gGtbMap)
+	{
+		CloseHandle(gGtbMap);
+		gGtbMap = NULL;
 	}
 
 	if (gAppState.Instance != XR_NULL_HANDLE)
@@ -1755,7 +1912,7 @@ void TBXR_submitFrame(void)
 	*/
 	{
 		const bool screen = VR_UseScreenLayer() && !VR_MenuInWorld();
-		const bool menuOver = gMenuLayerDrawn && VR_MenuInWorld();
+		const bool menuOver = gMenuLayerDrawn && VR_MenuInWorld() && !TBXR_GameTomeShowing();
 		if (!TBXR_ObserverDraw(gAppState.xfStageFromHead.orientation, fov, screen,
 				&gAppState.Renderer.FrameBuffer[0], menuOver ? &gMenuBuffer : nullptr))
 			TBXR_MirrorToWindow();
@@ -1970,7 +2127,12 @@ void TBXR_submitFrame(void)
 		from the aspect of the screen that was painted into the square
 		texture, so the picture comes out the shape it went in.
 	*/
-	if (gMenuLayerDrawn && VR_MenuInWorld() && gAppState.LayerCount < ovrMaxLayerCount)
+	/*
+		Not while the Game Tome is open: on SteamVR the book goes into our own
+		projection layer, so a panel after it would cover the book.
+	*/
+	if (gMenuLayerDrawn && VR_MenuInWorld() && !TBXR_GameTomeShowing() &&
+			gAppState.LayerCount < ovrMaxLayerCount)
 	{
 		XrCompositionLayerQuad menu_layer = {};
 

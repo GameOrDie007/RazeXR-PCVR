@@ -104,6 +104,7 @@ What lives where
     Save\             savegames, one folder per game
     logs\             one log per game, plus startup.log
     assets\           voxel packs, weapon models, cover art
+    gametome\         the Game Tome: a book per game, and your notes in them
     soundfonts\       music
     libsndfile-1.dll  Ogg music decoding. Without it Shadow Warrior, Redneck
                       Rampage and anything else with .ogg music plays silently,
@@ -131,6 +132,7 @@ Every button is labelled in the picture beside this file:
     Dominant stick up/down  Next / previous weapon
     Dominant thumbrest      Quick kick   (Duke, NAM, Redneck; touch it)
     Menu button             Pause menu
+    Both palms up together  The Game Tome (hold them there a second)
 
 Alt Weapon matters in Shadow Warrior: it re-selects the weapon already in your
 hand, which is how you reach the akimbo uzis, the quad shotgun and the nuke.
@@ -164,6 +166,16 @@ paint. Modern is wet paint in one bright color a splat; Classic is the old
 GoldenEye 007 look, every splat a blend of four colors. Damage, sounds and
 blood stay as they were. VR Options > Hands and Weapons > Paintball, off at
 the start.
+
+The Game Tome: hold both hands out in front of you, palms up, as if holding an
+open book, for a second, and the game's manual opens in your off hand, with
+the controls and VR Options at the front and pages for your own notes at the
+back. It works in play and in the menus, and the game waits while it is open.
+VR Options > Game Tome opens it too. Turn a page by reaching to its edge with
+your gun hand, pulling the trigger and drawing it across, or with either
+stick. On a notes page your hand holds a pen: touch the paper to write. The PC
+keyboard types on the notes too. B, Y or Menu closes it. Each game has its own
+book, and what you write stays in gametome\ when you update.
 
 
 Hold the grip for a second set of controls

@@ -95,6 +95,7 @@
 #include "texturemanager.h"
 #include "gameinput.h"
 #include "menustate.h"
+#include "vr_gametome.h"
 
 void RazeXR_setUseScreenLayer(bool use);
 bool VR_MenuInWorld();	// hw_vrmodes.cpp
@@ -616,8 +617,14 @@ void TryRunTics (void)
 	// with rotation only, while the panel beside it was drawn fresh every
 	// refresh. The two drifting against each other was the "sway". The
 	// runtime paces the loop through xrWaitFrame; nothing here needs to.
+	//
+	// The Game Tome open in play holds the game still the same way, and for
+	// the same reason never waits for a tick: the book moves with the hands
+	// every refresh (Doom VR's book fell to 35 fps on exactly this wait).
+	VR_GameTomeFrame();
+	const bool bookPause = VR_GameTomePause();
 	bool doWait = (cl_capfps || pauseext || (r_NoInterpolate && !M_IsAnimated() && gamestate != GS_CUTSCENE && gamestate != GS_INTRO))
-		&& !VR_MenuInWorld();
+		&& !VR_MenuInWorld() && !bookPause;
 
 	// get real tics
 	if (doWait)
@@ -637,7 +644,7 @@ void TryRunTics (void)
 	// get available tics
 	NetUpdate ();
 
-	if (pauseext)
+	if (pauseext || bookPause)
 		return;
 
 	lowtic = INT_MAX;
