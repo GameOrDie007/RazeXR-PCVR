@@ -250,6 +250,7 @@ enum kStatus
     kStatExplodeTrigger = 141,
     kStatExplodeTarget = 152,
 	kStatCrosshair = 789,
+	kStatVRPaint = 987,	// PC branch: Paintball splats (bullet.cpp)
     kStatBubbleMachine = 1022,
 
 };

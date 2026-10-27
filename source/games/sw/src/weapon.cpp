@@ -24,6 +24,7 @@ Prepared for public release: 03/28/2005 - Charlie Wiederhold, 3D Realms
 */
 //-------------------------------------------------------------------------
 #include "ns.h"
+#include "vr_paintball.h"
 #include "build.h"
 
 #include "names2.h"
@@ -17828,6 +17829,7 @@ void QueueHole(sectortype* hit_sect, walltype* hit_wall, const DVector3& pos)
     spawnedActor->spr.cstat2 |= CSTAT2_SPRITE_DECAL;
 
     spawnedActor->spr.Angles.Yaw = hit_wall->normalAngle();
+    VR_PaintMark(spawnedActor);
 
     // move it back some
     auto vec = spawnedActor->spr.Angles.Yaw.ToVector();

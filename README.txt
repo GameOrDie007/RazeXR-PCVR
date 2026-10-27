@@ -159,6 +159,12 @@ Lean your head into a wall and the view darkens rather than showing the inside
 of the map: the game's body stops at the wall, your head does not, and the
 view goes black over the next 15 cm. VR Options > Your Body > Wall Fade.
 
+Paintball turns every mark a shot leaves on a wall into a splat of bright
+paint. Modern is wet paint in one bright color a splat; Classic is the old
+GoldenEye 007 look, every splat a blend of four colors. Damage, sounds and
+blood stay as they were. VR Options > Hands and Weapons > Paintball, off at
+the start.
+
 
 Hold the grip for a second set of controls
 ------------------------------------------

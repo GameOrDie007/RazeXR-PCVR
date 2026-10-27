@@ -553,6 +553,13 @@ OptionValue "ControlScheme"
 	10, "On"
 }
 
+OptionValue "VRPaintball"
+{
+	0, "Off"
+	1, "Modern"
+	2, "Classic"
+}
+
 //-------------------------------------------------------------------------------------------
 //
 // VR Game Select Menu
@@ -627,6 +634,8 @@ OptionMenu "VRHandsMenu" protected
 	Option "Voxel Weapons",	"vr_voxel_weapons", "YesNo"
 	Slider "Weapon Pitch Adjust",	"vr_weaponPitchAdjust", 0.0, 90.0, 5
 	Slider "Weapon Yaw Adjust",	"vr_weaponYawAdjust", -10.0, 10.0, 1
+	StaticText 	""
+	Option "Paintball",	"vr_paintball", "VRPaintball"
 	StaticText 	""
 	Option "Weapon Wheel (hold stick click)",	"vr_weapon_wheel", "OnOff"
 	Option "Item Wheel (grip + stick click)",	"vr_item_wheel", "OnOff"

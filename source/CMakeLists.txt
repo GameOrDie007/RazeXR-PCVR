@@ -1001,6 +1001,7 @@ set (PCH_SOURCES
 	core/vr_weapons.cpp
 	core/vr_crosshair.cpp
 	core/vr_crouch.cpp
+	core/vr_paintball.cpp
 	core/vr_pointer.cpp
 	core/vr_wheel.cpp
 	core/vr_launchers.cpp

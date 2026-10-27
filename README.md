@@ -143,6 +143,7 @@ Setup says so when it finds the remaster, rather than only reporting the game as
 - Cover art for every game in the Switch Game menu, made for this port
 - Recenter with both grips, crouching for real, a wall fade, a menu pointer, the
   Leftorium (left-handed play) and VR Options sorted into short pages
+- Paintball: every shot leaves a splat of bright paint on the wall instead of a bullet hole
 - One launcher that opens the game you played last, and Switch Game in the menu
 - A self-contained portable layout: copy the folder to another PC and it runs
 - A `vrweapons` console command that prints the resolved weapon table
@@ -332,6 +333,11 @@ Your Body → Crouch For Real** turns it off.
 **Lean your head into a wall and the view darkens** rather than showing the inside of the
 map: the game's body stops at the wall, your head does not, and the view goes black over
 the next 15 cm. **VR Options → Your Body → Wall Fade.**
+
+**Paintball** turns every mark a shot leaves on a wall into a splat of bright paint.
+**Modern** is wet paint in one bright color a splat; **Classic** is the old GoldenEye 007
+look, every splat a blend of four colors. Damage, sounds and blood stay as they were.
+**VR Options → Hands and Weapons → Paintball**, off at the start.
 
 ### The weapon wheel
 

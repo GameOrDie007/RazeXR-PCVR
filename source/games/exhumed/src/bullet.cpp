@@ -16,6 +16,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 //-------------------------------------------------------------------------
 #include "ns.h"
+#include "vr_paintball.h"
 #include "engine.h"
 #include "aistuff.h"
 #include "sequence.h"
@@ -27,6 +28,60 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <assert.h>
 
 BEGIN_PS_NS
+
+//---------------------------------------------------------------------------
+//
+// PC branch: Paintball. Exhumed's shots leave no mark on a wall, only a puff,
+// so with Paintball on a splat is spawned where the shot hit, facing out of
+// the wall. Nothing in the game would ever clear them, so the cap is ours:
+// past kMaxPaint the oldest goes first. spr.extra holds each one's serial.
+// Walls between sectors that move (doors, lifts) get none, or the paint
+// would hang in the air once they open.
+//
+//---------------------------------------------------------------------------
+
+static void VRPaintWall(walltype* pWall, sectortype* pSector, const DVector3& pos)
+{
+    constexpr int kMaxPaint = 128;
+    static int16_t nSerial;
+
+    if (!VR_Paintball() || pWall == nullptr || pSector == nullptr) return;
+    if (pWall->twoSided())
+    {
+        auto pNext = pWall->nextSector();
+        if (pSector->lotag || pSector->hitag || pNext->lotag || pNext->hitag) return;
+    }
+
+    int nCount = 0, nOldestAge = -1;
+    DExhumedActor* pOldest = nullptr;
+    ExhumedStatIterator it(kStatVRPaint);
+    while (auto pPaint = it.Next())
+    {
+        nCount++;
+        int nAge = (nSerial - pPaint->spr.extra) & 0x7fff;
+        if (nAge > nOldestAge) { nOldestAge = nAge; pOldest = pPaint; }
+    }
+    if (nCount >= kMaxPaint && pOldest) DeleteActor(pOldest);
+
+    auto pPaint = insertActor(pSector, kStatVRPaint);
+    pPaint->spr.pos = pos;
+    pPaint->spr.cstat = CSTAT_SPRITE_ALIGNMENT_WALL | CSTAT_SPRITE_ONE_SIDE;
+    pPaint->spr.cstat2 |= CSTAT2_SPRITE_DECAL;
+    pPaint->spr.Angles.Yaw = pWall->normalAngle();
+    pPaint->spr.picnum = 0;
+    pPaint->spr.scale = DVector2(0.25, 0.25);
+    pPaint->spr.shade = 0;
+    pPaint->spr.pal = 0;
+    pPaint->spr.lotag = 0;      // no run list
+    pPaint->spr.hitag = 0;
+    pPaint->spr.intowner = -1;
+    pPaint->spr.extra = nSerial;
+    nSerial = (nSerial + 1) & 0x7fff;
+    pPaint->clipdist = 0;
+    pPaint->vel = DVector3(0, 0, 0);
+    pPaint->backuppos();
+    if (!VR_PaintMark(pPaint)) DeleteActor(pPaint);
+}
 
 enum { kMaxBullets		= 500 };
 
@@ -513,6 +568,7 @@ HITSPRITE:
                         // draws bullet puff on walls when they're shot
                         BuildAnim(nullptr, pBulletInfo->field_C, 0, pos.plusZ(zOffset - 16), pHitSect, 0.625, pBulletInfo->nFlags);
                     }
+                    VRPaintWall(pHitWall, pHitSect, pos);
                 }
                 else
                 {

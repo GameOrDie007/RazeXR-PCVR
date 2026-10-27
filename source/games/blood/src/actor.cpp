@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //#include <iostream>
 
 #include "ns.h"	// Must come before everything else!
+#include "vr_paintball.h"
 
 
 #include "build.h"
@@ -6657,6 +6658,7 @@ void actFireVector(DBloodActor* shooter, double offset, double zoffset, DVector3
 						pFX->spr.Angles.Yaw = pWall->normalAngle();
 						pFX->spr.cstat |= CSTAT_SPRITE_ALIGNMENT_WALL;
 						pFX->spr.cstat2 |= CSTAT2_SPRITE_DECAL;
+						if (pVectorData->surfHit[nnSurf].fx1 == FX_43) VR_PaintMark(pFX);	// the bullet hole
 					}
 				}
 			}

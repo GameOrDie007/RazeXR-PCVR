@@ -27,6 +27,7 @@ Prepared for public release: 03/21/2003 - Charlie Wiederhold, 3D Realms
 //------------------------------------------------------------------------- 
 
 #include "ns.h"
+#include "vr_paintball.h"
 #include "global.h"
 #include "names_r.h"
 #include "mapinfo.h"
@@ -391,7 +392,7 @@ static void shootweapon(DDukeActor* actor, int p, DVector3 pos, DAngle ang, int 
 							DukeStatIterator it(STAT_MISC);
 							while (auto l = it.Next())
 							{
-								if (l->spr.picnum == RTILE_BULLETHOLE)
+								if (l->spr.picnum == RTILE_BULLETHOLE || VR_IsPaintTile(l->spr.picnum))
 									if ((l->spr.pos - spark->spr.pos).Length() < 0.75 + krandf(0.5))
 										goto SKIPBULLETHOLE;
 							}
@@ -402,6 +403,7 @@ static void shootweapon(DDukeActor* actor, int p, DVector3 pos, DAngle ang, int 
 								hole->spr.Angles.Yaw = hit.hitWall->delta().Angle() - DAngle90;
 								ssp(hole, CLIPMASK0);
 								hole->spr.cstat2 |= CSTAT2_SPRITE_DECAL;
+								VR_PaintMark(hole);
 							}
 						}
 
