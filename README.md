@@ -4,6 +4,8 @@ Seven Build engine games in PC VR: **Duke Nukem 3D**, **Blood**, **Shadow Warrio
 **Redneck Rampage**, **NAM**, **WWII GI** and **Exhumed/PowerSlave**, plus their
 expansions: nineteen entries in all, including World Tour's Alien World Order.
 
+**Watch the video:** [Duke Nukem 3D in VR (I can hold the pistol in my hand)](https://youtu.be/8p2StLnZ-m8)
+
 This is a PC port of [Team Beef](https://www.teambeefvr.com/)'s **RazeXR**, their Quest VR
 build of [Raze](https://github.com/ZDoom/Raze). RazeXR runs on Android and OpenXR; this
 moves it to Windows, desktop OpenGL and PCVR, and adds voxel weapons held in your hand: ninety-one of them, every game covered.
@@ -65,7 +67,7 @@ and nothing to hunt for on GOG. That trips people up, so it is spelled out.
 | Platoon Leader | **in WWII GI**, never sold separately |
 | **Exhumed / PowerSlave** | the original DOS release, plus its free soundtrack DLC (see below) |
 
-Raze also recognises **NAPALM** (a NAM variant) and **Duke Nukem's Penthouse Paradise**,
+Raze also recognizes **NAPALM** (a NAM variant) and **Duke Nukem's Penthouse Paradise**,
 both obscure enough that most people will never see them, and the shareware and demo
 versions of Duke and Shadow Warrior.
 
@@ -84,7 +86,7 @@ GRP.
 ### Blood's fan campaigns
 
 **Death Wish** and **MARROW**, the two big Blood fan episodes (both good enough that
-Nightdive later made them official expansions in Blood: Refreshed Supply), are recognised
+Nightdive later made them official expansions in Blood: Refreshed Supply), are recognized
 here the same way the official add-ons are.
 
 **Own Blood: Refreshed Supply? There is nothing to do.** It includes both, and
@@ -278,7 +280,7 @@ preferring the first:
 Both of those are Duke only. **Blood, Shadow Warrior and Exhumed have packs of their
 own** (props, scenery, decals and some enemies) by fgsfds, Dzierzan and contributors,
 which setup fetches from their authors' own repositories. Same non-commercial
-share-alike licence, so they are downloaded rather than bundled, and each keeps its own
+share-alike license, so they are downloaded rather than bundled, and each keeps its own
 `license.txt`.
 
 These are props and monsters, which is a different thing from the weapon models above:
@@ -362,7 +364,7 @@ Each game has its own book. What you write stays in `gametome\`, and updating ke
 
 Hold your gun hand's stick click and the weapons you are carrying hang in a ring in
 front of you, as the same 3D models you hold, on a disc of slices. Move your hand
-towards one (its slice lights up in the game's colour and the model grows) and let go of
+towards one (its slice lights up in the game's color and the model grows) and let go of
 the stick to switch to it. Let go with your hand still in the middle and nothing changes.
 
 **Hold the grip as well and the same ring holds your inventory**: the medkit, steroids,
@@ -492,12 +494,16 @@ correctly in each without setting it per game.
 
 Named and behaving the same as in the Quake and Quake II PCVR ports.
 
-## Licence
+---
+
+**Get an email when the next port ships:** follow [Game Or Die on Patreon](https://www.patreon.com/cw/GameOrDie) for free. Every port I've released is free for everyone.
+
+## License
 
 GPL-2.0, inherited from Raze (see `COPYING`). The complete corresponding source
 is [github.com/GameOrDie007/RazeXR-PCVR](https://github.com/GameOrDie007/RazeXR-PCVR), which is what Team Beef's
 agreement to a PCVR port was conditional on. The additions made by
-this port are under the same licence. The OpenXR SDK headers in `vr/OpenXR-SDK/` are
+this port are under the same license. The OpenXR SDK headers in `vr/OpenXR-SDK/` are
 Khronos', under `Apache-2.0 OR MIT`.
 
 No game data is contained in this repository. Third-party content shipped with the

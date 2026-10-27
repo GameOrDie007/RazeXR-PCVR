@@ -263,11 +263,11 @@ Under VR Options > Pause Menu:
     Menu In The World       off puts the menu back on a flat virtual screen
     Menu Stays Where Opened off lets it follow your gaze instead
     Menu Size               how much of your view it covers
-    Menu Depth              how far away it hangs, 1 to 10 metres
+    Menu Depth              how far away it hangs, 1 to 10 meters
 
 Menu Depth does not change how big the menu looks; it keeps its apparent size
 as it moves. Further away is flatter in your view and easier to read while
-turning your head; closer feels more immediate. 3.5 metres is the default.
+turning your head; closer feels more immediate. 3.5 meters is the default.
 
 
 The observer view
@@ -321,7 +321,7 @@ Turn Voxel Weapons off and the flat weapon sprite comes back.
 The expansions
 --------------
 
-The official add-ons are recognised on sight. Put the file in the game's own
+The official add-ons are recognized on sight. Put the file in the game's own
 folder under games\ , beside the base game's data, and run SETUP.bat again. Each
 one then appears in the Switch Game menu with a launcher of its own.
 
@@ -344,14 +344,14 @@ not a game Raze can identify.
 If you are working from an original CD, the disc may not hold a .GRP at all.
 Sunstorm's Duke add-ons shipped their data as .SSI: Duke it out in D.C. is
 DUKEDCPP.SSI in a DUKEDC folder. Copy that in and run SETUP.bat; Raze can read
-.SSI directly and it may simply be recognised. If it is not, the usual add-on
+.SSI directly and it may simply be recognized. If it is not, the usual add-on
 patch utility converts it to a .GRP, and that goes in as above.
 
 
 Fan campaigns
 -------------
 
-Death Wish and MARROW, Blood's two big fan episodes, are recognised the same way
+Death Wish and MARROW, Blood's two big fan episodes, are recognized the same way
 the official add-ons are.
 
 Own Blood: Refreshed Supply? Then there is nothing to do: it includes both, and
@@ -376,7 +376,7 @@ the zip and move the contents up a level before copying it in.
 Both bring their own soundtracks as music tracks, and their launchers switch
 those on. Nothing to set.
 
-Anything else with its own .INI runs too, but is not recognised: there is no
+Anything else with its own .INI runs too, but is not recognized: there is no
 rule that knows about it, and nothing is wrong when it does not appear. Point a
 launcher at it instead. Unpack it into its own folder, say
 games\blood\addons\yourmod\ , then copy any launcher in launchers\ to a new
@@ -447,10 +447,15 @@ not work. Take Steam's free soundtrack DLC with it, or the game has no music.
 Blood must be One Unit Whole Blood, or a collection containing it.
 
 
-Licence and credit
+Get an email when the next port ships: follow Game Or Die on Patreon
+for free at https://www.patreon.com/cw/GameOrDie. Every port I've released
+is free for everyone.
+
+
+License and credit
 ------------------
 
-GPL-2.0, inherited from Raze. Licence text in gpl-2.0.txt, and Ken
+GPL-2.0, inherited from Raze. License text in gpl-2.0.txt, and Ken
 Silverman's BUILD engine terms in buildlic.txt, since Raze descends from BUILD
 and those terms travel with it.
 
