@@ -185,7 +185,7 @@ along the gun, and that hand takes the front. The gun then aims along the
 line between your hands, which is much steadier. Squeeze again to let go, or
 move the hand away. VR Options > Hands and Weapons > Two-Handed Grip: Basic
 (the default), Gun Stock (aims from just below your eyes through the gun
-hand once you raise the gun to your eye, like sighting down a rifle) or Off; Two-Handed Grip Style: Toggle or
+hand as you raise a long gun to your eye, like sighting down a rifle; a pistol aims as Basic) or Off; Two-Handed Grip Style: Toggle or
 Hold. While your off hand is on the gun, its grip does not run.
 
 Controller vibration: the gun hand kicks with every shot, and both hands buzz

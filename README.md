@@ -359,7 +359,7 @@ look, every splat a blend of four colors. Damage, sounds and blood stay as they 
 the front: the gun now aims along the line between your hands, which is much steadier. Squeeze
 again to let go, or just move the hand away. **VR Options → Hands and Weapons → Two-Handed
 Grip** has **Basic** (the default), **Gun Stock** (the gun aims from just below your eyes
-through your gun hand once you raise the gun to your eye, like sighting down a rifle), and **Off**. **Two-Handed Grip Style**
+through your gun hand as you raise a long gun to your eye, like sighting down a rifle; a pistol aims as Basic), and **Off**. **Two-Handed Grip Style**
 switches between **Toggle** (squeeze to take the front, squeeze again to let go) and **Hold**
 (hold the grip to keep it). While your off hand is on the gun, its grip does not run.
 

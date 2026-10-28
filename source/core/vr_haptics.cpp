@@ -43,15 +43,30 @@ void TBXR_Vibrate(int duration, int chan, float intensity);	// OpenXrInput.cpp: 
 static int lastHealth = -1, lastWeapon = -1, lastAmmo = -1;
 static MapRecord* lastLevel = nullptr;
 
+static int heldWeapon = -1;	// read every frame, haptics on or off: two hands use it too
+
 static void Forget()
 {
 	lastHealth = lastWeapon = lastAmmo = -1;
 }
 
+// The pistols: Duke's (and Redneck's revolver, NAM's and WWII GI's, the same
+// slot), Blood's flare gun and PowerSlave's magnum. Shadow Warrior has none.
+bool VR_HoldingPistol()
+{
+	if (heldWeapon < 0) return false;
+	if (isDukeLike()) return heldWeapon == 1;
+	if (isBlood()) return heldWeapon == 2;
+	if (isExhumed()) return heldWeapon == 1;
+	return false;
+}
+
 void VR_HapticsFrame()
 {
 	int health, weapon, ammo;
-	if (!vr_haptics || gamestate != GS_LEVEL || !gi || !gi->VRHapticState(health, weapon, ammo))
+	const bool known = gamestate == GS_LEVEL && gi && gi->VRHapticState(health, weapon, ammo);
+	heldWeapon = known ? weapon : -1;
+	if (!vr_haptics || !known)
 	{
 		Forget();
 		return;

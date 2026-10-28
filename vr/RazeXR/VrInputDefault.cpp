@@ -111,6 +111,7 @@ extern bool weaponStabilised;
 CVAR(Int, vr_two_handed_grip, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)		// 0 off, 1 basic, 2 gun stock
 CVAR(Bool, vr_two_handed_toggle, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 void TBXR_Vibrate(int duration, int chan, float intensity);
+bool VR_HoldingPistol();	// vr_haptics.cpp
 
 static bool twoHand = false;
 static bool offGripTaken = false;
@@ -377,25 +378,38 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
             VectorCopy(weaponangles, gunLineAngles);
             if (twoHand)
             {
-                float x, y, z;
-                // Gun stock: from just below the eyes through the gun hand,
-                // once the gun is up at the face. Held lower, that line points
-                // at the floor, so the two hands aim as in Basic until then.
-                const float sx = pDominantTracking->Pose.position.x - hmdPosition[0];
-                const float sy = pDominantTracking->Pose.position.y - (hmdPosition[1] - 0.07f);
-                const float sz = pDominantTracking->Pose.position.z - hmdPosition[2];
-                if (vr_two_handed_grip == 2 && sx * sx + sy * sy + sz * sz < 0.40f * 0.40f &&
-                    sy > -0.15f)
+                // Basic: from the gun hand towards the off hand.
+                float x = pOffTracking->Pose.position.x - pDominantTracking->Pose.position.x;
+                float y = pOffTracking->Pose.position.y - pDominantTracking->Pose.position.y;
+                float z = pOffTracking->Pose.position.z - pDominantTracking->Pose.position.z;
+                float len = sqrtf(x * x + y * y + z * z);
+
+                // Gun stock, long guns only (a pistol has no stock, so it
+                // keeps Basic): from just below the eyes through the gun hand.
+                // That line only means anything with the gun up at the face -
+                // held lower it points at the floor - so the aim slides from
+                // Basic into it as the gun comes up, never jumping between two.
+                if (vr_two_handed_grip == 2 && !VR_HoldingPistol() && len > 0.02f)
                 {
-                    x = sx; y = sy; z = sz;
+                    const float sx = pDominantTracking->Pose.position.x - hmdPosition[0];
+                    const float sy = pDominantTracking->Pose.position.y - (hmdPosition[1] - 0.07f);
+                    const float sz = pDominantTracking->Pose.position.z - hmdPosition[2];
+                    const float slen = sqrtf(sx * sx + sy * sy + sz * sz);
+                    // Fully the stock within 25 cm of the face, Basic beyond
+                    // 45 cm, and the same fade as the hand drops below the chin.
+                    float w = (0.45f - slen) / 0.20f;
+                    w = fminf(w, (sy + 0.25f) / 0.12f);
+                    w = fmaxf(0.f, fminf(1.f, w));
+                    w = w * w * (3.f - 2.f * w);
+                    if (w > 0.f && slen > 0.02f)
+                    {
+                        x = (1.f - w) * x / len + w * sx / slen;
+                        y = (1.f - w) * y / len + w * sy / slen;
+                        z = (1.f - w) * z / len + w * sz / slen;
+                        len = sqrtf(x * x + y * y + z * z);
+                    }
                 }
-                else
-                {
-                    x = pOffTracking->Pose.position.x - pDominantTracking->Pose.position.x;
-                    y = pOffTracking->Pose.position.y - pDominantTracking->Pose.position.y;
-                    z = pOffTracking->Pose.position.z - pDominantTracking->Pose.position.z;
-                }
-                if (x * x + y * y + z * z > 0.0004f)
+                if (len > 0.02f)
                     TwoHands_DirToAngles(x, y, z, weaponangles[PITCH], weaponangles[YAW]);
             }
         }
