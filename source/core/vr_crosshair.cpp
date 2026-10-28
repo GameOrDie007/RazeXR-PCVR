@@ -171,7 +171,15 @@ void VRCrosshair_Update(const FRenderViewpoint& vp)
 	HitInfoBase hit{};
 	const auto savedCstat = player->spr.cstat;
 	player->spr.cstat &= ~CSTAT_SPRITE_BLOCK_ALL;
-	hitscan(start, sectp, DVector3(aimYaw.ToVector() * vel, zvel * 64), hit, CLIPMASK1);
+	/*
+		See-through walls stop the crosshair too. A fence is a masked wall,
+		and unless the map makes it block shots the hitscan passes it and the
+		crosshair landed on whatever was behind - drawn there, behind the
+		fence, and hidden by it (his test, v1.3). On the fence it is still on
+		the line the shot travels, and it can be seen. The game's own shots
+		are not changed.
+	*/
+	hitscan(start, sectp, DVector3(aimYaw.ToVector() * vel, zvel * 64), hit, CLIPMASK1 | CSTAT_WALL_MASKED);
 	player->spr.cstat = savedCstat;
 	if (hit.hitSector == nullptr) return;
 
