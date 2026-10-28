@@ -131,6 +131,7 @@ void VRCrosshair_Aim(DCoreActor* player, const DVector3& spos)
 // This frame's placement, worked out once by VRCrosshair_Update.
 static bool FrameValid = false;
 static DVector3 FramePos;
+static double FrameLength = 0;	// across the floor, from the player to the placement
 static sectortype* FrameSect = nullptr;
 
 /*
@@ -175,6 +176,7 @@ void VRCrosshair_Update(const FRenderViewpoint& vp)
 	if (hit.hitSector == nullptr) return;
 
 	FramePos = VRCrosshair_Place(start, hit.hitpos);
+	FrameLength = (FramePos.XY() - player->interpolatedpos(vp.TicFrac).XY()).Length();
 	FrameSect = hit.hitSector;
 	FrameValid = true;
 }
@@ -198,6 +200,19 @@ void VRCrosshair_Frame(tspriteArray& tsprites, const FRenderViewpoint& vp)
 	*/
 	if (tspr->ownerActor->spr.statnum != AimCrosshairStat) return;
 	if (tspr->scale.X <= 0 || tspr->scale.Y <= 0) return;	// the game has hidden it
+
+	/*
+		The size follows the placement. Every game grows the crosshair with its
+		distance, length / 512 on top of a base of its own, so it looks the
+		same size near or far - but sets it once a tic. Moved here every frame
+		and sized once a tic, a sweep from something far to something close
+		drew it close at the far size for a frame: a huge crosshair flashing
+		(his test, v1.3). So the tic's distance comes back out of the game's
+		size and this frame's goes in, keeping each game's own base.
+	*/
+	const double ticLength = (tspr->ownerActor->spr.pos.XY() - AimPlayer->spr.pos.XY()).Length();
+	const double scale = max(tspr->scale.X + (FrameLength - ticLength) / 512.0, 0.05);
+	tspr->scale = DVector2(scale, scale);
 
 	tspr->pos = FramePos;
 	tspr->sectp = FrameSect;
