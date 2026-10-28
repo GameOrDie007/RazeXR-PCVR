@@ -77,7 +77,7 @@ $ProgressPreference = 'SilentlyContinue'
 
 $Product = 'RazeXR PCVR'
 $ProductFile = 'RazeXR PCVR'
-$Version = '1.2.1'
+$Version = '1.3'
 
 if ($Quiet -or $Json) { $NoPrompt = $true }
 if ($GamePath) { $NoSearch = $true; $Dropped = @($Dropped) + @($GamePath | ForEach-Object { $_ -split ';' } | Where-Object { $_ }) }

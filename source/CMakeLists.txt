@@ -1003,6 +1003,7 @@ set (PCH_SOURCES
 	core/vr_crouch.cpp
 	core/vr_paintball.cpp
 	core/vr_gametome.cpp
+	core/vr_haptics.cpp
 	core/vr_pointer.cpp
 	core/vr_wheel.cpp
 	core/vr_launchers.cpp

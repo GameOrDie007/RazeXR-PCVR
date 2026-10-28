@@ -8070,6 +8070,16 @@ saveable_module saveable_panel =
 //
 //---------------------------------------------------------------------------
 
+bool GameInterface::VRHapticState(int& health, int& weapon, int& ammo)
+{
+	PLAYER* pp = &Player[myconnectindex];
+	if (!pp->actor || !pp->actor->hasU()) return false;
+	health = pp->actor->user.Health;
+	weapon = pp->actor->user.WeaponNum;
+	ammo = (weapon >= 0 && weapon < MAX_WEAPONS) ? pp->WpnAmmo[weapon] : 0;
+	return true;
+}
+
 int GameInterface::VRWheelEntries(VRWheelEntry* out, int max)
 {
 	static const char* const names[] = {

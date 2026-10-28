@@ -553,6 +553,19 @@ OptionValue "ControlScheme"
 	10, "On"
 }
 
+OptionValue "VRTwoHanded"
+{
+	0, "Off"
+	1, "Basic"
+	2, "Gun Stock"
+}
+
+OptionValue "VRGripStyle"
+{
+	0, "Hold"
+	1, "Toggle"
+}
+
 OptionValue "VRPaintball"
 {
 	0, "Off"
@@ -637,6 +650,10 @@ OptionMenu "VRHandsMenu" protected
 	Slider "Weapon Yaw Adjust",	"vr_weaponYawAdjust", -10.0, 10.0, 1
 	StaticText 	""
 	Option "Paintball",	"vr_paintball", "VRPaintball"
+	Option "Two-Handed Grip",	"vr_two_handed_grip", "VRTwoHanded"
+	Option "Two-Handed Grip Style",	"vr_two_handed_toggle", "VRGripStyle"
+	Option "Controller Vibration",	"vr_haptics", "OnOff"
+	Slider "Vibration Strength",	"vr_haptics_strength", 0.1, 1.0, 0.1, 1
 	StaticText 	""
 	Option "Weapon Wheel (hold stick click)",	"vr_weapon_wheel", "OnOff"
 	Option "Item Wheel (grip + stick click)",	"vr_item_wheel", "OnOff"

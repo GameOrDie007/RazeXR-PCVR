@@ -1124,6 +1124,17 @@ void displayweapon_d(int snum, double interpfrac)
 //
 //---------------------------------------------------------------------------
 
+bool GameInterface::VRHapticState(int& health, int& weapon, int& ammo)
+{
+	auto p = &ps[myconnectindex];
+	auto act = p->GetActor();
+	if (!act) return false;
+	health = act->spr.extra;
+	weapon = p->curr_weapon;
+	ammo = (weapon >= 0 && weapon < MAX_WEAPONS) ? p->ammo_amount[weapon] : 0;
+	return true;
+}
+
 int GameInterface::VRWheelEntries(VRWheelEntry* out, int max)
 {
 	static const char* const dukeNames[] = {

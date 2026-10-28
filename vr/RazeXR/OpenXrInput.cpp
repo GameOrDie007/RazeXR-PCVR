@@ -659,7 +659,11 @@ void TBXR_ProcessHaptics() {
             vibration.type = XR_TYPE_HAPTIC_VIBRATION;
             vibration.next = NULL;
             vibration.amplitude = vibration_channel_intensity[i];
-            vibration.duration = ToXrTime(vibration_channel_duration[i]);
+            // PC branch: the countdown is in milliseconds and OpenXR wants
+            // seconds. Theirs passed the milliseconds straight in, a pulse a
+            // thousand times too long that only the countdown's stop ended.
+            vibration.duration = vibration_channel_duration[i] == -1.0f ? XR_INFINITE_DURATION
+                                 : ToXrTime(vibration_channel_duration[i] / 1000.0);
             vibration.frequency = 3000;
             XrHapticActionInfo hapticActionInfo = {};
             hapticActionInfo.type = XR_TYPE_HAPTIC_ACTION_INFO;

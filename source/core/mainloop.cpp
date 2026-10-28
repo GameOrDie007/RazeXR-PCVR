@@ -96,6 +96,7 @@
 #include "gameinput.h"
 #include "menustate.h"
 #include "vr_gametome.h"
+#include "vr_haptics.h"
 
 void RazeXR_setUseScreenLayer(bool use);
 bool VR_MenuInWorld();	// hw_vrmodes.cpp
@@ -622,6 +623,7 @@ void TryRunTics (void)
 	// the same reason never waits for a tick: the book moves with the hands
 	// every refresh (Doom VR's book fell to 35 fps on exactly this wait).
 	VR_GameTomeFrame();
+	VR_HapticsFrame();
 	const bool bookPause = VR_GameTomePause();
 	bool doWait = (cl_capfps || pauseext || (r_NoInterpolate && !M_IsAnimated() && gamestate != GS_CUTSCENE && gamestate != GS_INTRO))
 		&& !VR_MenuInWorld() && !bookPause;

@@ -92,6 +92,94 @@ void VR_RecenterAll();
 
 extern bool weaponStabilised;
 
+/*
+    PC branch: two hands on a gun (Game Or Die features 23.7).
+
+    Squeeze the off grip at least 10 cm ahead of the gun hand and within
+    20 cm of the line the gun points along, and the off hand takes the front:
+    the gun then aims along the line between the hands (Basic), or from just
+    below the eyes through the gun hand, like sighting along a stock (Gun
+    stock). Roll stays the gun hand's. Toggle, the default: that squeeze
+    takes the front, the next one lets go, and moving the off hand 30 cm off
+    the gun's line lets go too. Hold: the front is held while the grip is.
+
+    The squeeze that takes or lets go of the front is the off hand's whole
+    press: it never also runs, and never counts towards the both-grips
+    recenter. Team Beef left their version of this commented out; this one
+    works from the gun hand's own line, kept apart from the aim it overrides.
+*/
+CVAR(Int, vr_two_handed_grip, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)		// 0 off, 1 basic, 2 gun stock
+CVAR(Bool, vr_two_handed_toggle, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+void TBXR_Vibrate(int duration, int chan, float intensity);
+
+static bool twoHand = false;
+static bool offGripTaken = false;
+static vec3_t gunLineAngles = { 0.f, 0.f, 0.f };	// the gun hand's own aim, before two hands change it
+
+static const float kDegToRad = 3.14159265358979f / 180.f;
+
+// weaponangles' convention (QuatToYawPitchRoll): yaw 0 looks down -Z, a turn
+// to the right is negative yaw, looking up is negative pitch.
+static void TwoHands_AnglesToDir(float pitchDeg, float yawDeg, float d[3])
+{
+    const float p = -pitchDeg * kDegToRad, y = yawDeg * kDegToRad;
+    d[0] = -sinf(y) * cosf(p);
+    d[1] = sinf(p);
+    d[2] = -cosf(y) * cosf(p);
+}
+static void TwoHands_DirToAngles(float x, float y, float z, float& pitchDeg, float& yawDeg)
+{
+    pitchDeg = -atan2f(y, sqrtf(x * x + z * z)) / kDegToRad;
+    yawDeg = -atan2f(x, -z) / kDegToRad;
+}
+
+static void TwoHands_Update(ovrInputStateTrackedRemote* offNew, ovrInputStateTrackedRemote* offOld,
+                            ovrTrackedController* dom, ovrTrackedController* off, int offChannel)
+{
+    const bool gripNew = (offNew->Buttons & xrButton_GripTrigger) != 0;
+    const bool gripOld = (offOld->Buttons & xrButton_GripTrigger) != 0;
+    if (!gripNew) offGripTaken = false;
+
+    if (vr_two_handed_grip <= 0 || menuactive != MENU_Off)
+        twoHand = false;
+    else
+    {
+        float d[3];
+        TwoHands_AnglesToDir(gunLineAngles[PITCH], gunLineAngles[YAW], d);
+        const float vx = off->Pose.position.x - dom->Pose.position.x;
+        const float vy = off->Pose.position.y - dom->Pose.position.y;
+        const float vz = off->Pose.position.z - dom->Pose.position.z;
+        const float along = vx * d[0] + vy * d[1] + vz * d[2];
+        const float lx = vx - along * d[0], ly = vy - along * d[1], lz = vz - along * d[2];
+        const float across = sqrtf(lx * lx + ly * ly + lz * lz);
+        const bool onTheGun = along >= 0.10f && along <= 0.70f && across <= 0.20f;
+        const bool squeeze = gripNew && !gripOld;
+
+        if (vr_two_handed_toggle)
+        {
+            if (squeeze)
+            {
+                if (twoHand) { twoHand = false; offGripTaken = true; }
+                else if (onTheGun) { twoHand = true; offGripTaken = true; TBXR_Vibrate(40, offChannel, 0.4f); }
+            }
+            else if (twoHand && (across > 0.30f || along < 0.0f))
+                twoHand = false;
+        }
+        else
+        {
+            if (squeeze && onTheGun) { twoHand = true; offGripTaken = true; TBXR_Vibrate(40, offChannel, 0.4f); }
+            if (!gripNew) twoHand = false;
+        }
+    }
+    weaponStabilised = twoHand;
+
+    if (offGripTaken)
+    {
+        offNew->Buttons &= ~xrButton_GripTrigger;
+        offOld->Buttons &= ~xrButton_GripTrigger;
+    }
+}
+
 int getGameState();
 void Joy_GenerateButtonEvents(int oldbuttons, int newbuttons, int numbuttons, int base);
 float getViewpointYaw();
@@ -131,6 +219,11 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
         grip already held for longer - running, then the inventory - is a
         combination, and both work as before.
     */
+    // Two hands on a gun first: a squeeze that takes the front is not a grip
+    // for anything below. The off hand's channel: 2 left, 1 right.
+    TwoHands_Update(pOffTrackedRemoteNew, pOffTrackedRemoteOld, pDominantTracking, pOffTracking,
+                    control_scheme >= 10 ? 1 : 2);
+
     {
         static int domFrames = 0, offFrames = 0;
         static bool chord = false;
@@ -245,19 +338,8 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
                                powf(pOffTracking->Pose.position.z -
                                     pDominantTracking->Pose.position.z, 2));
 
-        //Turn on weapon stabilisation?
-        if (vr_two_handed_weapons && menuactive == MENU_Off &&
-                (pOffTrackedRemoteNew->Buttons & xrButton_GripTrigger) !=
-            (pOffTrackedRemoteOld->Buttons & xrButton_GripTrigger)) {
-
-            if (pOffTrackedRemoteNew->Buttons & xrButton_GripTrigger) {
-                if (distance < 0.50f) {
-                    weaponStabilised = true;
-                }
-            } else {
-                weaponStabilised = false;
-            }
-        }
+        // Two hands on the gun: TwoHands_Update, above.
+        (void)distance;
 
         //dominant hand stuff first
         {
@@ -284,20 +366,29 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
                   weaponangles[YAW],
                   weaponangles[ROLL]);
 
-/*            if (weaponStabilised) {
-                float z = pOffTracking->Pose.position.z -
-                          pDominantTracking->Pose.position.z;
-                float x = pOffTracking->Pose.position.x -
-                          pDominantTracking->Pose.position.x;
-                float y = pOffTracking->Pose.position.y -
-                          pDominantTracking->Pose.position.y;
-                float zxDist = length(x, z);
-
-                if (zxDist != 0.0f && z != 0.0f) {
-                    VectorSet(weaponangles, -RAD2DEG(atanf(y / zxDist)), -RAD2DEG(atan2f(x, -z)),
-                              weaponangles[ROLL]);
+            // The gun hand's own line, which decides whether the off hand is on
+            // the gun; then two hands change the aim, before anything reads it,
+            // so the drawn gun and the shot follow together.
+            VectorCopy(weaponangles, gunLineAngles);
+            if (twoHand)
+            {
+                float x, y, z;
+                if (vr_two_handed_grip == 2)
+                {
+                    // Gun stock: from just below the eyes through the gun hand.
+                    x = pDominantTracking->Pose.position.x - hmdPosition[0];
+                    y = pDominantTracking->Pose.position.y - (hmdPosition[1] - 0.07f);
+                    z = pDominantTracking->Pose.position.z - hmdPosition[2];
                 }
-            }*/
+                else
+                {
+                    x = pOffTracking->Pose.position.x - pDominantTracking->Pose.position.x;
+                    y = pOffTracking->Pose.position.y - pDominantTracking->Pose.position.y;
+                    z = pOffTracking->Pose.position.z - pDominantTracking->Pose.position.z;
+                }
+                if (x * x + y * y + z * z > 0.0004f)
+                    TwoHands_DirToAngles(x, y, z, weaponangles[PITCH], weaponangles[YAW]);
+            }
         }
 
         float controllerYawHeading = 0.0f;

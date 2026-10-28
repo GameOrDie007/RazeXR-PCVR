@@ -180,6 +180,18 @@ GoldenEye 007 look, every splat a blend of four colors. Damage, sounds and
 blood stay as they were. VR Options > Hands and Weapons > Paintball, off at
 the start.
 
+Two hands on a gun: squeeze your off hand's grip in front of your gun hand,
+along the gun, and that hand takes the front. The gun then aims along the
+line between your hands, which is much steadier. Squeeze again to let go, or
+move the hand away. VR Options > Hands and Weapons > Two-Handed Grip: Basic
+(the default), Gun Stock (aims from just below your eyes through the gun
+hand, like sighting down a rifle) or Off; Two-Handed Grip Style: Toggle or
+Hold. While your off hand is on the gun, its grip does not run.
+
+Controller vibration: the gun hand kicks with every shot, and both hands buzz
+when you are hit. VR Options > Hands and Weapons > Controller Vibration and
+Vibration Strength.
+
 The Game Tome: hold both hands out in front of you, palms up, as if holding an
 open book, for a second, and the game's manual opens in your off hand, with
 the controls and VR Options at the front and pages for your own notes at the

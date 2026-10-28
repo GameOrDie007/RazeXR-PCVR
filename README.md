@@ -146,6 +146,7 @@ Setup says so when it finds the remaster, rather than only reporting the game as
 - Recenter with both grips, crouching for real, a wall fade, a menu pointer, the
   Leftorium (left-handed play) and VR Options sorted into short pages
 - Paintball: every shot leaves a splat of bright paint on the wall instead of a bullet hole
+- Two hands on a gun, and controller vibration when you fire and when you are hit
 - The Game Tome: the game's manual as a book in your hand, with the controls and pages for your own notes
 - One launcher that opens the game you played last, and Switch Game in the menu
 - A self-contained portable layout: copy the folder to another PC and it runs
@@ -351,6 +352,22 @@ the next 15 cm. **VR Options → Your Body → Wall Fade.**
 **Modern** is wet paint in one bright color a splat; **Classic** is the old GoldenEye 007
 look, every splat a blend of four colors. Damage, sounds and blood stay as they were.
 **VR Options → Hands and Weapons → Paintball**, off at the start.
+
+### Two hands on a gun
+
+**Squeeze your off hand's grip in front of your gun hand, along the gun**, and that hand takes
+the front: the gun now aims along the line between your hands, which is much steadier. Squeeze
+again to let go, or just move the hand away. **VR Options → Hands and Weapons → Two-Handed
+Grip** has **Basic** (the default), **Gun Stock** (the gun aims from just below your eyes
+through your gun hand, like sighting down a rifle), and **Off**. **Two-Handed Grip Style**
+switches between **Toggle** (squeeze to take the front, squeeze again to let go) and **Hold**
+(hold the grip to keep it). While your off hand is on the gun, its grip does not run.
+
+### Controller vibration
+
+Your gun hand kicks with every shot, and both hands buzz when you are hit, harder for a bigger
+hit. **VR Options → Hands and Weapons → Controller Vibration** turns it off, and **Vibration
+Strength** sets how strong it is.
 
 ### The Game Tome
 

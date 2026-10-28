@@ -1176,6 +1176,15 @@ void DrawWeapons(double interpfrac)
 //
 //---------------------------------------------------------------------------
 
+bool GameInterface::VRHapticState(int& health, int& weapon, int& ammo)
+{
+	auto& pl = PlayerList[nLocalPlayer];
+	health = pl.nHealth;
+	weapon = pl.nCurrentWeapon;
+	ammo = (weapon >= 0 && weapon < 7) ? pl.nAmmo[weapon] : 0;
+	return true;
+}
+
 int GameInterface::VRWheelEntries(VRWheelEntry* out, int max)
 {
 	static const char* const names[] = {

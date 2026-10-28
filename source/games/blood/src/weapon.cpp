@@ -3073,6 +3073,16 @@ void teslaHit(DBloodActor* missileactor, int a2)
 //
 //---------------------------------------------------------------------------
 
+bool GameInterface::VRHapticState(int& health, int& weapon, int& ammo)
+{
+	PLAYER* p = &gPlayer[myconnectindex];
+	if (!p->actor || !p->actor->hasX()) return false;
+	health = p->actor->xspr.health >> 4;
+	weapon = p->curWeapon;
+	ammo = (p->weaponAmmo >= 0 && p->weaponAmmo < 12) ? p->ammoCount[p->weaponAmmo] : 0;
+	return true;
+}
+
 int GameInterface::VRWheelEntries(VRWheelEntry* out, int max)
 {
 	static const char* const names[] = {

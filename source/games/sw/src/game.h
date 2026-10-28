@@ -1884,6 +1884,7 @@ struct GameInterface : public ::GameInterface
     void SwitchCoopView() override;
     void processSprites(tspriteArray& tsprites, const DVector3& view, DAngle viewang, double smoothRatio) override;
     int VRWheelEntries(VRWheelEntry* out, int max) override;	// PC branch, vr_wheel.cpp
+    bool VRHapticState(int& health, int& weapon, int& ammo) override;	// PC branch, vr_haptics.cpp
     int VRItemEntries(VRWheelEntry* out, int max) override;	// PC branch, vr_wheel.cpp
     bool VRStandingEyeZ(double interpfrac, double& z) override;	// PC branch, vr_crouch.cpp
     void UpdateCameras(double smoothratio) override;
