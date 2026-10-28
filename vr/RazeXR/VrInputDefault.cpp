@@ -136,8 +136,13 @@ static void TwoHands_DirToAngles(float x, float y, float z, float& pitchDeg, flo
 static void TwoHands_Update(ovrInputStateTrackedRemote* offNew, ovrInputStateTrackedRemote* offOld,
                             ovrTrackedController* dom, ovrTrackedController* off, int offChannel)
 {
+    // The grip's last state is kept here: the saved "old" buttons are copied
+    // from "new" after this frame clears a taken grip, so they would say
+    // "not held" every frame and every frame would be a fresh squeeze.
+    static bool gripWas = false;
     const bool gripNew = (offNew->Buttons & xrButton_GripTrigger) != 0;
-    const bool gripOld = (offOld->Buttons & xrButton_GripTrigger) != 0;
+    const bool gripOld = gripWas;
+    gripWas = gripNew;
     if (!gripNew) offGripTaken = false;
 
     if (vr_two_handed_grip <= 0 || menuactive != MENU_Off)
@@ -373,12 +378,16 @@ void HandleInput_Default( int control_scheme, ovrInputStateTrackedRemote *pDomin
             if (twoHand)
             {
                 float x, y, z;
-                if (vr_two_handed_grip == 2)
+                // Gun stock: from just below the eyes through the gun hand,
+                // once the gun is up at the face. Held lower, that line points
+                // at the floor, so the two hands aim as in Basic until then.
+                const float sx = pDominantTracking->Pose.position.x - hmdPosition[0];
+                const float sy = pDominantTracking->Pose.position.y - (hmdPosition[1] - 0.07f);
+                const float sz = pDominantTracking->Pose.position.z - hmdPosition[2];
+                if (vr_two_handed_grip == 2 && sx * sx + sy * sy + sz * sz < 0.40f * 0.40f &&
+                    sy > -0.15f)
                 {
-                    // Gun stock: from just below the eyes through the gun hand.
-                    x = pDominantTracking->Pose.position.x - hmdPosition[0];
-                    y = pDominantTracking->Pose.position.y - (hmdPosition[1] - 0.07f);
-                    z = pDominantTracking->Pose.position.z - hmdPosition[2];
+                    x = sx; y = sy; z = sz;
                 }
                 else
                 {

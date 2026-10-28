@@ -645,9 +645,11 @@ void TBXR_Vibrate( int duration, int chan, float intensity )
 }
 
 void TBXR_ProcessHaptics() {
-    static float lastFrameTime = 0.0f;
-    float timestamp = (float)(TBXR_GetTimeInMilliSeconds( ));
-    float frametime = timestamp - lastFrameTime;
+    // PC branch: double, as the clock gives it. The clock counts from boot,
+    // and in a float a day's worth of milliseconds steps by 8 ms or more.
+    static double lastFrameTime = 0.0;
+    const double timestamp = TBXR_GetTimeInMilliSeconds( );
+    float frametime = (float)(timestamp - lastFrameTime);
     lastFrameTime = timestamp;
 
     for (int i = 0; i < 2; ++i) {
